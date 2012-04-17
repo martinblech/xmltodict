@@ -25,7 +25,7 @@ u'complex'
 u'element as well'
 ```
 
-It's very fast (Expat-based) and has a streaming mode with a small memory footprint, suitable for big XML dumps like Discogs or Wikipedia:
+It's very fast ([Expat](http://docs.python.org/library/pyexpat.html)-based) and has a streaming mode with a small memory footprint, suitable for big XML dumps like Discogs or Wikipedia:
 
 ```python
 >>> def handle_artist(_, artist):
