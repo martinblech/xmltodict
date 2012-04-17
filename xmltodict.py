@@ -9,7 +9,7 @@ class DictSAXHandler:
             xml_attribs=True,
             item_callback=lambda *args: True,
             attr_prefix='@',
-            cdata_key='_CDATA_',
+            cdata_key='#text',
             force_cdata=False):
         self.path = []
         self.stack = []
@@ -29,6 +29,7 @@ class DictSAXHandler:
             attrs = dict((self.attr_prefix+key, value)
                     for (key, value) in attrs.items())
             self.item = self.xml_attribs and attrs or None
+            self.data = None
     
     def endElement(self, name):
         if len(self.path) == self.item_depth:
