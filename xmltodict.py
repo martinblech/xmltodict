@@ -4,8 +4,13 @@ import xml.parsers.expat
 class ParsingInterrupted(Exception): pass
 
 class DictSAXHandler:
-    def __init__(self, item_depth=0, xml_attribs=True,
-            item_callback=lambda *args: True):
+    def __init__(self,
+            item_depth=0,
+            xml_attribs=True,
+            item_callback=lambda *args: True,
+            attr_prefix='@',
+            cdata_key='_CDATA_',
+            force_cdata=False):
         self.path = []
         self.stack = []
         self.data = None
@@ -13,12 +18,15 @@ class DictSAXHandler:
         self.item_depth = item_depth
         self.xml_attribs = xml_attribs
         self.item_callback = item_callback
+        self.attr_prefix = attr_prefix;
+        self.cdata_key = cdata_key
+        self.force_cdata = force_cdata
 
     def startElement(self, name, attrs):
         self.path.append((name, attrs or None))
         if len(self.path) > self.item_depth:
             self.stack.append((self.item, self.data))
-            attrs = dict(('@'+key, value)
+            attrs = dict((self.attr_prefix+key, value)
                     for (key, value) in attrs.items())
             self.item = self.xml_attribs and attrs or None
     
@@ -33,9 +41,11 @@ class DictSAXHandler:
         if len(self.stack):
             item, data = self.item, self.data
             self.item, self.data = self.stack.pop()
+            if self.force_cdata and item is None:
+                item = {}
             if item is not None:
-                if data and data.strip():
-                    item['_CDATA_'] = data
+                if data:
+                    item[self.cdata_key] = data
                 self.push_data(name, item)
             else:
                 self.push_data(name, data)
@@ -62,8 +72,7 @@ class DictSAXHandler:
         except KeyError:
             self.item[key] = data
 
-def parse(xml_input, item_depth=0, xml_attribs=True,
-        item_callback=lambda *args: True):
+def parse(xml_input, *args, **kwargs):
     """Parse the given XML input and convert it into a dictionary.
 
     `xml_input` can either be a `string` or a file-like object.
@@ -110,9 +119,7 @@ def parse(xml_input, item_depth=0, xml_attribs=True,
         path:[(u'a', {u'prop': u'x'}), (u'b', None)] item:2
 
     """
-    handler = DictSAXHandler(item_depth=item_depth,
-            xml_attribs=xml_attribs,
-            item_callback=item_callback)
+    handler = DictSAXHandler(*args, **kwargs)
     parser = xml.parsers.expat.ParserCreate()
     parser.StartElementHandler = handler.startElement
     parser.EndElementHandler = handler.endElement
@@ -137,7 +144,6 @@ if __name__ == '__main__':
     try:
         root = parse(sys.stdin,
                 item_depth=item_depth,
-                xml_attribs=True,
                 item_callback=handle_item)
         if item_depth == 0:
             handle_item([], root)
