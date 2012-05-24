@@ -1,6 +1,6 @@
 # xmltodict
 
-`xmltodict` is a Python module that makes working with XML feel like you are working with [JSON](http://docs.python.org/library/json.html), as specified in this ["spec"](http://www.xml.com/pub/a/2006/05/31/converting-between-xml-and-json.html):
+`xmltodict` is a Python module that makes working with XML feel like you are working with [JSON](http://docs.python.org/library/json.html), as in this ["spec"](http://www.xml.com/pub/a/2006/05/31/converting-between-xml-and-json.html):
 
 ```python
 >>> doc = xmltodict.parse("""
