@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 import xml.parsers.expat
 
+__author__ = 'Martin Blech'
+__version__ = '0.1.dev'
+__license__ = 'MIT'
+
 class ParsingInterrupted(Exception): pass
 
 class DictSAXHandler:
