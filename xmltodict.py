@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 import xml.parsers.expat
 
 __author__ = 'Martin Blech'
@@ -7,14 +9,15 @@ __license__ = 'MIT'
 
 class ParsingInterrupted(Exception): pass
 
-class DictSAXHandler:
+class _DictSAXHandler:
     def __init__(self,
             item_depth=0,
-            xml_attribs=True,
             item_callback=lambda *args: True,
+            xml_attribs=True,
             attr_prefix='@',
             cdata_key='#text',
-            force_cdata=False):
+            force_cdata=False,
+            cdata_separator=''):
         self.path = []
         self.stack = []
         self.data = None
@@ -25,6 +28,7 @@ class DictSAXHandler:
         self.attr_prefix = attr_prefix;
         self.cdata_key = cdata_key
         self.force_cdata = force_cdata
+        self.cdata_separator = cdata_separator
 
     def startElement(self, name, attrs):
         self.path.append((name, attrs or None))
@@ -46,7 +50,7 @@ class DictSAXHandler:
         if len(self.stack):
             item, data = self.item, self.data
             self.item, self.data = self.stack.pop()
-            if self.force_cdata and item is None:
+            if data and self.force_cdata and item is None:
                 item = {}
             if item is not None:
                 if data:
@@ -63,7 +67,7 @@ class DictSAXHandler:
             if not self.data:
                 self.data = data
             else:
-                self.data += data
+                self.data += self.cdata_separator + data
 
     def push_data(self, key, data):
         if self.item is None:
@@ -124,7 +128,7 @@ def parse(xml_input, *args, **kwargs):
         path:[(u'a', {u'prop': u'x'}), (u'b', None)] item:2
 
     """
-    handler = DictSAXHandler(*args, **kwargs)
+    handler = _DictSAXHandler(*args, **kwargs)
     parser = xml.parsers.expat.ParserCreate()
     parser.StartElementHandler = handler.startElement
     parser.EndElementHandler = handler.endElement
@@ -135,15 +139,15 @@ def parse(xml_input, *args, **kwargs):
         parser.Parse(xml_input, True)
     return handler.item
 
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: no cover
     import sys
     import marshal
 
     (item_depth,) = sys.argv[1:]
     item_depth = int(item_depth)
 
-    def handle_item(item_type, item):
-        marshal.dump((item_type, item), sys.stdout)
+    def handle_item(path, item):
+        marshal.dump((path, item), sys.stdout)
         return True
 
     try:
@@ -154,5 +158,5 @@ if __name__ == '__main__':
             handle_item([], root)
     except KeyboardInterrupt:
         pass
-    except IOError, e:
-        print e
+    except IOError as e:
+        print(e, file=sys.stderr)
