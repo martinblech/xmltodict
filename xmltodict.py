@@ -154,7 +154,7 @@ def parse(xml_input, *args, **kwargs):
         parser.Parse(xml_input, True)
     return handler.item
 
-def emit(key, value, content_handler,
+def _emit(key, value, content_handler,
          attr_prefix='@',
          cdata_key='#text',
          root=True):
@@ -182,7 +182,7 @@ def emit(key, value, content_handler,
             children.append((ik, iv))
         content_handler.startElement(key, AttributesImpl(attrs))
         for child_key, child_value in children:
-            emit(child_key, child_value, content_handler,
+            _emit(child_key, child_value, content_handler,
                  attr_prefix, cdata_key, False)
         if cdata is not None:
             content_handler.characters(cdata)
@@ -197,7 +197,7 @@ def unparse(item, output=None, encoding='utf-8', **kwargs):
         must_return = True
     content_handler = XMLGenerator(output, encoding)
     content_handler.startDocument()
-    emit(key, value, content_handler, **kwargs)
+    _emit(key, value, content_handler, **kwargs)
     content_handler.endDocument()
     if must_return:
         value = output.getvalue().decode(encoding)
