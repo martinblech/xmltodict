@@ -76,3 +76,11 @@ $ cat enwiki.dicts.gz | gunzip | script1.py
 $ cat enwiki.dicts.gz | gunzip | script2.py
 ...
 ```
+
+## Ok, how do I get it?
+
+You just need to
+
+```sh
+$ pip install xmltodict
+```
