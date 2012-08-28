@@ -1,7 +1,22 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-import xml.parsers.expat
+from xml.parsers import expat
+from xml.sax.saxutils import XMLGenerator
+from xml.sax.xmlreader import AttributesImpl
+try: # pragma no cover
+    from cStringIO import StringIO
+except ImportError: # pragma no cover
+    from StringIO import StringIO
+try: # pragma no cover
+    from collections import OrderedDict
+except ImportError: # pragma no cover
+    OrderedDict = dict
+
+try: # pragma no cover
+    _basestring = basestring
+except NameError: # pragma no cover
+    _basestring = str
 
 __author__ = 'Martin Blech'
 __version__ = '0.1.dev'
@@ -34,7 +49,7 @@ class _DictSAXHandler:
         self.path.append((name, attrs or None))
         if len(self.path) > self.item_depth:
             self.stack.append((self.item, self.data))
-            attrs = dict((self.attr_prefix+key, value)
+            attrs = OrderedDict((self.attr_prefix+key, value)
                     for (key, value) in attrs.items())
             self.item = self.xml_attribs and attrs or None
             self.data = None
@@ -51,7 +66,7 @@ class _DictSAXHandler:
             item, data = self.item, self.data
             self.item, self.data = self.stack.pop()
             if data and self.force_cdata and item is None:
-                item = {}
+                item = OrderedDict()
             if item is not None:
                 if data:
                     item[self.cdata_key] = data
@@ -71,7 +86,7 @@ class _DictSAXHandler:
 
     def push_data(self, key, data):
         if self.item is None:
-            self.item = {}
+            self.item = OrderedDict()
         try:
             value = self.item[key]
             if isinstance(value, list):
@@ -129,7 +144,7 @@ def parse(xml_input, *args, **kwargs):
 
     """
     handler = _DictSAXHandler(*args, **kwargs)
-    parser = xml.parsers.expat.ParserCreate()
+    parser = expat.ParserCreate()
     parser.StartElementHandler = handler.startElement
     parser.EndElementHandler = handler.endElement
     parser.CharacterDataHandler = handler.characters
@@ -138,6 +153,55 @@ def parse(xml_input, *args, **kwargs):
     else:
         parser.Parse(xml_input, True)
     return handler.item
+
+def emit(key, value, content_handler,
+         attr_prefix='@',
+         cdata_key='#text',
+         root=True):
+    if not isinstance(value, (list, tuple)):
+        value = [value]
+    if root and len(value) > 1:
+        raise ValueError('document with multiple roots')
+    for v in value:
+        if v is None:
+            v = OrderedDict()
+        elif not isinstance(v, dict):
+            v = unicode(v)
+        if isinstance(v, _basestring):
+            v = OrderedDict(((cdata_key, v),))
+        cdata = None
+        attrs = OrderedDict()
+        children = []
+        for ik, iv in v.items():
+            if ik == cdata_key:
+                cdata = iv
+                continue
+            if ik.startswith(attr_prefix):
+                attrs[ik[len(attr_prefix):]] = iv
+                continue
+            children.append((ik, iv))
+        content_handler.startElement(key, AttributesImpl(attrs))
+        for child_key, child_value in children:
+            emit(child_key, child_value, content_handler,
+                 attr_prefix, cdata_key, False)
+        if cdata is not None:
+            content_handler.characters(cdata)
+        content_handler.endElement(key)
+
+
+def unparse(item, output=None, encoding='utf-8', **kwargs):
+    ((key, value),) = item.items()
+    must_return = False
+    if output == None:
+        output = StringIO()
+        must_return = True
+    content_handler = XMLGenerator(output, encoding)
+    content_handler.startDocument()
+    emit(key, value, content_handler, **kwargs)
+    content_handler.endDocument()
+    if must_return:
+        value = output.getvalue().decode(encoding)
+        return value
 
 if __name__ == '__main__': # pragma: no cover
     import sys
