@@ -4,13 +4,23 @@ try:
     import unittest2 as unittest
 except ImportError:
     import unittest
+try:
+    from io import BytesIO as StringIO
+except ImportError:
+    StringIO = xmltodict.StringIO
+
+def _encode(s):
+    try:
+        return bytes(s, 'ascii')
+    except (NameError, TypeError):
+        return s
 
 class XMLToDictTestCase(unittest.TestCase):
 
     def test_string_vs_file(self):
         xml = '<a>data</a>'
         self.assertEqual(xmltodict.parse(xml),
-                         xmltodict.parse(xmltodict.StringIO(xml)))
+                         xmltodict.parse(StringIO(_encode(xml))))
 
     def test_minimal(self):
         self.assertEqual(xmltodict.parse('<a/>'),

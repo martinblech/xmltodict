@@ -8,7 +8,7 @@ except ImportError: # pragma no cover
     try:
         from StringIO import StringIO
     except ImportError:
-        from io import BytesIO as StringIO
+        from io import StringIO
 try: # pragma no cover
     from collections import OrderedDict
 except ImportError: # pragma no cover
@@ -18,6 +18,10 @@ try: # pragma no cover
     _basestring = basestring
 except NameError: # pragma no cover
     _basestring = str
+try:
+    _unicode = unicode
+except NameError:
+    _unicode = str
 
 __author__ = 'Martin Blech'
 __version__ = '0.1.dev'
@@ -167,7 +171,7 @@ def _emit(key, value, content_handler,
         if v is None:
             v = OrderedDict()
         elif not isinstance(v, dict):
-            v = unicode(v)
+            v = _unicode(v)
         if isinstance(v, _basestring):
             v = OrderedDict(((cdata_key, v),))
         cdata = None
@@ -201,7 +205,11 @@ def unparse(item, output=None, encoding='utf-8', **kwargs):
     _emit(key, value, content_handler, **kwargs)
     content_handler.endDocument()
     if must_return:
-        value = output.getvalue().decode(encoding)
+        value = output.getvalue()
+        try:
+            value = value.decode(encoding)
+        except AttributeError:
+            pass
         return value
 
 if __name__ == '__main__': # pragma: no cover
