@@ -222,5 +222,3 @@ if __name__ == '__main__': # pragma: no cover
             handle_item([], root)
     except KeyboardInterrupt:
         pass
-    except IOError as e:
-        print(e, file=sys.stderr)
