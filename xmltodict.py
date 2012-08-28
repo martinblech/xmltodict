@@ -7,7 +7,10 @@ from xml.sax.xmlreader import AttributesImpl
 try: # pragma no cover
     from cStringIO import StringIO
 except ImportError: # pragma no cover
-    from StringIO import StringIO
+    try:
+        from StringIO import StringIO
+    except ImportError:
+        from io import StringIO
 try: # pragma no cover
     from collections import OrderedDict
 except ImportError: # pragma no cover
