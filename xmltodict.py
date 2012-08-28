@@ -18,9 +18,9 @@ try: # pragma no cover
     _basestring = basestring
 except NameError: # pragma no cover
     _basestring = str
-try:
+try: # pragma no cover
     _unicode = unicode
-except NameError:
+except NameError: # pragma no cover
     _unicode = str
 
 __author__ = 'Martin Blech'
@@ -206,9 +206,9 @@ def unparse(item, output=None, encoding='utf-8', **kwargs):
     content_handler.endDocument()
     if must_return:
         value = output.getvalue()
-        try:
+        try: # pragma no cover
             value = value.decode(encoding)
-        except AttributeError:
+        except AttributeError: # pragma no cover
             pass
         return value
 
