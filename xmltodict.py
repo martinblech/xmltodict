@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
-
 from xml.parsers import expat
 from xml.sax.saxutils import XMLGenerator
 from xml.sax.xmlreader import AttributesImpl
@@ -10,7 +8,7 @@ except ImportError: # pragma no cover
     try:
         from StringIO import StringIO
     except ImportError:
-        from io import StringIO
+        from io import BytesIO as StringIO
 try: # pragma no cover
     from collections import OrderedDict
 except ImportError: # pragma no cover
