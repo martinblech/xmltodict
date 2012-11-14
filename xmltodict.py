@@ -31,15 +31,16 @@ __license__ = 'MIT'
 
 class ParsingInterrupted(Exception): pass
 
-class _DictSAXHandler:
+class _DictSAXHandler(object):
     def __init__(self,
-            item_depth=0,
-            item_callback=lambda *args: True,
-            xml_attribs=True,
-            attr_prefix='@',
-            cdata_key='#text',
-            force_cdata=False,
-            cdata_separator=''):
+                 item_depth=0,
+                 item_callback=lambda *args: True,
+                 xml_attribs=True,
+                 attr_prefix='@',
+                 cdata_key='#text',
+                 force_cdata=False,
+                 cdata_separator='',
+                 postprocessor=None):
         self.path = []
         self.stack = []
         self.data = None
@@ -51,6 +52,7 @@ class _DictSAXHandler:
         self.cdata_key = cdata_key
         self.force_cdata = force_cdata
         self.cdata_separator = cdata_separator
+        self.postprocessor = postprocessor
 
     def startElement(self, name, attrs):
         self.path.append((name, attrs or None))
@@ -92,6 +94,8 @@ class _DictSAXHandler:
                 self.data += self.cdata_separator + data
 
     def push_data(self, key, data):
+        if self.postprocessor is not None:
+            key, data = self.postprocessor(self.path, key, data)
         if self.item is None:
             self.item = OrderedDict()
         try:
@@ -148,6 +152,19 @@ def parse(xml_input, *args, **kwargs):
         ... </a>\"\"\", item_depth=2, item_callback=handle)
         path:[(u'a', {u'prop': u'x'}), (u'b', None)] item:1
         path:[(u'a', {u'prop': u'x'}), (u'b', None)] item:2
+
+    The optional argument `postprocessor` is a function that takes `path`, `key`
+    and `value` as positional arguments and returns a new `(key, value)` pair
+    where both `key` and `value` may have changed. Usage example::
+
+        >>> def postprocessor(path, key, value):
+        ...     try:
+        ...         return key + ':int', int(value)
+        ...     except (ValueError, TypeError):
+        ...         return key, value
+        >>> xmltodict.parse('<a><b>1</b><b>2</b><b>x</b></a>',
+        ...                 postprocessor=postprocessor)
+        OrderedDict([(u'a', OrderedDict([(u'b:int', [1, 2]), (u'b', u'x')]))])
 
     """
     handler = _DictSAXHandler(*args, **kwargs)

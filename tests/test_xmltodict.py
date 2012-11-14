@@ -94,3 +94,13 @@ class XMLToDictTestCase(unittest.TestCase):
             self.fail()
         except xmltodict.ParsingInterrupted:
             pass
+
+    def test_postprocessor(self):
+        def postprocessor(path, key, value):
+            try:
+                return key + ':int', int(value)
+            except (ValueError, TypeError):
+                return key, value
+        self.assertEqual({'a': {'b:int': [1, 2], 'b': 'x'}},
+                         xmltodict.parse('<a><b>1</b><b>2</b><b>x</b></a>',
+                                         postprocessor=postprocessor))
