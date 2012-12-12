@@ -1,4 +1,4 @@
-from xmltodict import parse, unparse
+from xmltodict import parse, unparse, OrderedDict
 
 try:
     import unittest2 as unittest
@@ -65,3 +65,23 @@ class DictToXMLTestCase(unittest.TestCase):
         xml = '<a>abc<d/>efg</a>'
         self.assertEqual(_strip(unparse(parse(xml))),
                          '<a><d></d>abcefg</a>')
+
+    def test_preprocessor(self):
+        obj = {'a': OrderedDict((('b:int', [1, 2]), ('b', 'c')))}
+        def p(key, value):
+            try:
+                key, _ = key.split(':')
+            except ValueError:
+                pass
+            return key, value
+        self.assertEqual(_strip(unparse(obj, preprocessor=p)),
+                         '<a><b>1</b><b>2</b><b>c</b></a>')
+
+    def test_preprocessor_skipkey(self):
+        obj = {'a': {'b': 1, 'c': 2}}
+        def p(key, value):
+            if key == 'b':
+                return None
+            return key, value
+        self.assertEqual(_strip(unparse(obj, preprocessor=p)),
+                         '<a><c>2</c></a>')

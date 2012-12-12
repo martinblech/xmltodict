@@ -104,3 +104,14 @@ class XMLToDictTestCase(unittest.TestCase):
         self.assertEqual({'a': {'b:int': [1, 2], 'b': 'x'}},
                          xmltodict.parse('<a><b>1</b><b>2</b><b>x</b></a>',
                                          postprocessor=postprocessor))
+
+    def test_postprocessor_skip(self):
+        def postprocessor(path, key, value):
+            if key == 'b':
+                value = int(value)
+                if value == 3:
+                    return None
+            return key, value
+        self.assertEqual({'a': {'b': [1, 2]}},
+                         xmltodict.parse('<a><b>1</b><b>2</b><b>3</b></a>',
+                                         postprocessor=postprocessor))

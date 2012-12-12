@@ -95,7 +95,10 @@ class _DictSAXHandler(object):
 
     def push_data(self, key, data):
         if self.postprocessor is not None:
-            key, data = self.postprocessor(self.path, key, data)
+            result = self.postprocessor(self.path, key, data)
+            if result is None:
+                return
+            key, data = result
         if self.item is None:
             self.item = OrderedDict()
         try:
@@ -179,9 +182,15 @@ def parse(xml_input, *args, **kwargs):
     return handler.item
 
 def _emit(key, value, content_handler,
-         attr_prefix='@',
-         cdata_key='#text',
-         root=True):
+          attr_prefix='@',
+          cdata_key='#text',
+          root=True,
+          preprocessor=None):
+    if preprocessor is not None:
+        result = preprocessor(key, value)
+        if result is None:
+            return
+        key, value = result
     if not isinstance(value, (list, tuple)):
         value = [value]
     if root and len(value) > 1:
@@ -207,7 +216,7 @@ def _emit(key, value, content_handler,
         content_handler.startElement(key, AttributesImpl(attrs))
         for child_key, child_value in children:
             _emit(child_key, child_value, content_handler,
-                 attr_prefix, cdata_key, False)
+                  attr_prefix, cdata_key, False, preprocessor)
         if cdata is not None:
             content_handler.characters(cdata)
         content_handler.endElement(key)
