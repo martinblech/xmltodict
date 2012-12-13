@@ -31,3 +31,6 @@ nosetests.xml
 
 #Mr Developer
 .mr.developer.cfg
+
+#setuptools MANIFEST
+MANIFEST
