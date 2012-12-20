@@ -40,7 +40,8 @@ class _DictSAXHandler(object):
                  cdata_key='#text',
                  force_cdata=False,
                  cdata_separator='',
-                 postprocessor=None):
+                 postprocessor=None,
+                 dict_constructor=OrderedDict):
         self.path = []
         self.stack = []
         self.data = None
@@ -53,14 +54,19 @@ class _DictSAXHandler(object):
         self.force_cdata = force_cdata
         self.cdata_separator = cdata_separator
         self.postprocessor = postprocessor
+        self.dict_constructor = dict_constructor
 
     def startElement(self, name, attrs):
         self.path.append((name, attrs or None))
         if len(self.path) > self.item_depth:
             self.stack.append((self.item, self.data))
-            attrs = OrderedDict((self.attr_prefix+key, value)
+            if self.xml_attribs:
+                attrs = self.dict_constructor(
+                    (self.attr_prefix+key, value)
                     for (key, value) in attrs.items())
-            self.item = self.xml_attribs and attrs or None
+            else:
+                attrs = None
+            self.item = attrs or None
             self.data = None
     
     def endElement(self, name):
@@ -75,7 +81,7 @@ class _DictSAXHandler(object):
             item, data = self.item, self.data
             self.item, self.data = self.stack.pop()
             if data and self.force_cdata and item is None:
-                item = OrderedDict()
+                item = self.dict_constructor()
             if item is not None:
                 if data:
                     item[self.cdata_key] = data
@@ -100,7 +106,7 @@ class _DictSAXHandler(object):
                 return
             key, data = result
         if self.item is None:
-            self.item = OrderedDict()
+            self.item = self.dict_constructor()
         try:
             value = self.item[key]
             if isinstance(value, list):
@@ -253,8 +259,9 @@ if __name__ == '__main__': # pragma: no cover
 
     try:
         root = parse(sys.stdin,
-                item_depth=item_depth,
-                item_callback=handle_item)
+                     item_depth=item_depth,
+                     item_callback=handle_item,
+                     dict_constructor=dict)
         if item_depth == 0:
             handle_item([], root)
     except KeyboardInterrupt:
