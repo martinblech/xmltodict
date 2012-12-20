@@ -93,11 +93,10 @@ class _DictSAXHandler(object):
         self.path.pop()
 
     def characters(self, data):
-        if data.strip():
-            if not self.data:
-                self.data = data
-            else:
-                self.data += self.cdata_separator + data
+        if not self.data:
+            self.data = data
+        else:
+            self.data += self.cdata_separator + data
 
     def push_data(self, key, data):
         if self.postprocessor is not None:
