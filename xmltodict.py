@@ -84,10 +84,10 @@ class _DictSAXHandler(object):
                 item = self.dict_constructor()
             if item is not None:
                 if data:
-                    item[self.cdata_key] = data
-                self.push_data(name, item)
+                    self.push_data(item, self.cdata_key, data)
+                self.item = self.push_data(self.item, name, item)
             else:
-                self.push_data(name, data)
+                self.item = self.push_data(self.item, name, data)
         else:
             self.item = self.data = None
         self.path.pop()
@@ -98,22 +98,23 @@ class _DictSAXHandler(object):
         else:
             self.data += self.cdata_separator + data
 
-    def push_data(self, key, data):
+    def push_data(self, item, key, data):
         if self.postprocessor is not None:
             result = self.postprocessor(self.path, key, data)
             if result is None:
-                return
+                return item
             key, data = result
-        if self.item is None:
-            self.item = self.dict_constructor()
+        if item is None:
+            item = self.dict_constructor()
         try:
-            value = self.item[key]
+            value = item[key]
             if isinstance(value, list):
                 value.append(data)
             else:
-                self.item[key] = [value, data]
+                item[key] = [value, data]
         except KeyError:
-            self.item[key] = data
+            item[key] = data
+        return item
 
 def parse(xml_input, *args, **kwargs):
     """Parse the given XML input and convert it into a dictionary.

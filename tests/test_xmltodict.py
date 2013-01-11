@@ -115,3 +115,27 @@ class XMLToDictTestCase(unittest.TestCase):
         self.assertEqual({'a': {'b': [1, 2]}},
                          xmltodict.parse('<a><b>1</b><b>2</b><b>3</b></a>',
                                          postprocessor=postprocessor))
+
+    def test_postprocess_whitespace(self):
+        xml = """
+        <root>
+
+
+          <emptya>           </emptya>
+          <emptyb attr="attrvalue">
+
+
+          </emptyb>
+          <value>hello</value>
+        </root>
+        """
+        def skip_whitespace(path, key, value):
+            try:
+                if not value.strip():
+                    return None
+            except:
+                pass
+            return key, value
+        self.assertEqual(
+            xmltodict.parse(xml, postprocessor=skip_whitespace),
+            {'root': {'emptyb': {'@attr': 'attrvalue'}, 'value': 'hello'}})
