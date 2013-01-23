@@ -5,6 +5,7 @@ try:
 except ImportError:
     import unittest
 import re
+import collections
 
 _HEADER_RE = re.compile(r'^[^\n]*\n')
 def _strip(fullxml):
@@ -86,6 +87,7 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertEqual(_strip(unparse(obj, preprocessor=p)),
                          '<a><c>2</c></a>')
 
-    def test_attr_order_roundtrip(self):
-        xml = '<root a="1" b="2" c="3"></root>'
-        self.assertEqual(xml, _strip(unparse(parse(xml))))
+    if 'OrderedDict' in dir(collections):
+        def test_attr_order_roundtrip(self):
+            xml = '<root a="1" b="2" c="3"></root>'
+            self.assertEqual(xml, _strip(unparse(parse(xml))))
