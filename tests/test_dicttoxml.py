@@ -85,3 +85,7 @@ class DictToXMLTestCase(unittest.TestCase):
             return key, value
         self.assertEqual(_strip(unparse(obj, preprocessor=p)),
                          '<a><c>2</c></a>')
+
+    def test_attr_order_roundtrip(self):
+        xml = '<root a="1" b="2" c="3"></root>'
+        self.assertEqual(xml, _strip(unparse(parse(xml))))

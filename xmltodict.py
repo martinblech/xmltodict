@@ -57,6 +57,7 @@ class _DictSAXHandler(object):
         self.dict_constructor = dict_constructor
 
     def startElement(self, name, attrs):
+        attrs = self.dict_constructor(zip(attrs[0::2], attrs[1::2]))
         self.path.append((name, attrs or None))
         if len(self.path) > self.item_depth:
             self.stack.append((self.item, self.data))
@@ -68,7 +69,7 @@ class _DictSAXHandler(object):
                 attrs = None
             self.item = attrs or None
             self.data = None
-    
+
     def endElement(self, name):
         if len(self.path) == self.item_depth:
             item = self.item
@@ -177,6 +178,7 @@ def parse(xml_input, *args, **kwargs):
     """
     handler = _DictSAXHandler(*args, **kwargs)
     parser = expat.ParserCreate()
+    parser.ordered_attributes = True
     parser.StartElementHandler = handler.startElement
     parser.EndElementHandler = handler.endElement
     parser.CharacterDataHandler = handler.characters
