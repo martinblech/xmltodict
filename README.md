@@ -84,3 +84,9 @@ You just need to
 ```sh
 $ pip install xmltodict
 ```
+
+There is an [official Fedora package for xmltodict](https://admin.fedoraproject.org/pkgdb/acls/name/python-xmltodict). If you are on Fedora or RHEL, you can do:
+
+```sh
+$ sudo yum install python-xmltodict
+```
