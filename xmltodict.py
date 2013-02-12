@@ -100,6 +100,11 @@ class _DictSAXHandler(object):
             self.data += self.cdata_separator + data
 
     def push_data(self, item, key, data):
+        """skip_whitespace began as a postprocess and became a default behavior"""
+        result = skip_whitespace(self.path, key, data)
+        if result is None:
+            return item
+        key, data = result
         if self.postprocessor is not None:
             result = self.postprocessor(self.path, key, data)
             if result is None:
@@ -154,7 +159,7 @@ def parse(xml_input, *args, **kwargs):
         >>> def handle(path, item):
         ...     print 'path:%s item:%s' % (path, item)
         ...     return True
-        ... 
+        ...
         >>> xmltodict.parse(\"\"\"
         ... <a prop="x">
         ...   <b>1</b>
@@ -229,6 +234,13 @@ def _emit(key, value, content_handler,
             content_handler.characters(cdata)
         content_handler.endElement(key)
 
+def skip_whitespace(path, key, value):
+    try:
+        if not value.strip():
+            return None
+    except:
+        pass
+    return key, value
 
 def unparse(item, output=None, encoding='utf-8', **kwargs):
     ((key, value),) = item.items()

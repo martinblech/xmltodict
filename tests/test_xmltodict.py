@@ -1,4 +1,10 @@
-import xmltodict
+"in case we do not have xmltodict installed in site packages, check parent dir."
+try:
+    import xmltodict
+except ImportError:
+    import os, sys
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.path.pardir))
+    import xmltodict
 
 try:
     import unittest2 as unittest
@@ -75,6 +81,23 @@ class XMLToDictTestCase(unittest.TestCase):
                          {'a': {'#text': 'abcdef', 'b': {
                              '#text': '123456', 'c': None}}})
 
+    def test_skip_whitespace(self):
+        xml = """
+        <root>
+
+
+          <emptya>           </emptya>
+          <emptyb attr="attrvalue">
+
+
+          </emptyb>
+          <value>hello</value>
+        </root>
+        """
+        self.assertEqual(
+            xmltodict.parse(xml),
+            {'root': {'emptyb': {'@attr': 'attrvalue'}, 'value': 'hello'}})
+
     def test_streaming(self):
         def cb(path, item):
             cb.count += 1
@@ -115,27 +138,3 @@ class XMLToDictTestCase(unittest.TestCase):
         self.assertEqual({'a': {'b': [1, 2]}},
                          xmltodict.parse('<a><b>1</b><b>2</b><b>3</b></a>',
                                          postprocessor=postprocessor))
-
-    def test_postprocess_whitespace(self):
-        xml = """
-        <root>
-
-
-          <emptya>           </emptya>
-          <emptyb attr="attrvalue">
-
-
-          </emptyb>
-          <value>hello</value>
-        </root>
-        """
-        def skip_whitespace(path, key, value):
-            try:
-                if not value.strip():
-                    return None
-            except:
-                pass
-            return key, value
-        self.assertEqual(
-            xmltodict.parse(xml, postprocessor=skip_whitespace),
-            {'root': {'emptyb': {'@attr': 'attrvalue'}, 'value': 'hello'}})
