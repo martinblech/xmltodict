@@ -41,7 +41,8 @@ class _DictSAXHandler(object):
                  force_cdata=False,
                  cdata_separator='',
                  postprocessor=None,
-                 dict_constructor=OrderedDict):
+                 dict_constructor=OrderedDict,
+                 strip_whitespace=True):
         self.path = []
         self.stack = []
         self.data = None
@@ -55,6 +56,7 @@ class _DictSAXHandler(object):
         self.cdata_separator = cdata_separator
         self.postprocessor = postprocessor
         self.dict_constructor = dict_constructor
+        self.strip_whitespace = strip_whitespace
 
     def startElement(self, name, attrs):
         attrs = self.dict_constructor(zip(attrs[0::2], attrs[1::2]))
@@ -80,9 +82,9 @@ class _DictSAXHandler(object):
                 raise ParsingInterrupted()
         if len(self.stack):
             item, data = self.item, self.data
-            if data is not None:
-                data = data.strip() or None
             self.item, self.data = self.stack.pop()
+            if self.strip_whitespace and data is not None:
+                data = data.strip() or None
             if data and self.force_cdata and item is None:
                 item = self.dict_constructor()
             if item is not None:
