@@ -81,7 +81,7 @@ class _DictSAXHandler(object):
         if len(self.stack):
             item, data = self.item, self.data
             if data is not None:
-                data = data.strip()
+                data = data.strip() or None
             self.item, self.data = self.stack.pop()
             if data and self.force_cdata and item is None:
                 item = self.dict_constructor()
