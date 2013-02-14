@@ -80,15 +80,17 @@ class _DictSAXHandler(object):
                 raise ParsingInterrupted()
         if len(self.stack):
             item, data = self.item, self.data
+            if data is not None:
+                data = data.strip()
             self.item, self.data = self.stack.pop()
             if data and self.force_cdata and item is None:
                 item = self.dict_constructor()
             if item is not None:
-                if data.strip() is not None:
-                    self.push_data(item, self.cdata_key, data.strip())
+                if data:
+                    self.push_data(item, self.cdata_key, data)
                 self.item = self.push_data(self.item, name, item)
             else:
-                self.item = self.push_data(self.item, name, data.strip())
+                self.item = self.push_data(self.item, name, data)
         else:
             self.item = self.data = None
         self.path.pop()
