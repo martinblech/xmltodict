@@ -49,7 +49,7 @@ class _DictSAXHandler(object):
         self.item_depth = item_depth
         self.xml_attribs = xml_attribs
         self.item_callback = item_callback
-        self.attr_prefix = attr_prefix;
+        self.attr_prefix = attr_prefix
         self.cdata_key = cdata_key
         self.force_cdata = force_cdata
         self.cdata_separator = cdata_separator
@@ -80,6 +80,8 @@ class _DictSAXHandler(object):
                 raise ParsingInterrupted()
         if len(self.stack):
             item, data = self.item, self.data
+            if data is not None:
+                data = data.strip() or None
             self.item, self.data = self.stack.pop()
             if data and self.force_cdata and item is None:
                 item = self.dict_constructor()
@@ -154,7 +156,7 @@ def parse(xml_input, *args, **kwargs):
         >>> def handle(path, item):
         ...     print 'path:%s item:%s' % (path, item)
         ...     return True
-        ... 
+        ...
         >>> xmltodict.parse(\"\"\"
         ... <a prop="x">
         ...   <b>1</b>
@@ -228,7 +230,6 @@ def _emit(key, value, content_handler,
         if cdata is not None:
             content_handler.characters(cdata)
         content_handler.endElement(key)
-
 
 def unparse(item, output=None, encoding='utf-8', **kwargs):
     ((key, value),) = item.items()
