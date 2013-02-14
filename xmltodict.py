@@ -49,7 +49,7 @@ class _DictSAXHandler(object):
         self.item_depth = item_depth
         self.xml_attribs = xml_attribs
         self.item_callback = item_callback
-        self.attr_prefix = attr_prefix;
+        self.attr_prefix = attr_prefix
         self.cdata_key = cdata_key
         self.force_cdata = force_cdata
         self.cdata_separator = cdata_separator
@@ -84,11 +84,11 @@ class _DictSAXHandler(object):
             if data and self.force_cdata and item is None:
                 item = self.dict_constructor()
             if item is not None:
-                if data:
-                    self.push_data(item, self.cdata_key, data)
+                if data.strip() is not None:
+                    self.push_data(item, self.cdata_key, data.strip())
                 self.item = self.push_data(self.item, name, item)
             else:
-                self.item = self.push_data(self.item, name, data)
+                self.item = self.push_data(self.item, name, data.strip())
         else:
             self.item = self.data = None
         self.path.pop()
@@ -100,11 +100,6 @@ class _DictSAXHandler(object):
             self.data += self.cdata_separator + data
 
     def push_data(self, item, key, data):
-        """skip_whitespace began as a postprocess and became a default behavior"""
-        result = skip_whitespace(self.path, key, data)
-        if result is None:
-            return item
-        key, data = result
         if self.postprocessor is not None:
             result = self.postprocessor(self.path, key, data)
             if result is None:
@@ -233,14 +228,6 @@ def _emit(key, value, content_handler,
         if cdata is not None:
             content_handler.characters(cdata)
         content_handler.endElement(key)
-
-def skip_whitespace(path, key, value):
-    try:
-        if not value.strip():
-            return None
-    except:
-        pass
-    return key, value
 
 def unparse(item, output=None, encoding='utf-8', **kwargs):
     ((key, value),) = item.items()

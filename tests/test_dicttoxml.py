@@ -1,10 +1,4 @@
-"in case we do not have xmltodict installed in site packages, check parent dir."
-try:
-    from xmltodict import parse, unparse, OrderedDict
-except ImportError:
-    import os, sys
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.path.pardir))
-    from xmltodict import parse, unparse, OrderedDict
+from xmltodict import parse, unparse, OrderedDict
 
 try:
     import unittest2 as unittest
