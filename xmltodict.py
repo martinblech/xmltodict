@@ -121,7 +121,7 @@ class _DictSAXHandler(object):
             item[key] = data
         return item
 
-def parse(xml_input, *args, **kwargs):
+def parse(xml_input, encoding='utf-8', *args, **kwargs):
     """Parse the given XML input and convert it into a dictionary.
 
     `xml_input` can either be a `string` or a file-like object.
@@ -190,6 +190,10 @@ def parse(xml_input, *args, **kwargs):
     if hasattr(xml_input, 'read'):
         parser.ParseFile(xml_input)
     else:
+        try:
+            xml_input = xml_input.encode(encoding)
+        except ValueError:
+            pass
         parser.Parse(xml_input, True)
     return handler.item
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import xmltodict
 
 try:
@@ -108,14 +109,14 @@ class XMLToDictTestCase(unittest.TestCase):
             return True
         cb.count = 0
         xmltodict.parse('<a x="y"><b>1</b><b>2</b><b>3</b></a>',
-                        2, cb)
+                        item_depth=2, item_callback=cb)
         self.assertEqual(cb.count, 3)
 
     def test_streaming_interrupt(self):
         def cb(path, item):
             return False
         try:
-            xmltodict.parse('<a>x</a>', 1, cb)
+            xmltodict.parse('<a>x</a>', item_depth=1, item_callback=cb)
             self.fail()
         except xmltodict.ParsingInterrupted:
             pass
@@ -140,3 +141,8 @@ class XMLToDictTestCase(unittest.TestCase):
         self.assertEqual({'a': {'b': [1, 2]}},
                          xmltodict.parse('<a><b>1</b><b>2</b><b>3</b></a>',
                                          postprocessor=postprocessor))
+
+    def test_unicode(self):
+        value = u'香'
+        self.assertEqual({'a': value},
+            xmltodict.parse(u"<a>%s</a>" % value))
