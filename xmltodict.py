@@ -26,7 +26,7 @@ except NameError: # pragma no cover
     _unicode = str
 
 __author__ = 'Martin Blech'
-__version__ = '0.4.5'
+__version__ = '0.4.6'
 __license__ = 'MIT'
 
 class ParsingInterrupted(Exception): pass
