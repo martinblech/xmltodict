@@ -187,13 +187,10 @@ def parse(xml_input, encoding='utf-8', *args, **kwargs):
     parser.StartElementHandler = handler.startElement
     parser.EndElementHandler = handler.endElement
     parser.CharacterDataHandler = handler.characters
-    if hasattr(xml_input, 'read'):
+    try:
         parser.ParseFile(xml_input)
-    else:
-        try:
-            xml_input = xml_input.encode(encoding)
-        except ValueError:
-            pass
+    except TypeError:
+        xml_input = xml_input.encode(encoding)
         parser.Parse(xml_input, True)
     return handler.item
 
