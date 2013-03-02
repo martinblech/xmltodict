@@ -190,7 +190,8 @@ def parse(xml_input, encoding='utf-8', *args, **kwargs):
     try:
         parser.ParseFile(xml_input)
     except TypeError:
-        xml_input = xml_input.encode(encoding)
+        if isinstance(xml_input, _unicode):
+            xml_input = xml_input.encode(encoding)
         parser.Parse(xml_input, True)
     return handler.item
 

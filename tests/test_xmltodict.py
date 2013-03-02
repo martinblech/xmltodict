@@ -148,3 +148,12 @@ class XMLToDictTestCase(unittest.TestCase):
             value = chr(39321)
         self.assertEqual({'a': value},
             xmltodict.parse('<a>%s</a>' % value))
+
+    def test_encoded_string(self):
+        try:
+            value = unichr(39321)
+        except NameError:
+            value = chr(39321)
+        xml = '<a>%s</a>' % value
+        self.assertEqual(xmltodict.parse(xml),
+            xmltodict.parse(xml.encode('utf-8')))
