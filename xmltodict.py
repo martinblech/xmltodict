@@ -189,7 +189,7 @@ def parse(xml_input, encoding='utf-8', *args, **kwargs):
     parser.CharacterDataHandler = handler.characters
     try:
         parser.ParseFile(xml_input)
-    except TypeError:
+    except (TypeError, AttributeError):
         if isinstance(xml_input, _unicode):
             xml_input = xml_input.encode(encoding)
         parser.Parse(xml_input, True)
