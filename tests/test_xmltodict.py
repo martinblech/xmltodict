@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import xmltodict
 
 try:
@@ -143,6 +142,9 @@ class XMLToDictTestCase(unittest.TestCase):
                                          postprocessor=postprocessor))
 
     def test_unicode(self):
-        value = u'香'
+        try:
+            value = unichr(39321)
+        except NameError:
+            value = chr(39321)
         self.assertEqual({'a': value},
-            xmltodict.parse(u"<a>%s</a>" % value))
+            xmltodict.parse('<a>%s</a>' % value))
