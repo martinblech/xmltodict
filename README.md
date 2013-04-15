@@ -77,6 +77,23 @@ $ cat enwiki.dicts.gz | gunzip | script2.py
 ...
 ```
 
+You can also convert in the other direction, using the `unparse()` method:
+
+```python
+>>> mydict = {
+...     'page': {
+...         'title': 'King Crimson',
+...         'ns': 0,
+...         'revision': {
+...             'id': 547909091,
+...         }
+...     }
+... }
+>>> print unparse(mydict)
+<?xml version="1.0" encoding="utf-8"?>
+<page><ns>0</ns><revision><id>547909091</id></revision><title>King Crimson</title></page>
+```
+
 ## Ok, how do I get it?
 
 You just need to
