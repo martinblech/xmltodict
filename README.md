@@ -107,3 +107,7 @@ There is an [official Fedora package for xmltodict](https://admin.fedoraproject.
 ```sh
 $ sudo yum install python-xmltodict
 ```
+
+## Donate
+
+If you love `xmltodict`, consider supporting the author [on Gittip](https://www.gittip.com/martinblech/).
