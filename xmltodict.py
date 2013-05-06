@@ -38,11 +38,12 @@ class _DictSAXHandler(object):
                  xml_attribs=True,
                  attr_prefix='@',
                  cdata_key='#text',
-                 force_cdata=False,
+                 force_cdata=True,
                  cdata_separator='',
                  postprocessor=None,
                  dict_constructor=OrderedDict,
-                 strip_whitespace=True):
+                 strip_whitespace=True,
+                 convert_known_types=True):
         self.path = []
         self.stack = []
         self.data = None
@@ -57,6 +58,7 @@ class _DictSAXHandler(object):
         self.postprocessor = postprocessor
         self.dict_constructor = dict_constructor
         self.strip_whitespace = strip_whitespace
+        self.convert_known_types = convert_known_types
 
     def startElement(self, name, attrs):
         attrs = self.dict_constructor(zip(attrs[0::2], attrs[1::2]))
@@ -118,6 +120,21 @@ class _DictSAXHandler(object):
             else:
                 item[key] = [value, data]
         except KeyError:
+            if self.convert_known_types == True:
+                if isinstance(data, dict):
+                    try:
+                        if data['@type'] == 'boolean':
+                            if data['#text'] == 'True':
+                                data['#text'] = bool(True)
+                            else:
+                                data['#text'] = bool(False)
+                    except:
+                        pass   
+                    try:
+                        if data['@type'] == 'integer':
+                            data['#text'] = int(data['#text'])                     
+                    except:
+                        pass                  
             item[key] = data
         return item
 
