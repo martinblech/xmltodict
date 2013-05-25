@@ -121,7 +121,7 @@ class _DictSAXHandler(object):
             item[key] = data
         return item
 
-def parse(xml_input, encoding='utf-8', *args, **kwargs):
+def parse(xml_input, encoding='utf-8', expat=expat, *args, **kwargs):
     """Parse the given XML input and convert it into a dictionary.
 
     `xml_input` can either be a `string` or a file-like object.
@@ -179,6 +179,13 @@ def parse(xml_input, encoding='utf-8', *args, **kwargs):
         >>> xmltodict.parse('<a><b>1</b><b>2</b><b>x</b></a>',
         ...                 postprocessor=postprocessor)
         OrderedDict([(u'a', OrderedDict([(u'b:int', [1, 2]), (u'b', u'x')]))])
+
+    You can pass an alternate version of `expat` (such as `defusedexpat`) by
+    using the `expat` parameter. E.g:
+
+        >>> import defusedexpat
+        >>> xmltodict.parse('<a>hello</a>', expat=defusedexpat.pyexpat)
+        OrderedDict([(u'a', u'hello')])
 
     """
     handler = _DictSAXHandler(*args, **kwargs)
