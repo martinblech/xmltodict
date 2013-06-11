@@ -2,7 +2,7 @@
 "Makes working with XML feel like you are working with JSON"
 
 from xml.parsers import expat
-from xml.sax.saxutils import XMLGenerator
+from xml.sax.saxutils import XMLGenerator, quoteattr, escape
 from xml.sax.xmlreader import AttributesImpl
 try: # pragma no cover
     from cStringIO import StringIO
@@ -121,6 +121,36 @@ class _DictSAXHandler(object):
             item[key] = data
         return item
 
+class _dictContentWriter(XMLGenerator):
+    def __init__(self, out=None, encoding="iso-8859-1"):
+        self.stack = 0
+        self.lastWrittenName = ""
+        self.contentWritten = True
+        XMLGenerator.__init__(self, out=None, encoding="iso-8859-1")
+
+    def startElement(self, name, attrs):
+        if not self.contentWritten:
+                self._write("\n")
+        self._write(( '\t' * self.stack) + '<' + name)
+        self.lastWrittenName = name
+        for (name, value) in attrs.items():
+            self._write(' %s=%s' % (name, quoteattr(value)))
+        self._write('>')
+        self.contentWritten = False
+        self.stack += 1
+
+    def endElement(self, name):
+            if name == self.lastWrittenName:
+                self._write('</%s>\n' % name)
+                self.contentWritten = True
+            else:
+                self._write(( '\t' * self.stack) + '</%s>\n' % name)
+            self.stack -= 1
+
+    def characters(self, content):
+            self.contentWritten = True
+            self._write(escape(content))
+            
 def parse(xml_input, encoding='utf-8', expat=expat, *args, **kwargs):
     """Parse the given XML input and convert it into a dictionary.
 
@@ -248,7 +278,7 @@ def unparse(item, output=None, encoding='utf-8', **kwargs):
     if output == None:
         output = StringIO()
         must_return = True
-    content_handler = XMLGenerator(output, encoding)
+    content_handler = _dictContentWriter(output, encoding)
     content_handler.startDocument()
     _emit(key, value, content_handler, **kwargs)
     content_handler.endDocument()
