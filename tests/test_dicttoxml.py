@@ -8,8 +8,10 @@ import re
 import collections
 
 _HEADER_RE = re.compile(r'^[^\n]*\n')
+_BODY_RE = re.compile(r'[\n]?[\t]*')
 def _strip(fullxml):
-    return _HEADER_RE.sub('', fullxml)
+    fullxml = _HEADER_RE.sub('', fullxml)
+    return _BODY_RE.sub('', fullxml)
 
 class DictToXMLTestCase(unittest.TestCase):
     def test_root(self):
