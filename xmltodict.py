@@ -14,7 +14,10 @@ except ImportError: # pragma no cover
 try: # pragma no cover
     from collections import OrderedDict
 except ImportError: # pragma no cover
-    OrderedDict = dict
+    try: 
+        from ordereddict import OrderedDict
+    except ImportError:
+        OrderedDict = dict
 
 try: # pragma no cover
     _basestring = basestring
