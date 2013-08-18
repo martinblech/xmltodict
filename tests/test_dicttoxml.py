@@ -91,3 +91,14 @@ class DictToXMLTestCase(unittest.TestCase):
         def test_attr_order_roundtrip(self):
             xml = '<root a="1" b="2" c="3"></root>'
             self.assertEqual(xml, _strip(unparse(parse(xml))))
+
+    def test_pretty_print(self):
+        obj = {'a': {'b': {'c': 1}}}
+        newl = '_newl_'
+        indent = '_indent_'
+        xml = ('<a>%(newl)s%(indent)s<b>%(newl)s%(indent)s%(indent)s<c>1</c>'
+               '%(newl)s%(indent)s</b>%(newl)s</a>') % {
+                   'newl': newl, 'indent': indent
+               }
+        self.assertEqual(xml, _strip(unparse(obj, pretty=True,
+                                             newl=newl, indent=indent)))
