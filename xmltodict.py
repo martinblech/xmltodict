@@ -253,8 +253,22 @@ def _emit(key, value, content_handler,
         if pretty and depth:
             content_handler.ignorableWhitespace(newl + indent * (depth - 1))
 
-def unparse(item, output=None, encoding='utf-8', **kwargs):
-    ((key, value),) = item.items()
+def unparse(input_dict, output=None, encoding='utf-8', **kwargs):
+    """Emit an XML document for the given `input_dict` (reverse of `parse`).
+
+    The resulting XML document is returned as a string, but if `output` (a
+    file-like object) is specified, it is written there instead.
+
+    Dictionary keys prefixed with `attr_prefix` (default=`'@'`) are interpreted
+    as XML node attributes, whereas keys equal to `cdata_key`
+    (default=`'#text'`) are treated as character data.
+
+    The `pretty` parameter (default=`False`) enables pretty-printing. In this
+    mode, lines are terminated with `'\n'` and indented with `'\t'`, but this
+    can be customized with the `newl` and `indent` parameters.
+
+    """
+    ((key, value),) = input_dict.items()
     must_return = False
     if output == None:
         output = StringIO()
