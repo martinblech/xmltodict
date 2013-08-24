@@ -108,7 +108,7 @@ class XMLToDictTestCase(unittest.TestCase):
             return True
         cb.count = 0
         parse('<a x="y"><b>1</b><b>2</b><b>3</b></a>',
-                        item_depth=2, item_callback=cb)
+              item_depth=2, item_callback=cb)
         self.assertEqual(cb.count, 3)
 
     def test_streaming_interrupt(self):
@@ -125,7 +125,7 @@ class XMLToDictTestCase(unittest.TestCase):
                 return key, value
         self.assertEqual({'a': {'b:int': [1, 2], 'b': 'x'}},
                          parse('<a><b>1</b><b>2</b><b>x</b></a>',
-                                         postprocessor=postprocessor))
+                               postprocessor=postprocessor))
 
     def test_postprocessor_skip(self):
         def postprocessor(path, key, value):
@@ -136,7 +136,7 @@ class XMLToDictTestCase(unittest.TestCase):
             return key, value
         self.assertEqual({'a': {'b': [1, 2]}},
                          parse('<a><b>1</b><b>2</b><b>3</b></a>',
-                                         postprocessor=postprocessor))
+                               postprocessor=postprocessor))
 
     def test_unicode(self):
         try:
