@@ -43,16 +43,8 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
 
     def test_multiple_roots(self):
-        try:
-            unparse({'a': '1', 'b': '2'})
-            self.fail()
-        except ValueError:
-            pass
-        try:
-            unparse({'a': ['1', '2', '3']})
-            self.fail()
-        except ValueError:
-            pass
+        self.assertRaises(ValueError, unparse, {'a':'1', 'b':'2'})
+        self.assertRaises(ValueError, unparse, {'a': ['1', '2', '3']})
 
     def test_nested(self):
         obj = {'a': {'b': '1', 'c': '2'}}
