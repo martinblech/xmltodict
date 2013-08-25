@@ -154,3 +154,68 @@ class XMLToDictTestCase(unittest.TestCase):
         xml = '<a>%s</a>' % value
         self.assertEqual(parse(xml),
             parse(xml.encode('utf-8')))
+
+    def test_namespace_support(self):
+        xml = """
+        <root xmlns="http://defaultns.com/"
+              xmlns:a="http://a.com/"
+              xmlns:b="http://b.com/">
+          <x>1</x>
+          <a:y>2</a:y>
+          <b:z>3</b:z>
+        </root>
+        """
+        d = {
+            'http://defaultns.com/:root': {
+                'http://defaultns.com/:x': '1',
+                'http://a.com/:y': '2',
+                'http://b.com/:z': '3',
+            }
+        }
+        self.assertEqual(parse(xml, process_namespaces=True), d)
+
+    def test_namespace_collapse(self):
+        xml = """
+        <root xmlns="http://defaultns.com/"
+              xmlns:a="http://a.com/"
+              xmlns:b="http://b.com/">
+          <x>1</x>
+          <a:y>2</a:y>
+          <b:z>3</b:z>
+        </root>
+        """
+        namespaces = {
+            'http://defaultns.com/': None,
+            'http://a.com/': 'ns_a',
+        }
+        d = {
+            'root': {
+                'x': '1',
+                'ns_a:y': '2',
+                'http://b.com/:z': '3',
+            },
+        }
+        self.assertEqual(
+            parse(xml, process_namespaces=True, namespaces=namespaces), d)
+
+    def test_namespace_ignore(self):
+        xml = """
+        <root xmlns="http://defaultns.com/"
+              xmlns:a="http://a.com/"
+              xmlns:b="http://b.com/">
+          <x>1</x>
+          <a:y>2</a:y>
+          <b:z>3</b:z>
+        </root>
+        """
+        d = {
+            'root': {
+                '@xmlns': 'http://defaultns.com/',
+                '@xmlns:a': 'http://a.com/',
+                '@xmlns:b': 'http://b.com/',
+                'x': '1',
+                'a:y': '2',
+                'b:z': '3',
+            },
+        }
+        self.assertEqual(parse(xml), d)

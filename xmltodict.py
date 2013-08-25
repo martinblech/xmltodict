@@ -45,7 +45,9 @@ class _DictSAXHandler(object):
                  cdata_separator='',
                  postprocessor=None,
                  dict_constructor=OrderedDict,
-                 strip_whitespace=True):
+                 strip_whitespace=True,
+                 namespace_separator=':',
+                 namespaces=None):
         self.path = []
         self.stack = []
         self.data = None
@@ -60,8 +62,24 @@ class _DictSAXHandler(object):
         self.postprocessor = postprocessor
         self.dict_constructor = dict_constructor
         self.strip_whitespace = strip_whitespace
+        self.namespace_separator = namespace_separator
+        self.namespaces = namespaces
 
-    def startElement(self, name, attrs):
+    def _build_name(self, full_name):
+        if not self.namespaces:
+            return full_name
+        i = full_name.rfind(self.namespace_separator)
+        if i == -1:
+            return full_name
+        namespace, name = full_name[:i], full_name[i+1:]
+        short_namespace = self.namespaces.get(namespace, namespace)
+        if not short_namespace:
+            return name
+        else:
+            return self.namespace_separator.join((short_namespace, name))
+
+    def startElement(self, full_name, attrs):
+        name = self._build_name(full_name)
         attrs = self.dict_constructor(zip(attrs[0::2], attrs[1::2]))
         self.path.append((name, attrs or None))
         if len(self.path) > self.item_depth:
@@ -75,7 +93,8 @@ class _DictSAXHandler(object):
             self.item = attrs or None
             self.data = None
 
-    def endElement(self, name):
+    def endElement(self, full_name):
+        name = self._build_name(full_name)
         if len(self.path) == self.item_depth:
             item = self.item
             if item is None:
@@ -124,7 +143,8 @@ class _DictSAXHandler(object):
             item[key] = data
         return item
 
-def parse(xml_input, encoding='utf-8', expat=expat, *args, **kwargs):
+def parse(xml_input, encoding='utf-8', expat=expat, process_namespaces=False,
+          namespace_separator=':', **kwargs):
     """Parse the given XML input and convert it into a dictionary.
 
     `xml_input` can either be a `string` or a file-like object.
@@ -191,8 +211,11 @@ def parse(xml_input, encoding='utf-8', expat=expat, *args, **kwargs):
         OrderedDict([(u'a', u'hello')])
 
     """
-    handler = _DictSAXHandler(*args, **kwargs)
-    parser = expat.ParserCreate()
+    handler = _DictSAXHandler(namespace_separator=namespace_separator, **kwargs)
+    parser = expat.ParserCreate(
+        encoding,
+        namespace_separator if process_namespaces else None
+    )
     parser.ordered_attributes = True
     parser.StartElementHandler = handler.startElement
     parser.EndElementHandler = handler.endElement
