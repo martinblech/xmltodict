@@ -79,7 +79,7 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertEqual(_strip(unparse(obj, preprocessor=p)),
                          '<a><c>2</c></a>')
 
-    if 'OrderedDict' in dir(collections):
+    if hasattr(collections, 'OrderedDict'):
         def test_attr_order_roundtrip(self):
             xml = '<root a="1" b="2" c="3"></root>'
             self.assertEqual(xml, _strip(unparse(parse(xml))))

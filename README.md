@@ -27,7 +27,50 @@ u'complex'
 u'element as well'
 ```
 
-It's very fast ([Expat](http://docs.python.org/library/pyexpat.html)-based) and has a streaming mode with a small memory footprint, suitable for big XML dumps like [Discogs](http://discogs.com/data/) or [Wikipedia](http://dumps.wikimedia.org/):
+## Namespace support
+
+By default, `xmltodict` does no XML namespace processing (it just treats namespace declarations as regular node attributes), but passing `process_namespaces=True` will make it expand namespaces for you:
+
+```python
+>>> xml = """
+... <root xmlns="http://defaultns.com/"
+...       xmlns:a="http://a.com/"
+...       xmlns:b="http://b.com/">
+...   <x>1</x>
+...   <a:y>2</a:y>
+...   <b:z>3</b:z>
+... </root>
+... """
+>>> assert xmltodict.parse(xml, process_namespaces=True) == {
+...     'http://defaultns.com/:root': {
+...         'http://defaultns.com/:x': '1',
+...         'http://a.com/:y': '2',
+...         'http://b.com/:z': '3',
+...     }
+... }
+True
+```
+
+It also lets you collapse certain namespaces to shorthand prefixes, or skip them altogether:
+
+```python
+>>> namespaces = {
+...     'http://defaultns.com/': None, # skip this namespace
+...     'http://a.com/': 'ns_a', # collapse "http://a.com/" -> "ns_a"
+... }
+>>> assert xmltodict.parse(xml, namespaces=namespaces) == {
+...     'root': {
+...         'x': '1',
+...         'ns_a:y': '2',
+...         'http://b.com/:z': '3',
+...     },
+... }
+True
+```
+
+## Streaming mode
+
+`xmltodict` is very fast ([Expat](http://docs.python.org/library/pyexpat.html)-based) and has a streaming mode with a small memory footprint, suitable for big XML dumps like [Discogs](http://discogs.com/data/) or [Wikipedia](http://dumps.wikimedia.org/):
 
 ```python
 >>> def handle_artist(_, artist):
@@ -76,6 +119,8 @@ $ cat enwiki.dicts.gz | gunzip | script1.py
 $ cat enwiki.dicts.gz | gunzip | script2.py
 ...
 ```
+
+## Roundtripping
 
 You can also convert in the other direction, using the `unparse()` method:
 
