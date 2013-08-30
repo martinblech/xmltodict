@@ -75,6 +75,7 @@ True
 ```python
 >>> def handle_artist(_, artist):
 ...     print artist['name']
+...     return True
 >>> 
 >>> xmltodict.parse(GzipFile('discogs_artists.xml.gz'),
 ...     item_depth=2, item_callback=handle_artist)
