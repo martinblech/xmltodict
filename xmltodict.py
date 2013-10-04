@@ -326,7 +326,7 @@ def unparse(input_dict, output=None, encoding='utf-8', **kwargs):
         return value
 
 def unparse_object(obj, **kwargs):
-     return unparse(obj.__dict__, **kwargs)
+    return unparse(obj.__dict__, **kwargs)
 
 if __name__ == '__main__': # pragma: no cover
     import sys
