@@ -143,6 +143,20 @@ class _DictSAXHandler(object):
             item[key] = data
         return item
 
+class XMLObject(object):
+
+    def __init__(self, a_dict):
+        for k, v in a_dict.iteritems():
+            if isinstance(v, list):
+                setattr(self, k, [XMLObject(i) for i in v])
+            elif isinstance(v, OrderedDict):
+                setattr(self, k, XMLObject(v))
+            else:
+                setattr(self, k, v)
+
+    def __repr__(self):
+        return '%s' % self.__dict__
+
 def parse(xml_input, encoding='utf-8', expat=expat, process_namespaces=False,
           namespace_separator=':', **kwargs):
     """Parse the given XML input and convert it into a dictionary.
@@ -228,6 +242,9 @@ def parse(xml_input, encoding='utf-8', expat=expat, process_namespaces=False,
         parser.Parse(xml_input, True)
     return handler.item
 
+def parse_to_object(xml_input, **kwargs):
+    return XMLObject(parse(xml_input, **kwargs))
+
 def _emit(key, value, content_handler,
           attr_prefix='@',
           cdata_key='#text',
@@ -307,6 +324,9 @@ def unparse(input_dict, output=None, encoding='utf-8', **kwargs):
         except AttributeError: # pragma no cover
             pass
         return value
+
+def unparse_object(obj, **kwargs):
+    return unparse(obj.__dict__, **kwargs)
 
 if __name__ == '__main__': # pragma: no cover
     import sys
