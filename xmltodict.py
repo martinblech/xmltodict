@@ -78,9 +78,14 @@ class _DictSAXHandler(object):
         else:
             return self.namespace_separator.join((short_namespace, name))
 
+    def _attrs_to_dict(self, attrs):
+        if isinstance(attrs, dict):
+            return attrs
+        return self.dict_constructor(zip(attrs[0::2], attrs[1::2]))
+
     def startElement(self, full_name, attrs):
         name = self._build_name(full_name)
-        attrs = self.dict_constructor(zip(attrs[0::2], attrs[1::2]))
+        attrs = self._attrs_to_dict(attrs)
         self.path.append((name, attrs or None))
         if len(self.path) > self.item_depth:
             self.stack.append((self.item, self.data))
@@ -216,7 +221,11 @@ def parse(xml_input, encoding='utf-8', expat=expat, process_namespaces=False,
         encoding,
         namespace_separator if process_namespaces else None
     )
-    parser.ordered_attributes = True
+    try:
+        parser.ordered_attributes = True
+    except AttributeError:
+        # Jython's expat does not support ordered_attributes
+        pass
     parser.StartElementHandler = handler.startElement
     parser.EndElementHandler = handler.endElement
     parser.CharacterDataHandler = handler.characters
