@@ -1,6 +1,8 @@
 #!/usr/bin/env python
+from distribute_setup import use_setuptools
+use_setuptools()
 
-from distutils.core import setup
+from setuptools import setup
 import xmltodict
 
 setup(name='xmltodict',
@@ -22,4 +24,5 @@ setup(name='xmltodict',
           'Programming Language :: Python :: 3',
       ],
       py_modules=['xmltodict'],
+      setup_requires=['nose>=1.0', 'coverage'],
       )
