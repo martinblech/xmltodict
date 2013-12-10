@@ -217,9 +217,12 @@ def parse(xml_input, encoding='utf-8', expat=expat, process_namespaces=False,
 
     """
     handler = _DictSAXHandler(namespace_separator=namespace_separator, **kwargs)
+    namespace_selector = None
+    if process_namespaces:
+        namespace_selector = namespace_separator
     parser = expat.ParserCreate(
         encoding,
-        namespace_separator if process_namespaces else None
+        namespace_selector
     )
     try:
         parser.ordered_attributes = True
