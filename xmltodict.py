@@ -216,7 +216,7 @@ def parse(xml_input, encoding='utf-8', expat=expat, process_namespaces=False,
         OrderedDict([(u'a', u'hello')])
 
     """
-    handler = _DictSAXHandler(namespace_separator=namespace_separator, **kwargs)
+    handler = _DictSAXHandler(namespace_separator=namespace_separator)
     parser = expat.ParserCreate(
         encoding,
         namespace_separator if process_namespaces else None
