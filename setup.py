@@ -33,5 +33,5 @@ setup(name='xmltodict',
           'Topic :: Text Processing :: Markup :: XML',
       ],
       py_modules=['xmltodict'],
-      setup_requires=['nose>=1.0', 'coverage'],
+      tests_require=['nose>=1.0', 'coverage'],
       )
