@@ -95,3 +95,14 @@ class DictToXMLTestCase(unittest.TestCase):
                }
         self.assertEqual(xml, _strip(unparse(obj, pretty=True,
                                              newl=newl, indent=indent)))
+
+    def test_encoding(self):
+        try:
+            value = unichr(39321)
+        except NameError:
+            value = chr(39321)
+        obj = {'a': value}
+        utf8doc = unparse(obj, encoding='utf-8')
+        latin1doc = unparse(obj, encoding='iso-8859-1')
+        self.assertEqual(parse(utf8doc), parse(latin1doc))
+        self.assertEqual(parse(utf8doc), obj)

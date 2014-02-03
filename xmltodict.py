@@ -148,7 +148,7 @@ class _DictSAXHandler(object):
             item[key] = data
         return item
 
-def parse(xml_input, encoding='utf-8', expat=expat, process_namespaces=False,
+def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
           namespace_separator=':', **kwargs):
     """Parse the given XML input and convert it into a dictionary.
 
@@ -217,6 +217,10 @@ def parse(xml_input, encoding='utf-8', expat=expat, process_namespaces=False,
 
     """
     handler = _DictSAXHandler(namespace_separator=namespace_separator, **kwargs)
+    if isinstance(xml_input, _unicode):
+        if not encoding:
+            encoding = 'utf-8'
+        xml_input = xml_input.encode(encoding)
     parser = expat.ParserCreate(
         encoding,
         namespace_separator if process_namespaces else None
@@ -232,8 +236,6 @@ def parse(xml_input, encoding='utf-8', expat=expat, process_namespaces=False,
     try:
         parser.ParseFile(xml_input)
     except (TypeError, AttributeError):
-        if isinstance(xml_input, _unicode):
-            xml_input = xml_input.encode(encoding)
         parser.Parse(xml_input, True)
     return handler.item
 
