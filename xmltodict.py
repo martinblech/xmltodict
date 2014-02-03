@@ -4,35 +4,38 @@
 from xml.parsers import expat
 from xml.sax.saxutils import XMLGenerator
 from xml.sax.xmlreader import AttributesImpl
-try: # pragma no cover
+try:  # pragma no cover
     from cStringIO import StringIO
-except ImportError: # pragma no cover
+except ImportError:  # pragma no cover
     try:
         from StringIO import StringIO
     except ImportError:
         from io import StringIO
-try: # pragma no cover
+try:  # pragma no cover
     from collections import OrderedDict
-except ImportError: # pragma no cover
-    try: 
+except ImportError:  # pragma no cover
+    try:
         from ordereddict import OrderedDict
     except ImportError:
         OrderedDict = dict
 
-try: # pragma no cover
+try:  # pragma no cover
     _basestring = basestring
-except NameError: # pragma no cover
+except NameError:  # pragma no cover
     _basestring = str
-try: # pragma no cover
+try:  # pragma no cover
     _unicode = unicode
-except NameError: # pragma no cover
+except NameError:  # pragma no cover
     _unicode = str
 
 __author__ = 'Martin Blech'
 __version__ = '0.8.5'
 __license__ = 'MIT'
 
-class ParsingInterrupted(Exception): pass
+
+class ParsingInterrupted(Exception):
+    pass
+
 
 class _DictSAXHandler(object):
     def __init__(self,
@@ -148,6 +151,7 @@ class _DictSAXHandler(object):
             item[key] = data
         return item
 
+
 def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
           namespace_separator=':', **kwargs):
     """Parse the given XML input and convert it into a dictionary.
@@ -160,6 +164,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
 
     Simple example::
 
+        >>> import xmltodict
         >>> doc = xmltodict.parse(\"\"\"
         ... <a prop="x">
         ...   <b>1</b>
@@ -195,9 +200,9 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         path:[(u'a', {u'prop': u'x'}), (u'b', None)] item:1
         path:[(u'a', {u'prop': u'x'}), (u'b', None)] item:2
 
-    The optional argument `postprocessor` is a function that takes `path`, `key`
-    and `value` as positional arguments and returns a new `(key, value)` pair
-    where both `key` and `value` may have changed. Usage example::
+    The optional argument `postprocessor` is a function that takes `path`,
+    `key` and `value` as positional arguments and returns a new `(key, value)`
+    pair where both `key` and `value` may have changed. Usage example::
 
         >>> def postprocessor(path, key, value):
         ...     try:
@@ -216,7 +221,8 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         OrderedDict([(u'a', u'hello')])
 
     """
-    handler = _DictSAXHandler(namespace_separator=namespace_separator, **kwargs)
+    handler = _DictSAXHandler(namespace_separator=namespace_separator,
+                              **kwargs)
     if isinstance(xml_input, _unicode):
         if not encoding:
             encoding = 'utf-8'
@@ -238,6 +244,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     except (TypeError, AttributeError):
         parser.Parse(xml_input, True)
     return handler.item
+
 
 def _emit(key, value, content_handler,
           attr_prefix='@',
@@ -287,6 +294,7 @@ def _emit(key, value, content_handler,
         if pretty and depth:
             content_handler.ignorableWhitespace(newl + indent * (depth - 1))
 
+
 def unparse(input_dict, output=None, encoding='utf-8', **kwargs):
     """Emit an XML document for the given `input_dict` (reverse of `parse`).
 
@@ -304,7 +312,7 @@ def unparse(input_dict, output=None, encoding='utf-8', **kwargs):
     """
     ((key, value),) = input_dict.items()
     must_return = False
-    if output == None:
+    if output is None:
         output = StringIO()
         must_return = True
     content_handler = XMLGenerator(output, encoding)
@@ -313,13 +321,13 @@ def unparse(input_dict, output=None, encoding='utf-8', **kwargs):
     content_handler.endDocument()
     if must_return:
         value = output.getvalue()
-        try: # pragma no cover
+        try:  # pragma no cover
             value = value.decode(encoding)
-        except AttributeError: # pragma no cover
+        except AttributeError:  # pragma no cover
             pass
         return value
 
-if __name__ == '__main__': # pragma: no cover
+if __name__ == '__main__':  # pragma: no cover
     import sys
     import marshal
 

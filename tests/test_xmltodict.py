@@ -9,11 +9,13 @@ try:
 except ImportError:
     from xmltodict import StringIO
 
+
 def _encode(s):
     try:
         return bytes(s, 'ascii')
     except (NameError, TypeError):
         return s
+
 
 class XMLToDictTestCase(unittest.TestCase):
 
@@ -38,8 +40,8 @@ class XMLToDictTestCase(unittest.TestCase):
 
     def test_custom_cdata(self):
         self.assertEqual(parse('<a>data</a>',
-                                         force_cdata=True,
-                                         cdata_key='_CDATA_'),
+                               force_cdata=True,
+                               cdata_key='_CDATA_'),
                          {'a': {'_CDATA_': 'data'}})
 
     def test_list(self):
@@ -56,7 +58,7 @@ class XMLToDictTestCase(unittest.TestCase):
 
     def test_custom_attrib(self):
         self.assertEqual(parse('<a href="xyz"/>',
-                                         attr_prefix='!'),
+                               attr_prefix='!'),
                          {'a': {'!href': 'xyz'}})
 
     def test_attrib_and_cdata(self):
@@ -67,7 +69,7 @@ class XMLToDictTestCase(unittest.TestCase):
         self.assertEqual(parse('<a>abc<b/>def</a>'),
                          {'a': {'b': None, '#text': 'abcdef'}})
         self.assertEqual(parse('<a>abc<b/>def</a>',
-                                         cdata_separator='\n'),
+                               cdata_separator='\n'),
                          {'a': {'b': None, '#text': 'abc\ndef'}})
 
     def test_nested_semi_structured(self):
@@ -144,7 +146,7 @@ class XMLToDictTestCase(unittest.TestCase):
         except NameError:
             value = chr(39321)
         self.assertEqual({'a': value},
-            parse('<a>%s</a>' % value))
+                         parse('<a>%s</a>' % value))
 
     def test_encoded_string(self):
         try:
@@ -153,7 +155,7 @@ class XMLToDictTestCase(unittest.TestCase):
             value = chr(39321)
         xml = '<a>%s</a>' % value
         self.assertEqual(parse(xml),
-            parse(xml.encode('utf-8')))
+                         parse(xml.encode('utf-8')))
 
     def test_namespace_support(self):
         xml = """
