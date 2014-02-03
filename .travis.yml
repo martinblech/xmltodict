@@ -24,8 +24,8 @@ matrix:
 
 before_install:
   - export JYTHON_URL='http://search.maven.org/remotecontent?filepath=org/python/jython-installer/2.5.3/jython-installer-2.5.3.jar'
-  - if [ "$JYTHON" == "true" ]; then wget $JYTHON_URL -O jython_installer.jar; java -jar jython_installer.jar -s -d $HOME/jython; export PATH=$HOME/jython:$PATH; fi
+  - if [ "$JYTHON" == "true" ]; then wget $JYTHON_URL -O jython_installer.jar; java -jar jython_installer.jar -s -d $HOME/jython; export PATH=$HOME/jython:$PATH; jython ez_setup.py; $HOME/jython/bin/easy_install nose coverage; fi
 
-before_script: if [ "$JYTHON" == "true" ]; then export PYTHON_EXE=jython; jython -c "print ''"; else export PYTHON_EXE=python; fi
+before_script: if [ "$JYTHON" == "true" ]; then export NOSE=$HOME/jython/bin/nosetests; else export NOSE=nosetests; fi
 
-script: $PYTHON_EXE setup.py nosetests --with-coverage --cover-package=xmltodict
+script: $NOSE --with-coverage --cover-package=xmltodict
