@@ -1,7 +1,6 @@
 language: python
 
 python:
-  - "2.5"
   - "2.6"
   - "2.7"
   - "3.2"
@@ -14,8 +13,6 @@ env:
 
 matrix:
   exclude:
-    - python: "2.5"
-      env: JYTHON=true
     - python: "2.6"
       env: JYTHON=true
     - python: "2.7"
