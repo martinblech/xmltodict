@@ -127,17 +127,17 @@ You can also convert in the other direction, using the `unparse()` method:
 
 ```python
 >>> mydict = {
-...     'page': {
-...         'title': 'King Crimson',
-...         'ns': 0,
-...         'revision': {
-...             'id': 547909091,
-...         }
+...     'response': {
+...             'status': 'good',
+...             'last_updated': '2014-02-16T23:10:12Z',
 ...     }
 ... }
->>> print unparse(mydict)
+>>> print unparse(mydict, pretty=True)
 <?xml version="1.0" encoding="utf-8"?>
-<page><ns>0</ns><revision><id>547909091</id></revision><title>King Crimson</title></page>
+<response>
+	<status>good</status>
+	<last_updated>2014-02-16T23:10:12Z</last_updated>
+</response>
 ```
 
 ## Ok, how do I get it?
