@@ -6,6 +6,7 @@ except ImportError:
     import unittest
 import re
 import collections
+from textwrap import dedent
 
 _HEADER_RE = re.compile(r'^[^\n]*\n')
 
@@ -92,17 +93,26 @@ class DictToXMLTestCase(unittest.TestCase):
             xml = '<root a="1" b="2" c="3"></root>'
             self.assertEqual(xml, _strip(unparse(parse(xml))))
 
-    def test_pretty_print(self):
-        obj = {'a': {'b': {'c': 1}}}
-        newl = '_newl_'
-        indent = '_indent_'
-        xml = ('<a>%(newl)s%(indent)s<b>%(newl)s%(indent)s%(indent)s<c>1</c>'
-               '%(newl)s%(indent)s</b>%(newl)s</a>')
-        xml = xml % {
-            'newl': newl, 'indent': indent
-        }
-        self.assertEqual(xml, _strip(unparse(obj, pretty=True,
-                                             newl=newl, indent=indent)))
+    if hasattr(collections, 'OrderedDict'):
+        def test_pretty_print(self):
+            obj = {'a': OrderedDict((
+                ('b', [{'c': [1, 2]}, 3]),
+                ('x', 'y'),
+            ))}
+            newl = '\n'
+            indent = '....'
+            xml = dedent('''\
+            <?xml version="1.0" encoding="utf-8"?>
+            <a>
+            ....<b>
+            ........<c>1</c>
+            ........<c>2</c>
+            ....</b>
+            ....<b>3</b>
+            ....<x>y</x>
+            </a>''')
+            self.assertEqual(xml, unparse(obj, pretty=True,
+                                          newl=newl, indent=indent))
 
     def test_encoding(self):
         try:

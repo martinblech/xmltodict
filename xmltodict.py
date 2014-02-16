@@ -281,18 +281,22 @@ def _emit(key, value, content_handler,
                 attrs[ik[len(attr_prefix):]] = iv
                 continue
             children.append((ik, iv))
-        if pretty and depth:
-            content_handler.ignorableWhitespace(newl + indent * depth)
+        if pretty:
+            content_handler.ignorableWhitespace(depth * indent)
         content_handler.startElement(key, AttributesImpl(attrs))
+        if pretty and children:
+            content_handler.ignorableWhitespace(newl)
         for child_key, child_value in children:
             _emit(child_key, child_value, content_handler,
                   attr_prefix, cdata_key, depth+1, preprocessor,
                   pretty, newl, indent)
         if cdata is not None:
             content_handler.characters(cdata)
+        if pretty and children:
+            content_handler.ignorableWhitespace(depth * indent)
         content_handler.endElement(key)
         if pretty and depth:
-            content_handler.ignorableWhitespace(newl + indent * (depth - 1))
+            content_handler.ignorableWhitespace(newl)
 
 
 def unparse(input_dict, output=None, encoding='utf-8', **kwargs):
