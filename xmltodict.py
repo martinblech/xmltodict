@@ -239,6 +239,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     parser.StartElementHandler = handler.startElement
     parser.EndElementHandler = handler.endElement
     parser.CharacterDataHandler = handler.characters
+    parser.buffer_text = True
     try:
         parser.ParseFile(xml_input)
     except (TypeError, AttributeError):
