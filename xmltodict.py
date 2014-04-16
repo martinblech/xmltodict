@@ -300,7 +300,8 @@ def _emit(key, value, content_handler,
             content_handler.ignorableWhitespace(newl)
 
 
-def unparse(input_dict, output=None, encoding='utf-8', **kwargs):
+def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
+            **kwargs):
     """Emit an XML document for the given `input_dict` (reverse of `parse`).
 
     The resulting XML document is returned as a string, but if `output` (a
@@ -321,9 +322,11 @@ def unparse(input_dict, output=None, encoding='utf-8', **kwargs):
         output = StringIO()
         must_return = True
     content_handler = XMLGenerator(output, encoding)
-    content_handler.startDocument()
+    if full_document:
+        content_handler.startDocument()
     _emit(key, value, content_handler, **kwargs)
-    content_handler.endDocument()
+    if full_document:
+        content_handler.endDocument()
     if must_return:
         value = output.getvalue()
         try:  # pragma no cover

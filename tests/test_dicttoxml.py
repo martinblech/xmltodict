@@ -124,3 +124,10 @@ class DictToXMLTestCase(unittest.TestCase):
         latin1doc = unparse(obj, encoding='iso-8859-1')
         self.assertEqual(parse(utf8doc), parse(latin1doc))
         self.assertEqual(parse(utf8doc), obj)
+
+    def test_fulldoc(self):
+        xml_declaration_re = re.compile(
+            '^' + re.escape('<?xml version="1.0" encoding="utf-8"?>'))
+        self.assertTrue(xml_declaration_re.match(unparse({'a': 1})))
+        self.assertFalse(
+            xml_declaration_re.match(unparse({'a': 1}, full_document=False)))
