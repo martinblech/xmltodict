@@ -227,9 +227,11 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         if not encoding:
             encoding = 'utf-8'
         xml_input = xml_input.encode(encoding)
+    if not process_namespaces:
+        namespace_separator = None
     parser = expat.ParserCreate(
         encoding,
-        namespace_separator if process_namespaces else None
+        namespace_separator
     )
     try:
         parser.ordered_attributes = True
