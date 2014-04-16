@@ -1,8 +1,8 @@
 CHANGELOG
 =========
 
-v0.9
-----
+v0.9.0
+------
 
 * Added CHANGELOG.md
 * Avoid ternary operator in call to ParserCreate().
