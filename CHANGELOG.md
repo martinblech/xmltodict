@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+v0.9.1
+------
+
+* Only check single root when full_document=True (Thanks @JKillian!)
+
 v0.9.0
 ------
 
