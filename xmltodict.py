@@ -318,7 +318,8 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
     can be customized with the `newl` and `indent` parameters.
 
     """
-    ((key, value),) = input_dict.items()
+    if full_document and len(input_dict) != 1:
+        raise ValueError('Document must have exactly one root.')
     must_return = False
     if output is None:
         output = StringIO()
@@ -326,7 +327,8 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
     content_handler = XMLGenerator(output, encoding)
     if full_document:
         content_handler.startDocument()
-    _emit(key, value, content_handler, **kwargs)
+    for key, value in input_dict.items():
+        _emit(key, value, content_handler, **kwargs)
     if full_document:
         content_handler.endDocument()
     if must_return:
