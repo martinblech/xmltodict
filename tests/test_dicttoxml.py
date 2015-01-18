@@ -1,3 +1,4 @@
+import sys
 from xmltodict import parse, unparse, OrderedDict
 
 try:
@@ -7,6 +8,8 @@ except ImportError:
 import re
 import collections
 from textwrap import dedent
+
+IS_JYTHON = sys.platform.startswith('java')
 
 _HEADER_RE = re.compile(r'^[^\n]*\n')
 
@@ -88,7 +91,8 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertEqual(_strip(unparse(obj, preprocessor=p)),
                          '<a><c>2</c></a>')
 
-    if hasattr(collections, 'OrderedDict'):
+    if hasattr(collections, 'OrderedDict') and not IS_JYTHON:
+        # Jython's SAX does not preserve attribute order
         def test_attr_order_roundtrip(self):
             xml = '<root a="1" b="2" c="3"></root>'
             self.assertEqual(xml, _strip(unparse(parse(xml))))
