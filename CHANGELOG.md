@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+v0.9.2
+------
+
+* Fix multiroot check for list values (edge case reported by @JKillian)
+
 v0.9.1
 ------
 
