@@ -256,7 +256,8 @@ def _emit(key, value, content_handler,
           preprocessor=None,
           pretty=False,
           newl='\n',
-          indent='\t'):
+          indent='\t',
+          full_document=True):
     if preprocessor is not None:
         result = preprocessor(key, value)
         if result is None:
@@ -264,7 +265,7 @@ def _emit(key, value, content_handler,
         key, value = result
     if not isinstance(value, (list, tuple)):
         value = [value]
-    if depth == 0 and len(value) > 1:
+    if full_document and depth == 0 and len(value) > 1:
         raise ValueError('document with multiple roots')
     for v in value:
         if v is None:
@@ -328,7 +329,8 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
     if full_document:
         content_handler.startDocument()
     for key, value in input_dict.items():
-        _emit(key, value, content_handler, **kwargs)
+        _emit(key, value, content_handler, full_document=full_document,
+              **kwargs)
     if full_document:
         content_handler.endDocument()
     if must_return:

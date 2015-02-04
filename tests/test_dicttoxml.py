@@ -63,6 +63,9 @@ class DictToXMLTestCase(unittest.TestCase):
         obj = OrderedDict((('a', 1), ('b', 2)))
         xml = unparse(obj, full_document=False)
         self.assertEqual(xml, '<a>1</a><b>2</b>')
+        obj = {'a': [1, 2]}
+        xml = unparse(obj, full_document=False)
+        self.assertEqual(xml, '<a>1</a><a>2</a>')
 
     def test_nested(self):
         obj = {'a': {'b': '1', 'c': '2'}}
