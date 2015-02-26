@@ -1,5 +1,5 @@
 import sys
-from xmltodict import parse, unparse, OrderedDict
+from xmltodict import parse, unparse, OrderedDict, _unicode
 
 try:
     import unittest2 as unittest
@@ -18,7 +18,32 @@ def _strip(fullxml):
     return _HEADER_RE.sub('', fullxml)
 
 
+def stringify_object(d):
+    if isinstance(d, dict):
+        iterator = d.items()
+    elif isinstance(d, (list, tuple)):
+        iterator = enumerate(d)
+    else:
+        return _unicode(d)
+
+    for key, value in iterator:
+        d[key] = stringify_object(value)
+
+    return d
+
+
 class DictToXMLTestCase(unittest.TestCase):
+
+    def _getAssertEqualityFunc(self, first, second):
+        if isinstance(first, dict) and isinstance(second, dict):
+            return self.assertDictStringifiedEqual
+        return super(DictToXMLTestCase, self)._getAssertEqualityFunc(first, second)
+
+    def assertDictStringifiedEqual(self, first, second, msg=None):
+        first = stringify_object(first)
+        second = stringify_object(second)
+        return self.assertDictEqual(first, second, msg)
+
     def test_root(self):
         obj = {'a': None}
         self.assertEqual(obj, parse(unparse(obj)))
@@ -35,7 +60,7 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
 
     def test_attrib(self):
-        obj = {'a': {'@href': 'x'}}
+        obj = {'a': {'@href': 'x', '@data-postion': 1}}
         self.assertEqual(obj, parse(unparse(obj)))
         self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
 
