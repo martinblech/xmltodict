@@ -86,6 +86,14 @@ Chris Potter
 ...
 ```
 
+Also you can use generator, for this `item_depth` has to be greater than 0 and no `item_callback`:
+
+```python
+>>> data = GzipFile('discogs_artists.xml.gz')
+>>> [artist for _, artist in xmltodict.parse(data, item_depth=2)]
+['A Perfect Circle', 'Fantômas', 'King Crimson', 'Chris Potter']
+```
+
 It can also be used from the command line to pipe objects to a script like this:
 
 ```python
