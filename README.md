@@ -90,7 +90,7 @@ Also you can use generator, for this `item_depth` has to be greater than 0 and n
 
 ```python
 >>> data = GzipFile('discogs_artists.xml.gz')
->>> [artist for _, artist in xmltodict.parse(data, item_depth=2)]
+>>> [artist for _, artist['name'] in xmltodict.parse(data, item_depth=2)]
 ['A Perfect Circle', 'Fantômas', 'King Crimson', 'Chris Potter']
 ```
 
