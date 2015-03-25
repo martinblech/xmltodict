@@ -1,3 +1,6 @@
+import threading
+import xml.parsers.expat
+
 from xmltodict import parse, ParsingInterrupted
 
 try:
@@ -221,3 +224,33 @@ class XMLToDictTestCase(unittest.TestCase):
             },
         }
         self.assertEqual(parse(xml), d)
+
+
+class StreamingGeneratorTests(unittest.TestCase):
+    def test_generator(self):
+        active_threads = threading.active_count()
+        data = '<a x="y"><b>1</b><b>2</b><b>3</b></a>'
+        result = [item for path, item in parse(data, item_depth=2)]
+        self.assertEqual(result, ['1', '2', '3'])
+        self.assertEqual(threading.active_count(), active_threads)
+
+    def test_empty_generator(self):
+        active_threads = threading.active_count()
+        data = '<a x="y"></a>'
+        result = [item for path, item in parse(data, item_depth=2)]
+        self.assertEqual(result, [])
+        self.assertEqual(threading.active_count(), active_threads)
+
+    def test_exception_handling(self):
+        active_threads = threading.active_count()
+        g = parse('', item_depth=2)
+        self.assertRaises(xml.parsers.expat.ExpatError, list, g)
+        self.assertEqual(threading.active_count(), active_threads)
+
+    def test_incomplete_iteration(self):
+        active_threads = threading.active_count()
+        data = '<a x="y"><b>1</b><b>2</b><b>3</b></a>'
+        next(parse(data, item_depth=2))
+        # TODO: unsolved issue, when parsing is not finished, but generator is
+        # no logner used, a daemonic thread is left alive.
+        self.assertEqual(threading.active_count(), active_threads + 1)

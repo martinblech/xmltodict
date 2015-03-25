@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 "Makes working with XML feel like you are working with JSON"
 
+import threading
 from xml.parsers import expat
 from xml.sax.saxutils import XMLGenerator
 from xml.sax.xmlreader import AttributesImpl
@@ -18,6 +19,10 @@ except ImportError:  # pragma no cover
         from ordereddict import OrderedDict
     except ImportError:
         OrderedDict = dict
+try:
+    import queue
+except ImportError:
+    import Queue as queue
 
 try:  # pragma no cover
     _basestring = basestring
@@ -40,7 +45,7 @@ class ParsingInterrupted(Exception):
 class _DictSAXHandler(object):
     def __init__(self,
                  item_depth=0,
-                 item_callback=lambda *args: True,
+                 item_callback=None,
                  xml_attribs=True,
                  attr_prefix='@',
                  cdata_key='#text',
@@ -57,7 +62,7 @@ class _DictSAXHandler(object):
         self.item = None
         self.item_depth = item_depth
         self.xml_attribs = xml_attribs
-        self.item_callback = item_callback
+        self.item_callback = item_callback or (lambda *args: True)
         self.attr_prefix = attr_prefix
         self.cdata_key = cdata_key
         self.force_cdata = force_cdata
@@ -152,8 +157,45 @@ class _DictSAXHandler(object):
         return item
 
 
+def _parse(parser, handler, xml_input):
+    try:
+        parser.ParseFile(xml_input)
+    except (TypeError, AttributeError):
+        parser.Parse(xml_input, True)
+    return handler.item
+
+
+def _parse_to_generator(parser, handler, xml_input):
+    def _callback(path, item):
+        q.put(((path, item), True))
+        q.join()
+        return True
+
+    def _task():
+        try:
+            _parse(parser, handler, xml_input)
+        except Exception as e:
+            q.put((e, False))
+        else:
+            q.put((None, False))
+
+    handler.item_callback = _callback
+    q = queue.Queue(maxsize=1)
+    thread = threading.Thread(target=_task)
+    thread.daemon = True
+    thread.start()
+    running = True
+    while running:
+        item, running = q.get()
+        q.task_done()
+        if running:
+            yield item
+        elif item is not None:
+            raise item
+
+
 def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
-          namespace_separator=':', **kwargs):
+          namespace_separator=':', item_depth=0, item_callback=None, **kwargs):
     """Parse the given XML input and convert it into a dictionary.
 
     `xml_input` can either be a `string` or a file-like object.
@@ -221,7 +263,8 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         OrderedDict([(u'a', u'hello')])
 
     """
-    handler = _DictSAXHandler(namespace_separator=namespace_separator,
+    handler = _DictSAXHandler(item_depth, item_callback,
+                              namespace_separator=namespace_separator,
                               **kwargs)
     if isinstance(xml_input, _unicode):
         if not encoding:
@@ -242,11 +285,10 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     parser.EndElementHandler = handler.endElement
     parser.CharacterDataHandler = handler.characters
     parser.buffer_text = True
-    try:
-        parser.ParseFile(xml_input)
-    except (TypeError, AttributeError):
-        parser.Parse(xml_input, True)
-    return handler.item
+    if item_depth > 0 and item_callback is None:
+        return _parse_to_generator(parser, handler, xml_input)
+    else:
+        return _parse(parser, handler, xml_input)
 
 
 def _emit(key, value, content_handler,
