@@ -49,6 +49,14 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertEqual(obj, parse(unparse(obj)))
         self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
 
+    def test_generator(self):
+        obj = {'a': {'b': ['1', '2', '3']}}
+        def lazy_obj():
+            return {'a': {'b': (i for i in ('1', '2', '3'))}}
+        self.assertEqual(obj, parse(unparse(lazy_obj())))
+        self.assertEqual(unparse(lazy_obj()),
+             unparse(parse(unparse(lazy_obj()))))
+
     def test_no_root(self):
         self.assertRaises(ValueError, unparse, {})
 
