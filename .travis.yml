@@ -31,6 +31,7 @@ before_install:
 
 install:
   - if [ "$TRAVIS_PYTHON_VERSION" == "2.6" ]; then pip install ordereddict unittest2 ; fi
+  - if [ "$JYTHON" == "true" ]; then pip install ordereddict ; fi
 
 before_script: if [ "$JYTHON" == "true" ]; then export NOSE=$HOME/jython/bin/nosetests NOSE_OPTIONS=""; else export NOSE=nosetests NOSE_OPTIONS="--with-coverage --cover-package=xmltodict"; fi
 
