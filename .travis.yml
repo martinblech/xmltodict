@@ -29,6 +29,9 @@ before_install:
   - export JYTHON_URL='http://search.maven.org/remotecontent?filepath=org/python/jython-installer/2.7-b3/jython-installer-2.7-b3.jar'
   - if [ "$JYTHON" == "true" ]; then wget $JYTHON_URL -O jython_installer.jar; java -jar jython_installer.jar -s -d $HOME/jython; export PATH=$HOME/jython:$PATH; jython ez_setup.py; $HOME/jython/bin/easy_install nose; fi
 
+install:
+  - if [ "$TRAVIS_PYTHON_VERSION" == "2.6" ]; then pip install ordereddict ; fi
+
 before_script: if [ "$JYTHON" == "true" ]; then export NOSE=$HOME/jython/bin/nosetests NOSE_OPTIONS=""; else export NOSE=nosetests NOSE_OPTIONS="--with-coverage --cover-package=xmltodict"; fi
 
 script: $NOSE $NOSE_OPTIONS
