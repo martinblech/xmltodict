@@ -28,8 +28,6 @@ try:  # pragma no cover
 except NameError:  # pragma no cover
     _unicode = str
 
-import types
-
 __author__ = 'Martin Blech'
 __version__ = '0.9.2'
 __license__ = 'MIT'
@@ -265,7 +263,9 @@ def _emit(key, value, content_handler,
         if result is None:
             return
         key, value = result
-    if not isinstance(value, (list, tuple, types.GeneratorType)):
+    if (not hasattr(value, '__iter__')
+            or isinstance(value, _basestring)
+            or isinstance(value, dict)):
         value = [value]
     for index, v in enumerate(value):
         if full_document and depth == 0 and index > 0:
