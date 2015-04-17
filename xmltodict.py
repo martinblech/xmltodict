@@ -28,6 +28,8 @@ try:  # pragma no cover
 except NameError:  # pragma no cover
     _unicode = str
 
+import types
+
 __author__ = 'Martin Blech'
 __version__ = '0.9.2'
 __license__ = 'MIT'
@@ -263,11 +265,11 @@ def _emit(key, value, content_handler,
         if result is None:
             return
         key, value = result
-    if not isinstance(value, (list, tuple)):
+    if not isinstance(value, (list, tuple, types.GeneratorType)):
         value = [value]
-    if full_document and depth == 0 and len(value) > 1:
-        raise ValueError('document with multiple roots')
-    for v in value:
+    for index, v in enumerate(value):
+        if full_document and depth == 0 and index > 0:
+            raise ValueError('document with multiple roots')
         if v is None:
             v = OrderedDict()
         elif not isinstance(v, dict):
