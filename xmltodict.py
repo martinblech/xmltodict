@@ -94,7 +94,7 @@ class _DictSAXHandler(object):
             self.stack.append((self.item, self.data))
             if self.xml_attribs:
                 attrs = self.dict_constructor(
-                    (self.attr_prefix+key, value)
+                    (self.attr_prefix+self._build_name(key), value)
                     for (key, value) in attrs.items())
             else:
                 attrs = None

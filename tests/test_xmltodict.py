@@ -162,14 +162,17 @@ class XMLToDictTestCase(unittest.TestCase):
         <root xmlns="http://defaultns.com/"
               xmlns:a="http://a.com/"
               xmlns:b="http://b.com/">
-          <x>1</x>
+          <x a:attr="val">1</x>
           <a:y>2</a:y>
           <b:z>3</b:z>
         </root>
         """
         d = {
             'http://defaultns.com/:root': {
-                'http://defaultns.com/:x': '1',
+                'http://defaultns.com/:x': {
+                    '@http://a.com/:attr': 'val',
+                    '#text': '1',
+                },
                 'http://a.com/:y': '2',
                 'http://b.com/:z': '3',
             }
@@ -181,7 +184,7 @@ class XMLToDictTestCase(unittest.TestCase):
         <root xmlns="http://defaultns.com/"
               xmlns:a="http://a.com/"
               xmlns:b="http://b.com/">
-          <x>1</x>
+          <x a:attr="val">1</x>
           <a:y>2</a:y>
           <b:z>3</b:z>
         </root>
@@ -192,7 +195,10 @@ class XMLToDictTestCase(unittest.TestCase):
         }
         d = {
             'root': {
-                'x': '1',
+                'x': {
+                    '@ns_a:attr': 'val',
+                    '#text': '1',
+                },
                 'ns_a:y': '2',
                 'http://b.com/:z': '3',
             },
