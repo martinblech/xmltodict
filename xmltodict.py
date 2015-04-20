@@ -229,7 +229,15 @@ def _parse_to_generator(parser, handler, xml_input, **kwargs):
                 _callback(None)
         return run
 
-    def consumer(response_queue, request_queue):
+    response_queue = queue.Queue(1)
+    request_queue = queue.Queue(1)
+
+    producer_thread = threading.Thread(name='producer',
+        target=producer(response_queue, request_queue))
+
+    producer_thread.start()
+
+    try:
         while True:
             # Signalize to the producer whether it can produce and item
             # or it should terminate. Consumer waits.
@@ -243,21 +251,7 @@ def _parse_to_generator(parser, handler, xml_input, **kwargs):
                 else:
                     raise item
         
-            try:
-                yield item
-            except GeneratorExit:
-                return
-    
-    response_queue = queue.Queue(1)
-    request_queue = queue.Queue(1)
-
-    producer_thread = threading.Thread(name='producer',
-        target=producer(response_queue, request_queue))
-
-    producer_thread.start()
-
-    try:
-        yield from consumer(response_queue, request_queue)
+            yield item
         producer_thread.join()
     except BaseException as e:
         if producer_thread.is_alive():
