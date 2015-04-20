@@ -250,7 +250,16 @@ class StreamingGeneratorTests(unittest.TestCase):
     def test_incomplete_iteration(self):
         active_threads = threading.active_count()
         data = '<a x="y"><b>1</b><b>2</b><b>3</b></a>'
-        next(parse(data, item_depth=2))
-        # TODO: unsolved issue, when parsing is not finished, but generator is
-        # no logner used, a daemonic thread is left alive.
-        self.assertEqual(threading.active_count(), active_threads + 1)
+        for path, item in parse(data, item_depth=2):
+            if item == '2':
+                break
+        self.assertEqual(threading.active_count(), active_threads)
+
+    def test_incomplete_iteration_without_close(self):
+        active_threads = threading.active_count()
+        data = '<a x="y"><b>1</b><b>2</b><b>3</b></a>'
+        gen = parse(data, item_depth=2, producer_thread_timeout=0.1)
+        next(gen)
+        import time
+        time.sleep(0.2)
+        self.assertEqual(threading.active_count(), active_threads)

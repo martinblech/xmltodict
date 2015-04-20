@@ -55,7 +55,8 @@ class _DictSAXHandler(object):
                  dict_constructor=OrderedDict,
                  strip_whitespace=True,
                  namespace_separator=':',
-                 namespaces=None):
+                 namespaces=None,
+                 **kwargs):
         self.path = []
         self.stack = []
         self.data = None
@@ -165,34 +166,128 @@ def _parse(parser, handler, xml_input):
     return handler.item
 
 
-def _parse_to_generator(parser, handler, xml_input):
-    def _callback(path, item):
-        q.put(((path, item), True))
-        q.join()
-        return True
+def _parse_to_generator(parser, handler, xml_input, **kwargs):
+    '''
+    Creates and returns a generator that iterates over the items otherwise
+    passed to the parser callback. Unther the hood there's a multi-threaded
+    producer-consumer pattern with a shared singleton queue and the producer is
+    ran in another thread. The thread is started upon pulling the first item
+    from the generator.
+    
+    The generator can be cancelled before iterating all the data (eg. by a
+    break within a for loop over the generator). In this case the producer is
+    also gracefully terminated. Also the generator might be started and left
+    without completion or cancelling (which is not a good use of a generator).
+    To prevent leaking resources in such a case the producer thread is
+    terminated after a configurable timeout.
+    
+    Exceptions from the parser are propagated via the generator and terminate
+    it.
+    
+    Note there are in fact two queues between the producer and consumer. The
+    request queue makes the producer wait with the parser callback until the
+    generator request another item, or exit if the generator has been cancelled.
+    The response queue serves for sending parsed items from the producer to the
+    consumer, as well as to signal when the parser is done or to propagate its
+    exception.
+    '''
+    producer_thread_timeout = kwargs.get('producer_thread_timeout', 30)
+    
+    def producer(response_queue, request_queue):
+    
+        def enqueue(item, is_done):
+            print('* producer: enqueuing', item, 'done:', is_done)
+            response_queue.put((item, is_done))
+            print('* producer: enqueued', item)
 
-    def _task():
-        try:
-            _parse(parser, handler, xml_input)
-        except Exception as e:
-            q.put((e, False))
-        else:
-            q.put((None, False))
+        def callback(path, item):
+            return _callback((path, item))
 
-    handler.item_callback = _callback
-    q = queue.Queue(maxsize=1)
-    thread = threading.Thread(target=_task)
-    thread.daemon = True
-    thread.start()
-    running = True
-    while running:
-        item, running = q.get()
-        q.task_done()
-        if running:
-            yield item
-        elif item is not None:
-            raise item
+        def _callback(item):
+            print('* producer: callback', item)
+            try:
+                # the producer is able to shutdown in case the generator
+                # is not closed properly
+                can_produce = request_queue.get(timeout=producer_thread_timeout)
+                request_queue.task_done()
+            except queue.Empty:
+                can_produce = False
+            if not can_produce:
+                return False
+        
+            is_done = item is None
+            print('* producer: producing with', item)
+        
+            enqueue(item, is_done)
+            return True
+    
+        def run():
+            print('* producer started')
+            try:
+                handler.item_callback = callback
+                _parse(parser, handler, xml_input)
+            except ParsingInterrupted:
+                enqueue(None, True)
+            except Exception as e:
+                print('* producer: caught exception', e, type(e))
+                enqueue(e, True)
+            else:
+                _callback(None)
+            print('* producer done')
+        return run
 
+    def consumer(response_queue, request_queue):
+        print('# consumer started')
+        while True:
+            # Signalize to the producer whether it can produce and item
+            # or it should terminate. Consumer waits.
+            request_queue.put(True)
+        
+            print('# consumer: waiting')
+            item, is_done = response_queue.get()
+            response_queue.task_done()
+            print('# consumer: dequeued', item, 'done:', is_done)
+            if is_done:
+                if item is None:
+                    break
+                else:
+                    raise item
+        
+            try:
+                print('consumer: yielding item', item)
+                yield item
+                print('consumer: yielded item', item)
+            except GeneratorExit:
+                print('consumer: GeneratorExit, stopping producer')
+                return
+    
+        print('# consumer done')
+    
+    print('consumer_generator()')
+    
+    response_queue = queue.Queue(1)
+    request_queue = queue.Queue(1)
+
+    producer_thread = threading.Thread(name='producer',
+        target=producer(response_queue, request_queue))
+
+    producer_thread.start()
+
+    try:
+        yield from consumer(response_queue, request_queue)
+        print('consumer_generator: joining on producer')
+        producer_thread.join()
+    except BaseException as e:
+        print('consumer_generator: exception', e, type(e))
+        print('consumer_generator: stopping producer')
+        if producer_thread.is_alive():
+            request_queue.put(False)
+            print('consumer_generator: joining on producer')
+            producer_thread.join()
+        if e is not GeneratorExit:
+            raise e
+
+    print('consumer_generator: done')
 
 def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
           namespace_separator=':', item_depth=0, item_callback=None, **kwargs):
@@ -286,7 +381,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     parser.CharacterDataHandler = handler.characters
     parser.buffer_text = True
     if item_depth > 0 and item_callback is None:
-        return _parse_to_generator(parser, handler, xml_input)
+        return _parse_to_generator(parser, handler, xml_input, **kwargs)
     else:
         return _parse(parser, handler, xml_input)
 
