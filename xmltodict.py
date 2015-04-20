@@ -196,15 +196,12 @@ def _parse_to_generator(parser, handler, xml_input, **kwargs):
     def producer(response_queue, request_queue):
     
         def enqueue(item, is_done):
-            print('* producer: enqueuing', item, 'done:', is_done)
             response_queue.put((item, is_done))
-            print('* producer: enqueued', item)
 
         def callback(path, item):
             return _callback((path, item))
 
         def _callback(item):
-            print('* producer: callback', item)
             try:
                 # the producer is able to shutdown in case the generator
                 # is not closed properly
@@ -216,37 +213,30 @@ def _parse_to_generator(parser, handler, xml_input, **kwargs):
                 return False
         
             is_done = item is None
-            print('* producer: producing with', item)
         
             enqueue(item, is_done)
             return True
     
         def run():
-            print('* producer started')
             try:
                 handler.item_callback = callback
                 _parse(parser, handler, xml_input)
             except ParsingInterrupted:
                 enqueue(None, True)
             except Exception as e:
-                print('* producer: caught exception', e, type(e))
                 enqueue(e, True)
             else:
                 _callback(None)
-            print('* producer done')
         return run
 
     def consumer(response_queue, request_queue):
-        print('# consumer started')
         while True:
             # Signalize to the producer whether it can produce and item
             # or it should terminate. Consumer waits.
             request_queue.put(True)
         
-            print('# consumer: waiting')
             item, is_done = response_queue.get()
             response_queue.task_done()
-            print('# consumer: dequeued', item, 'done:', is_done)
             if is_done:
                 if item is None:
                     break
@@ -254,16 +244,9 @@ def _parse_to_generator(parser, handler, xml_input, **kwargs):
                     raise item
         
             try:
-                print('consumer: yielding item', item)
                 yield item
-                print('consumer: yielded item', item)
             except GeneratorExit:
-                print('consumer: GeneratorExit, stopping producer')
                 return
-    
-        print('# consumer done')
-    
-    print('consumer_generator()')
     
     response_queue = queue.Queue(1)
     request_queue = queue.Queue(1)
@@ -275,19 +258,14 @@ def _parse_to_generator(parser, handler, xml_input, **kwargs):
 
     try:
         yield from consumer(response_queue, request_queue)
-        print('consumer_generator: joining on producer')
         producer_thread.join()
     except BaseException as e:
-        print('consumer_generator: exception', e, type(e))
-        print('consumer_generator: stopping producer')
         if producer_thread.is_alive():
             request_queue.put(False)
-            print('consumer_generator: joining on producer')
             producer_thread.join()
         if e is not GeneratorExit:
             raise e
 
-    print('consumer_generator: done')
 
 def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
           namespace_separator=':', item_depth=0, item_callback=None, **kwargs):
