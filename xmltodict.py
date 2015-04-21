@@ -102,7 +102,7 @@ class _DictSAXHandler(object):
             self.stack.append((self.item, self.data))
             if self.xml_attribs:
                 attrs = self.dict_constructor(
-                    (self.attr_prefix+key, value)
+                    (self.attr_prefix+self._build_name(key), value)
                     for (key, value) in attrs.items())
             else:
                 attrs = None
@@ -374,11 +374,13 @@ def _emit(key, value, content_handler,
         if result is None:
             return
         key, value = result
-    if not isinstance(value, (list, tuple)):
+    if (not hasattr(value, '__iter__')
+            or isinstance(value, _basestring)
+            or isinstance(value, dict)):
         value = [value]
-    if full_document and depth == 0 and len(value) > 1:
-        raise ValueError('document with multiple roots')
-    for v in value:
+    for index, v in enumerate(value):
+        if full_document and depth == 0 and index > 0:
+            raise ValueError('document with multiple roots')
         if v is None:
             v = OrderedDict()
         elif not isinstance(v, dict):

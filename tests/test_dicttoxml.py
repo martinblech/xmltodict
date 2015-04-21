@@ -49,6 +49,14 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertEqual(obj, parse(unparse(obj)))
         self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
 
+    def test_generator(self):
+        obj = {'a': {'b': ['1', '2', '3']}}
+        def lazy_obj():
+            return {'a': {'b': (i for i in ('1', '2', '3'))}}
+        self.assertEqual(obj, parse(unparse(lazy_obj())))
+        self.assertEqual(unparse(lazy_obj()),
+             unparse(parse(unparse(lazy_obj()))))
+
     def test_no_root(self):
         self.assertRaises(ValueError, unparse, {})
 
@@ -80,19 +88,18 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertEqual(_strip(unparse(parse(xml))),
                          '<a><d></d>abcefg</a>')
 
-    if hasattr(collections, 'OrderedDict'):
-        def test_preprocessor(self):
-            obj = {'a': OrderedDict((('b:int', [1, 2]), ('b', 'c')))}
+    def test_preprocessor(self):
+        obj = {'a': OrderedDict((('b:int', [1, 2]), ('b', 'c')))}
 
-            def p(key, value):
-                try:
-                    key, _ = key.split(':')
-                except ValueError:
-                    pass
-                return key, value
+        def p(key, value):
+            try:
+                key, _ = key.split(':')
+            except ValueError:
+                pass
+            return key, value
 
-            self.assertEqual(_strip(unparse(obj, preprocessor=p)),
-                             '<a><b>1</b><b>2</b><b>c</b></a>')
+        self.assertEqual(_strip(unparse(obj, preprocessor=p)),
+                         '<a><b>1</b><b>2</b><b>c</b></a>')
 
     def test_preprocessor_skipkey(self):
         obj = {'a': {'b': 1, 'c': 2}}
@@ -105,32 +112,31 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertEqual(_strip(unparse(obj, preprocessor=p)),
                          '<a><c>2</c></a>')
 
-    if hasattr(collections, 'OrderedDict') and not IS_JYTHON:
+    if not IS_JYTHON:
         # Jython's SAX does not preserve attribute order
         def test_attr_order_roundtrip(self):
             xml = '<root a="1" b="2" c="3"></root>'
             self.assertEqual(xml, _strip(unparse(parse(xml))))
 
-    if hasattr(collections, 'OrderedDict'):
-        def test_pretty_print(self):
-            obj = {'a': OrderedDict((
-                ('b', [{'c': [1, 2]}, 3]),
-                ('x', 'y'),
-            ))}
-            newl = '\n'
-            indent = '....'
-            xml = dedent('''\
-            <?xml version="1.0" encoding="utf-8"?>
-            <a>
-            ....<b>
-            ........<c>1</c>
-            ........<c>2</c>
-            ....</b>
-            ....<b>3</b>
-            ....<x>y</x>
-            </a>''')
-            self.assertEqual(xml, unparse(obj, pretty=True,
-                                          newl=newl, indent=indent))
+    def test_pretty_print(self):
+        obj = {'a': OrderedDict((
+            ('b', [{'c': [1, 2]}, 3]),
+            ('x', 'y'),
+        ))}
+        newl = '\n'
+        indent = '....'
+        xml = dedent('''\
+        <?xml version="1.0" encoding="utf-8"?>
+        <a>
+        ....<b>
+        ........<c>1</c>
+        ........<c>2</c>
+        ....</b>
+        ....<b>3</b>
+        ....<x>y</x>
+        </a>''')
+        self.assertEqual(xml, unparse(obj, pretty=True,
+                                      newl=newl, indent=indent))
 
     def test_encoding(self):
         try:

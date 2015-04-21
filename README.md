@@ -5,26 +5,32 @@
 [![Build Status](https://secure.travis-ci.org/martinblech/xmltodict.png)](http://travis-ci.org/martinblech/xmltodict)
 
 ```python
->>> doc = xmltodict.parse("""
-... <mydocument has="an attribute">
-...   <and>
-...     <many>elements</many>
-...     <many>more elements</many>
-...   </and>
-...   <plus a="complex">
-...     element as well
-...   </plus>
-... </mydocument>
-... """)
->>>
->>> doc['mydocument']['@has']
-u'an attribute'
->>> doc['mydocument']['and']['many']
-[u'elements', u'more elements']
->>> doc['mydocument']['plus']['@a']
-u'complex'
->>> doc['mydocument']['plus']['#text']
-u'element as well'
+>>> print(json.dumps(xmltodict.parse("""
+...  <mydocument has="an attribute">
+...    <and>
+...      <many>elements</many>
+...      <many>more elements</many>
+...    </and>
+...    <plus a="complex">
+...      element as well
+...    </plus>
+...  </mydocument>
+...  """), indent=4))
+{
+    "mydocument": {
+        "@has": "an attribute", 
+        "and": {
+            "many": [
+                "elements", 
+                "more elements"
+            ]
+        }, 
+        "plus": {
+            "@a": "complex", 
+            "#text": "element as well"
+        }
+    }
+}
 ```
 
 ## Namespace support
