@@ -230,36 +230,39 @@ class StreamingGeneratorTests(unittest.TestCase):
     def test_generator(self):
         active_threads = threading.active_count()
         data = '<a x="y"><b>1</b><b>2</b><b>3</b></a>'
-        result = [item for path, item in parse(data, item_depth=2)]
+        with parse(data, item_depth=2) as gen:
+            result = [item for path, item in gen]
         self.assertEqual(result, ['1', '2', '3'])
         self.assertEqual(threading.active_count(), active_threads)
 
     def test_empty_generator(self):
         active_threads = threading.active_count()
         data = '<a x="y"></a>'
-        result = [item for path, item in parse(data, item_depth=2)]
+        with parse(data, item_depth=2) as gen:
+            result = [item for path, item in gen]
         self.assertEqual(result, [])
         self.assertEqual(threading.active_count(), active_threads)
 
     def test_exception_handling(self):
         active_threads = threading.active_count()
-        g = parse('', item_depth=2)
-        self.assertRaises(xml.parsers.expat.ExpatError, list, g)
+        def test():
+            with parse('', item_depth=2) as gen:
+                list(gen)
+        self.assertRaises(xml.parsers.expat.ExpatError, test)    
         self.assertEqual(threading.active_count(), active_threads)
 
     def test_incomplete_iteration(self):
         active_threads = threading.active_count()
         data = '<a x="y"><b>1</b><b>2</b><b>3</b></a>'
-        for path, item in parse(data, item_depth=2):
-            if item == '2':
-                break
+        with parse(data, item_depth=2) as gen:
+            for path, item in gen:
+                if item == '2':
+                    break
         self.assertEqual(threading.active_count(), active_threads)
 
     def test_incomplete_iteration_without_close(self):
         active_threads = threading.active_count()
         data = '<a x="y"><b>1</b><b>2</b><b>3</b></a>'
-        gen = parse(data, item_depth=2, producer_thread_timeout=0.1)
-        next(gen)
-        import time
-        time.sleep(0.2)
+        with parse(data, item_depth=2) as gen:
+            next(gen)
         self.assertEqual(threading.active_count(), active_threads)

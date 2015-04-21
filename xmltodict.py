@@ -33,6 +33,8 @@ try:  # pragma no cover
 except NameError:  # pragma no cover
     _unicode = str
 
+import contextlib
+
 __author__ = 'Martin Blech'
 __version__ = '0.9.2'
 __license__ = 'MIT'
@@ -178,8 +180,8 @@ def _parse_to_generator(parser, handler, xml_input, **kwargs):
     break within a for loop over the generator). In this case the producer is
     also gracefully terminated. Also the generator might be started and left
     without completion or cancelling (which is not a good use of a generator).
-    To prevent leaking resources in such a case the producer thread is
-    terminated after a configurable timeout.
+    To prevent leaking resources the resulting generator should be wrapped
+    by a decorator that automatically closes it (eg. contextlib.closing()).
     
     Exceptions from the parser are propagated via the generator and terminate
     it.
@@ -191,7 +193,6 @@ def _parse_to_generator(parser, handler, xml_input, **kwargs):
     consumer, as well as to signal when the parser is done or to propagate its
     exception.
     '''
-    producer_thread_timeout = kwargs.get('producer_thread_timeout', 30)
     
     def producer(response_queue, request_queue):
     
@@ -205,7 +206,7 @@ def _parse_to_generator(parser, handler, xml_input, **kwargs):
             try:
                 # the producer is able to shutdown in case the generator
                 # is not closed properly
-                can_produce = request_queue.get(timeout=producer_thread_timeout)
+                can_produce = request_queue.get()
                 request_queue.task_done()
             except queue.Empty:
                 can_produce = False
@@ -227,6 +228,7 @@ def _parse_to_generator(parser, handler, xml_input, **kwargs):
                 enqueue(e, True)
             else:
                 _callback(None)
+            print('producer done')
         return run
 
     response_queue = queue.Queue(1)
@@ -353,7 +355,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     parser.CharacterDataHandler = handler.characters
     parser.buffer_text = True
     if item_depth > 0 and item_callback is None:
-        return _parse_to_generator(parser, handler, xml_input, **kwargs)
+        return contextlib.closing(_parse_to_generator(parser, handler, xml_input, **kwargs))
     else:
         return _parse(parser, handler, xml_input)
 
