@@ -92,11 +92,12 @@ Chris Potter
 ...
 ```
 
-Also you can use generator, for this `item_depth` has to be greater than 0 and no `item_callback`:
+Also you can use generator, for this `item_depth` has to be greater than 0 and no `item_callback`. Since the generator uses a thread under the hood you need to use it from within a `with` statement so that the thread is correctly disposed of:
 
 ```python
->>> data = GzipFile('discogs_artists.xml.gz')
->>> [artist['name'] for _, artist in xmltodict.parse(data, item_depth=2)]
+>>> with xmltodict.parse(GzipFile('discogs_artists.xml.gz'), item_depth=2) as gen:
+...    artists_names = [artist['name'] for _, artist in gen]
+... artists_names
 ['A Perfect Circle', 'Fantômas', 'King Crimson', 'Chris Potter']
 ```
 
