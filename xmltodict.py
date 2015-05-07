@@ -51,7 +51,9 @@ class _DictSAXHandler(object):
                  namespace_separator=':',
                  namespaces=None,
                  tag_key='#tag',
-                 index_keys=()):
+                 index_keys=(),
+                 index_keys_compress=True,
+                 delete_key='#deletelevel'):
         self.path = []
         self.stack = []
         self.data = None
@@ -70,6 +72,8 @@ class _DictSAXHandler(object):
         self.namespaces = namespaces
         self.tag_key = tag_key
         self.index_keys = index_keys
+        self.index_keys_compress = index_keys_compress
+        self.delete_key = delete_key
 
     def _build_name(self, full_name):
         if not self.namespaces:
@@ -137,30 +141,49 @@ class _DictSAXHandler(object):
             self.data += self.cdata_separator + data
 
     def _promote_keys(self, key, value):
-        if isinstance(value, OrderedDict):
+        if isinstance(value, dict):
             for i in self.index_keys:
                 if value.has_key(i):
-                    value[self.tag_key] = key
+                    if self.index_keys_compress:
+                        value[self.tag_key] = key
                     return (value[i], value)
-        return (key, value)
+        return None
 
     def push_data(self, item, key, data):
-        key, data = self._promote_keys(key, data)
         if self.postprocessor is not None:
             result = self.postprocessor(self.path, key, data)
             if result is None:
                 return item
             key, data = result
+        result = self._promote_keys(key, data)
+        if self.index_keys_compress and not result is None:
+            key, data = result
         if item is None:
             item = self.dict_constructor()
-        try:
-            value = item[key]
-            if isinstance(value, list):
-                value.append(data)
-            else:
-                item[key] = [value, data]
-        except KeyError:
-            item[key] = data
+        if self.index_keys_compress or result is None:
+            try:
+                value = item[key]
+                if isinstance(value, list):
+                    value.append(data)
+                if isinstance(value, dict) and (not self.index_keys_compress) and value.has_key(self.delete_key):
+                    raise ValueError("Mixture of data types: some have index keys and some do not, while processing \"%s\" key" % key)
+                else:
+                    item[key] = [value, data]
+            except KeyError:
+                item[key] = data
+        else:
+            try:
+                value = item[key]
+                if isinstance(value, dict) and value.has_key(self.delete_key) and value[self.delete_key]:
+                    if value.has_key(result[0]):
+                        raise ValueError("Multiple definitions for item %s" % result[0])
+                    value[result[0]] = result[1]
+                else:
+                    raise ValueError("Mixture of data types: some have index keys and some do not, while processing \"%s\" key" % key)
+            except KeyError:
+                item[key] = self.dict_constructor()
+                item[key][result[0]] = result[1]
+                item[key][self.delete_key] = True
         return item
 
 
@@ -236,7 +259,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     or list of indices. If a subtree contains a child element with a tag
     that matches one of the items in the index_keys argument, the function
     will make the value of that element be the key for the subtree.
-    This process occurs before any user-supplied postprocessor. The items
+    This process occurs after any user-supplied postprocessor. The items
     in index_keys are examined in order. The first matching item will be
     used as the index.
 
@@ -265,6 +288,27 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
             {'name': 'host2',
              'ip_address': '10.0.0.2',
              'os': 'OSX'} } }
+
+    You can use the index_keys_compress argument to modify the way the
+    index_keys argument processing works. If you specify
+    index_keys_compress=False, the original key will remain in
+    place. However, instead of the original key pointing to a list, it
+    will point to a dictionary keyed off of the value of the element
+    that matches an index_key.
+
+        For example, given the XML document from the previous example,
+        if called with index_keys=('name',) and
+        index_keys_compress=False, it will produce this dictionary:
+        {'servers':
+          {'server':
+            {'host1':
+              {'name': 'host1',
+               'ip_address': '10.0.0.1',
+               'os': 'Linux'},
+             'host2':
+              {'name': 'host2',
+               'ip_address': '10.0.0.2',
+               'os': 'OSX'} } } }
     """
     handler = _DictSAXHandler(namespace_separator=namespace_separator,
                               **kwargs)
@@ -303,16 +347,23 @@ def _emit(key, value, content_handler,
           newl='\n',
           indent='\t',
           full_document=True,
-          tag_key='#tag'):
+          tag_key='#tag',
+          delete_key='#deletelevel'):
+    if isinstance(value, dict):
+        if value.has_key(tag_key):
+            key = value[tag_key]
+            del value[tag_key]
+        if value.has_key(delete_key) and value[delete_key]:
+            del value[delete_key]
+            newvalue=[]
+            for sub_hierachy in value.keys():
+                newvalue.append(value[sub_hierachy])
+            value = newvalue
     if preprocessor is not None:
         result = preprocessor(key, value)
         if result is None:
             return
         key, value = result
-    if isinstance(value, dict):
-        if value.has_key(tag_key):
-            key = value[tag_key]
-            del value[tag_key]
     if (not hasattr(value, '__iter__')
             or isinstance(value, _basestring)
             or isinstance(value, dict)):
