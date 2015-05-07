@@ -50,7 +50,8 @@ class _DictSAXHandler(object):
                  dict_constructor=OrderedDict,
                  strip_whitespace=True,
                  namespace_separator=':',
-                 namespaces=None):
+                 namespaces=None,
+                 force_list=()):
         self.path = []
         self.stack = []
         self.data = None
@@ -67,6 +68,7 @@ class _DictSAXHandler(object):
         self.strip_whitespace = strip_whitespace
         self.namespace_separator = namespace_separator
         self.namespaces = namespaces
+        self.force_list = force_list
 
     def _build_name(self, full_name):
         if not self.namespaces:
@@ -148,7 +150,10 @@ class _DictSAXHandler(object):
             else:
                 item[key] = [value, data]
         except KeyError:
-            item[key] = data
+            if key in self.force_list:
+                item[key] = [data]
+            else:
+                item[key] = data
         return item
 
 
@@ -220,6 +225,37 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         >>> xmltodict.parse('<a>hello</a>', expat=defusedexpat.pyexpat)
         OrderedDict([(u'a', u'hello')])
 
+    You can use the force_list argument to force lists to be created even
+    when there is only a single child of a given level of hierarchy. The
+    force_list argument is a tuple of keys. If the key for a given level
+    of hierarchy is in the force_list argument, that level of hierarchy
+    will have a list as a child (even if there is only one sub-element).
+    The index_keys operation takes precendence over this. This is applied
+    after any user-supplied postprocessor has already run.
+
+        For example, given this input:
+        <servers>
+          <server>
+            <name>host1</name>
+            <os>Linux</os>
+            <interfaces>
+              <interface>
+                <name>em0</name>
+                <ip_address>10.0.0.1</ip_address>
+              </interface>
+            </interfaces>
+          </server>
+        </servers>
+
+        If called with force_list=('interface',), it will produce
+        this dictionary:
+        {'servers':
+          {'server':
+            {'name': 'host1',
+             'os': 'Linux'},
+             'interfaces':
+              {'interface':
+                [ {'name': 'em0', 'ip_address': '10.0.0.1' } ] } } }
     """
     handler = _DictSAXHandler(namespace_separator=namespace_separator,
                               **kwargs)
