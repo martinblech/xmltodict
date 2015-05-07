@@ -36,7 +36,6 @@ __license__ = 'MIT'
 class ParsingInterrupted(Exception):
     pass
 
-
 class _DictSAXHandler(object):
     def __init__(self,
                  item_depth=0,
@@ -50,7 +49,9 @@ class _DictSAXHandler(object):
                  dict_constructor=OrderedDict,
                  strip_whitespace=True,
                  namespace_separator=':',
-                 namespaces=None):
+                 namespaces=None,
+                 tag_key='#tag',
+                 index_keys=()):
         self.path = []
         self.stack = []
         self.data = None
@@ -67,6 +68,8 @@ class _DictSAXHandler(object):
         self.strip_whitespace = strip_whitespace
         self.namespace_separator = namespace_separator
         self.namespaces = namespaces
+        self.tag_key = tag_key
+        self.index_keys = index_keys
 
     def _build_name(self, full_name):
         if not self.namespaces:
@@ -133,7 +136,16 @@ class _DictSAXHandler(object):
         else:
             self.data += self.cdata_separator + data
 
+    def _promote_keys(self, key, value):
+        if isinstance(value, OrderedDict):
+            for i in self.index_keys:
+                if value.has_key(i):
+                    value[self.tag_key] = key
+                    return (value[i], value)
+        return (key, value)
+
     def push_data(self, item, key, data):
+        key, data = self._promote_keys(key, data)
         if self.postprocessor is not None:
             result = self.postprocessor(self.path, key, data)
             if result is None:
@@ -220,6 +232,39 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         >>> xmltodict.parse('<a>hello</a>', expat=defusedexpat.pyexpat)
         OrderedDict([(u'a', u'hello')])
 
+    You can use the index_keys argument to pass an ordered tuple
+    or list of indices. If a subtree contains a child element with a tag
+    that matches one of the items in the index_keys argument, the function
+    will make the value of that element be the key for the subtree.
+    This process occurs before any user-supplied postprocessor. The items
+    in index_keys are examined in order. The first matching item will be
+    used as the index.
+
+        For example, given this input:
+        <servers>
+          <server>
+            <name>host1</name>
+            <ip_address>10.0.0.1</ip_address>
+            <os>Linux</os>
+          </server>
+          <server>
+            <name>host2</name>
+            <ip_address>10.0.0.2</ip_address>
+            <os>OSX</os>
+          </server>
+        </servers>
+
+        If called with index_keys=('name',), it will produce
+        this dictionary:
+        {'servers':
+          {'host1':
+            {'name': 'host1',
+             'ip_address': '10.0.0.1',
+             'os': 'Linux'},
+           'host2':
+            {'name': 'host2',
+             'ip_address': '10.0.0.2',
+             'os': 'OSX'} } }
     """
     handler = _DictSAXHandler(namespace_separator=namespace_separator,
                               **kwargs)
@@ -257,12 +302,17 @@ def _emit(key, value, content_handler,
           pretty=False,
           newl='\n',
           indent='\t',
-          full_document=True):
+          full_document=True,
+          tag_key='#tag'):
     if preprocessor is not None:
         result = preprocessor(key, value)
         if result is None:
             return
         key, value = result
+    if isinstance(value, dict):
+        if value.has_key(tag_key):
+            key = value[tag_key]
+            del value[tag_key]
     if (not hasattr(value, '__iter__')
             or isinstance(value, _basestring)
             or isinstance(value, dict)):
