@@ -12,12 +12,12 @@ except ImportError:  # pragma no cover
     except ImportError:
         from io import StringIO
 try:  # pragma no cover
-    from collections import OrderedDict
+    from collections import OrderedDict as _OrderedDict
 except ImportError:  # pragma no cover
     try:
-        from ordereddict import OrderedDict
+        from ordereddict import OrderedDict as _OrderedDict
     except ImportError:
-        OrderedDict = dict
+        _OrderedDict = dict
 
 try:  # pragma no cover
     _basestring = basestring
@@ -32,6 +32,8 @@ __author__ = 'Martin Blech'
 __version__ = '0.9.2'
 __license__ = 'MIT'
 
+class OrderedDict(_OrderedDict):
+    pass
 
 class ParsingInterrupted(Exception):
     pass
@@ -147,7 +149,7 @@ class _DictSAXHandler(object):
             for i in self.index_keys:
                 if value.has_key(i):
                     if self.index_keys_compress:
-                        value[self.tag_key] = key
+                        setattr(value, self.tag_key, key)
                     return (value[i], value)
         return None
 
@@ -167,7 +169,7 @@ class _DictSAXHandler(object):
                 value = item[key]
                 if isinstance(value, list):
                     value.append(data)
-                if isinstance(value, dict) and (not self.index_keys_compress) and value.has_key(self.delete_key):
+                if isinstance(value, dict) and (not self.index_keys_compress) and getattr(value, self.delete_key, False):
                     raise ValueError("Mixture of data types: some have index keys and some do not, while processing \"%s\" key" % key)
                 else:
                     item[key] = [value, data]
@@ -179,7 +181,7 @@ class _DictSAXHandler(object):
         else:
             try:
                 value = item[key]
-                if isinstance(value, dict) and value.has_key(self.delete_key) and value[self.delete_key]:
+                if isinstance(value, dict) and getattr(value, self.delete_key, False):
                     if value.has_key(result[0]):
                         raise ValueError("Multiple definitions for item %s" % result[0])
                     value[result[0]] = result[1]
@@ -188,7 +190,7 @@ class _DictSAXHandler(object):
             except KeyError:
                 item[key] = self.dict_constructor()
                 item[key][result[0]] = result[1]
-                item[key][self.delete_key] = True
+                setattr(item[key], self.delete_key, True)
         return item
 
 
@@ -387,11 +389,19 @@ def _emit(key, value, content_handler,
           tag_key='#tag',
           delete_key='#deletelevel'):
     if isinstance(value, dict):
+        # Support tag_key and delete_key both as "normal" dictionary
+        # entries and as hidden attributes. Prefer the "normal"
+        # dictionary entries (if present) over the attributes.
         if value.has_key(tag_key):
             key = value[tag_key]
             del value[tag_key]
-        if value.has_key(delete_key) and value[delete_key]:
+        elif hasattr(value, tag_key):
+            key = getattr(value, tag_key)
+        delete_level=False
+        if value.has_key(delete_key):
+            delete_level=value[delete_key]
             del value[delete_key]
+        if delete_level or getattr(value, delete_key, False):
             newvalue=[]
             for sub_hierachy in value.keys():
                 newvalue.append(value[sub_hierachy])
