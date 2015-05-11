@@ -32,8 +32,79 @@ __author__ = 'Martin Blech'
 __version__ = '0.9.2'
 __license__ = 'MIT'
 
-class OrderedDict(_OrderedDict):
+class NoArg():
     pass
+
+# Methods that will be added by the XMLNodeMetaClass
+_XMLNodeMetaClassImports = []
+
+def hasXMLattributes(self):
+    if len(self.XMLattrs) > 0:
+        return True
+    return False
+
+_XMLNodeMetaClassImports.append(hasXMLattributes)
+
+def setXMLattribute(self, attr, val):
+    self.XMLattrs[attr] = val
+
+_XMLNodeMetaClassImports.append(setXMLattribute)
+
+def getXMLattribute(self, attr, defval=NoArg()):
+    try:
+        return self.XMLattrs[attr]
+    except KeyError:
+        if not isinstance(defval, NoArg):
+            return defval
+        raise
+
+_XMLNodeMetaClassImports.append(getXMLattribute)
+
+def _XMLNodeMetaClassRepr(self):
+    return "%s(XMLattrs=%r, value=%s)" % (self.__class__.__name__, self.XMLattrs, self.__parent__.__repr__(self))
+
+class XMLNodeMetaClass(type):
+    def __new__(cls, name, bases, dict):
+        dict["XMLattrs"] = {}
+        dict["__parent__"] = bases[0]
+        dict["__repr__"] = _XMLNodeMetaClassRepr
+        for method in _XMLNodeMetaClassImports:
+            dict[method.__name__] = method
+        return type.__new__(cls, name, bases, dict)
+    def __call__(self, *args, **kwargs):
+        print "args = %r, kwargs = %r" % (args, kwargs)
+        XMLattrs=kwargs.pop("XMLattrs", dict())
+        obj = type.__call__(self, *args, **kwargs)
+        obj.XMLattrs = XMLattrs
+        #obj.hasXMLattributes = self.hasXMLattributes
+        return obj
+
+class XMLCDATANode(_unicode):
+    __metaclass__ = XMLNodeMetaClass
+
+class XMLListNode(list):
+    __metaclass__ = XMLNodeMetaClass
+
+class OrderedDict(_OrderedDict):
+    def __repr__(self, _repr_running={}):
+        temp = self.__class__.__name__
+        try:
+            # The OrderedDict.__repr__ function takes an
+            # extra argument. It also prints the name of
+            # the main object's class. This logic temporarily
+            # resets the class name so this appears to be
+            # what it (fundamentally) is: an OrderedDict
+            # object.
+            self.__class__.__name__ = _OrderedDict.__name__
+            rv = _OrderedDict.__repr__(self, _repr_running)
+        except:
+            rv = _OrderedDict.__repr__(self)
+        finally:
+            self.__class__.__name__ = temp
+        return rv
+
+class XMLDictNode(OrderedDict):
+    __metaclass__ = XMLNodeMetaClass
 
 class ParsingInterrupted(Exception):
     pass
