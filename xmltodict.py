@@ -61,7 +61,7 @@ def getXMLattribute(self, attr, defval=NoArg()):
 _XMLNodeMetaClassImports.append(getXMLattribute)
 
 def _XMLNodeMetaClassRepr(self):
-    return "%s(XMLattrs=%r, value=%s)" % (self.__class__.__name__, self.XMLattrs, self.__parent__.__repr__(self))
+    return "%s(XMLattrs=%r, value=%s)" % (getattr(self, "__const_class_name__", self.__class__.__name__), self.XMLattrs, self.__parent__.__repr__(self))
 
 class XMLNodeMetaClass(type):
     def __new__(cls, name, bases, dict):
@@ -72,11 +72,9 @@ class XMLNodeMetaClass(type):
             dict[method.__name__] = method
         return type.__new__(cls, name, bases, dict)
     def __call__(self, *args, **kwargs):
-        print "args = %r, kwargs = %r" % (args, kwargs)
         XMLattrs=kwargs.pop("XMLattrs", dict())
         obj = type.__call__(self, *args, **kwargs)
         obj.XMLattrs = XMLattrs
-        #obj.hasXMLattributes = self.hasXMLattributes
         return obj
 
 class XMLCDATANode(_unicode):
@@ -94,7 +92,9 @@ class OrderedDict(_OrderedDict):
             # the main object's class. This logic temporarily
             # resets the class name so this appears to be
             # what it (fundamentally) is: an OrderedDict
-            # object.
+            # object. (For this reason, there is also extra
+            # logic to make the XMLDictNode __repr__ function
+            # work correctly.)
             self.__class__.__name__ = _OrderedDict.__name__
             rv = _OrderedDict.__repr__(self, _repr_running)
         except:
@@ -105,6 +105,9 @@ class OrderedDict(_OrderedDict):
 
 class XMLDictNode(OrderedDict):
     __metaclass__ = XMLNodeMetaClass
+    def __init__(self, *args, **kwargs):
+        self.__const_class_name__ = self.__class__.__name__
+        OrderedDict.__init__(self, *args, **kwargs)
 
 class ParsingInterrupted(Exception):
     pass
