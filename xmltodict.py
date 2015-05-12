@@ -18,6 +18,11 @@ except ImportError:  # pragma no cover
         from ordereddict import OrderedDict as _OrderedDict
     except ImportError:
         _OrderedDict = dict
+try: # pragma no cover
+    from pprint import pprint
+except ImportError: # pragma no cover
+    def pprint(obj, *args, **kwargs):
+        print(obj)
 
 try:  # pragma no cover
     _basestring = basestring
@@ -63,26 +68,6 @@ _XMLNodeMetaClassImports.append(getXMLattribute)
 def _XMLNodeMetaClassRepr(self):
     return "%s(XMLattrs=%r, value=%s)" % (getattr(self, "__const_class_name__", self.__class__.__name__), self.XMLattrs, self.__parent__.__repr__(self))
 
-class XMLNodeMetaClass(type):
-    def __new__(cls, name, bases, dict):
-        dict["XMLattrs"] = {}
-        dict["__parent__"] = bases[0]
-        dict["__repr__"] = _XMLNodeMetaClassRepr
-        for method in _XMLNodeMetaClassImports:
-            dict[method.__name__] = method
-        return type.__new__(cls, name, bases, dict)
-    def __call__(self, *args, **kwargs):
-        XMLattrs=kwargs.pop("XMLattrs", dict())
-        obj = type.__call__(self, *args, **kwargs)
-        obj.XMLattrs = XMLattrs
-        return obj
-
-class XMLCDATANode(_unicode):
-    __metaclass__ = XMLNodeMetaClass
-
-class XMLListNode(list):
-    __metaclass__ = XMLNodeMetaClass
-
 class OrderedDict(_OrderedDict):
     def __repr__(self, _repr_running={}):
         temp = self.__class__.__name__
@@ -103,11 +88,73 @@ class OrderedDict(_OrderedDict):
             self.__class__.__name__ = temp
         return rv
 
+class XMLNodeMetaClass(type):
+    def __new__(cls, name, bases, dict):
+        dict["XMLattrs"] = OrderedDict()
+        dict["__parent__"] = bases[0]
+        dict["__repr__"] = _XMLNodeMetaClassRepr
+        for method in _XMLNodeMetaClassImports:
+            dict[method.__name__] = method
+        return type.__new__(cls, name, bases, dict)
+    def __call__(self, *args, **kwargs):
+        XMLattrs=kwargs.pop("XMLattrs", OrderedDict())
+        obj = type.__call__(self, *args, **kwargs)
+        obj.XMLattrs = XMLattrs
+        return obj
+
+class XMLCDATANode(_unicode):
+    __metaclass__ = XMLNodeMetaClass
+    def strip(self, arg=None):
+        newtext = _unicode.strip(self, arg)
+        return XMLCDATANode(newtext, XMLattrs=self.XMLattrs)
+    def prettyprint(self, *args, **kwargs):
+        currdepth = kwargs.pop("currdepth", 0)
+        newobj = self.__parent__(self)
+        if currdepth==0:
+            pprint(newobj, *args, **kwargs)
+        else:
+            return newobj
+
+class XMLListNode(list):
+    __metaclass__ = XMLNodeMetaClass
+    def prettyprint(self, *args, **kwargs):
+        currdepth = kwargs.pop("currdepth", 0)
+        depth = kwargs.get("depth", None)
+        if depth is not None and depth < currdepth:
+            return {}
+        # Construct a new item, recursively.
+        newlist = list()
+        for v in self:
+            if hasattr(v, "prettyprint"):
+                newlist.append(v.prettyprint(*args, currdepth=currdepth+1, **kwargs))
+            else:
+                newlist.append(v)
+        if currdepth==0:
+            pprint(newlist, *args, **kwargs)
+        else:
+            return newlist
+
 class XMLDictNode(OrderedDict):
     __metaclass__ = XMLNodeMetaClass
     def __init__(self, *args, **kwargs):
         self.__const_class_name__ = self.__class__.__name__
         OrderedDict.__init__(self, *args, **kwargs)
+    def prettyprint(self, *args, **kwargs):
+        currdepth = kwargs.pop("currdepth", 0)
+        depth = kwargs.get("depth", None)
+        if depth is not None and depth < currdepth:
+            return {}
+        # Construct a new item, recursively.
+        newdict = dict()
+        for (k,v) in self.iteritems():
+            if hasattr(v, "prettyprint"):
+                newdict[k] = v.prettyprint(*args, currdepth=currdepth+1, **kwargs)
+            else:
+                newdict[k] = v
+        if currdepth==0:
+            pprint(newdict, *args, **kwargs)
+        else:
+            return newdict
 
 class ParsingInterrupted(Exception):
     pass
@@ -117,12 +164,12 @@ class _DictSAXHandler(object):
                  item_depth=0,
                  item_callback=lambda *args: True,
                  xml_attribs=True,
-                 attr_prefix='@',
+                 attr_prefix=NoArg(),
                  cdata_key='#text',
                  force_cdata=False,
                  cdata_separator='',
                  postprocessor=None,
-                 dict_constructor=OrderedDict,
+                 dict_constructor=NoArg(),
                  strip_whitespace=True,
                  namespace_separator=':',
                  namespaces=None,
@@ -130,20 +177,20 @@ class _DictSAXHandler(object):
                  index_keys=(),
                  index_keys_compress=True,
                  delete_key='#deletelevel',
-                 force_list=()):
+                 force_list=(),
+                 new_style=False):
         self.path = []
         self.stack = []
         self.data = None
+        self.attrs = None
         self.item = None
         self.item_depth = item_depth
         self.xml_attribs = xml_attribs
         self.item_callback = item_callback
-        self.attr_prefix = attr_prefix
         self.cdata_key = cdata_key
         self.force_cdata = force_cdata
         self.cdata_separator = cdata_separator
         self.postprocessor = postprocessor
-        self.dict_constructor = dict_constructor
         self.strip_whitespace = strip_whitespace
         self.namespace_separator = namespace_separator
         self.namespaces = namespaces
@@ -152,6 +199,27 @@ class _DictSAXHandler(object):
         self.index_keys_compress = index_keys_compress
         self.delete_key = delete_key
         self.force_list = force_list
+        self.new_style = new_style
+        if self.new_style:
+            self.list_constructor = XMLListNode
+            self.cdata_constructor = XMLCDATANode
+        else:
+            self.list_constructor = list
+            self.cdata_constructor = _unicode
+        if isinstance(dict_constructor, NoArg):
+            if self.new_style:
+                self.dict_constructor = XMLDictNode
+            else:
+                self.dict_constructor = OrderedDict
+        else:
+            self.dict_constructor = dict_constructor
+        if isinstance(attr_prefix, NoArg):
+            if self.new_style:
+                self.attr_prefix=""
+            else:
+                self.attr_prefix="@"
+        else:
+            self.attr_prefix = attr_prefix
 
     def _build_name(self, full_name):
         if not self.namespaces:
@@ -176,14 +244,21 @@ class _DictSAXHandler(object):
         attrs = self._attrs_to_dict(attrs)
         self.path.append((name, attrs or None))
         if len(self.path) > self.item_depth:
-            self.stack.append((self.item, self.data))
+            if self.new_style:
+                self.stack.append((self.item, self.attrs, self.data))
+            else:
+                self.stack.append((self.item, self.data))
             if self.xml_attribs:
                 attrs = self.dict_constructor(
                     (self.attr_prefix+self._build_name(key), value)
                     for (key, value) in attrs.items())
             else:
                 attrs = None
-            self.item = attrs or None
+            if self.new_style:
+                self.attrs = attrs
+                self.item = None
+            else:
+                self.item = attrs or None
             self.data = None
 
     def endElement(self, full_name):
@@ -196,12 +271,26 @@ class _DictSAXHandler(object):
             if not should_continue:
                 raise ParsingInterrupted()
         if len(self.stack):
-            item, data = self.item, self.data
-            self.item, self.data = self.stack.pop()
+            if self.new_style:
+                item, attrs, data = self.item, self.attrs, self.data
+                self.item, self.attrs, self.data = self.stack.pop()
+            else:
+                item, data = self.item, self.data
+                self.item, self.data = self.stack.pop()
             if self.strip_whitespace and data is not None:
                 data = data.strip() or None
             if data and self.force_cdata and item is None:
                 item = self.dict_constructor()
+            if self.new_style and isinstance(attrs, dict):
+                if item is not None:
+                    node = item
+                elif data is not None:
+                    node = data
+                else:
+                    node = None
+                if node is not None:
+                    for (key, value) in attrs.items():
+                        node.setXMLattribute(key, value)
             if item is not None:
                 if data:
                     self.push_data(item, self.cdata_key, data)
@@ -209,14 +298,14 @@ class _DictSAXHandler(object):
             else:
                 self.item = self.push_data(self.item, name, data)
         else:
-            self.item = self.data = None
+            self.item = self.attrs = self.data = None
         self.path.pop()
 
     def characters(self, data):
         if not self.data:
-            self.data = data
+            self.data = self.cdata_constructor(data)
         else:
-            self.data += self.cdata_separator + data
+            self.data = self.cdata_constructor(self.data + self.cdata_separator + data)
 
     def _promote_keys(self, key, value):
         if isinstance(value, dict):
@@ -224,7 +313,9 @@ class _DictSAXHandler(object):
                 if value.has_key(i):
                     if self.index_keys_compress:
                         setattr(value, self.tag_key, key)
-                    return (value[i], value)
+                    if isinstance(value[i], dict) and value[i].has_key(self.cdata_key):
+                        return (_unicode(value[i][self.cdata_key]), value)
+                    return (_unicode(value[i]), value)
         return None
 
     def push_data(self, item, key, data):
@@ -246,10 +337,10 @@ class _DictSAXHandler(object):
                 if isinstance(value, dict) and (not self.index_keys_compress) and getattr(value, self.delete_key, False):
                     raise ValueError("Mixture of data types: some have index keys and some do not, while processing \"%s\" key" % key)
                 else:
-                    item[key] = [value, data]
+                    item[key] = self.list_constructor((value, data))
             except KeyError:
                 if key in self.force_list:
-                    item[key] = [data]
+                    item[key] = self.list_constructor((data,))
                 else:
                     item[key] = data
         else:
@@ -257,8 +348,9 @@ class _DictSAXHandler(object):
                 value = item[key]
                 if isinstance(value, dict) and getattr(value, self.delete_key, False):
                     if value.has_key(result[0]):
-                        raise ValueError("Multiple definitions for item %s" % result[0])
-                    value[result[0]] = result[1]
+                        value[result[0]] = self.list_constructor((value[result[0]], result[1]))
+                    else:
+                        value[result[0]] = result[1]
                 else:
                     raise ValueError("Mixture of data types: some have index keys and some do not, while processing \"%s\" key" % key)
             except KeyError:
@@ -336,12 +428,12 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         >>> xmltodict.parse('<a>hello</a>', expat=defusedexpat.pyexpat)
         OrderedDict([(u'a', u'hello')])
 
-    You can use the index_keys argument to pass an ordered tuple
+    You can use the `index_keys` argument to pass an ordered tuple
     or list of indices. If a subtree contains a child element with a tag
-    that matches one of the items in the index_keys argument, the function
+    that matches one of the items in the `index_keys` argument, the function
     will make the value of that element be the key for the subtree.
     This process occurs after any user-supplied postprocessor. The items
-    in index_keys are examined in order. The first matching item will be
+    in `index_keys` are examined in order. The first matching item will be
     used as the index.
 
         For example, given this input:
@@ -370,16 +462,16 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
              'ip_address': '10.0.0.2',
              'os': 'OSX'} } }
 
-    You can use the index_keys_compress argument to modify the way the
-    index_keys argument processing works. If you specify
-    index_keys_compress=False, the original key will remain in
+    You can use the `index_keys_compress` argument to modify the way the
+    `index_keys` argument processing works. If you specify
+    `index_keys_compress=False`, the original key will remain in
     place. However, instead of the original key pointing to a list, it
     will point to a dictionary keyed off of the value of the element
-    that matches an index_key.
+    that matches an entry in `index_key`.
 
         For example, given the XML document from the previous example,
-        if called with index_keys=('name',) and
-        index_keys_compress=False, it will produce this dictionary:
+        if called with `index_keys=('name',)` and
+        `index_keys_compress=False`, it will produce this dictionary:
         {'servers':
           {'server':
             {'host1':
@@ -391,12 +483,12 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
                'ip_address': '10.0.0.2',
                'os': 'OSX'} } } }
 
-    You can use the force_list argument to force lists to be created even
+    You can use the `force_list` argument to force lists to be created even
     when there is only a single child of a given level of hierarchy. The
-    force_list argument is a tuple of keys. If the key for a given level
-    of hierarchy is in the force_list argument, that level of hierarchy
+    `force_list` argument is a tuple of keys. If the key for a given level
+    of hierarchy is in the `force_list` argument, that level of hierarchy
     will have a list as a child (even if there is only one sub-element).
-    The index_keys operation takes precendence over this. This is applied
+    The `index_keys` operation takes precendence over this. This is applied
     after any user-supplied postprocessor has already run.
 
         For example, given this input:
@@ -413,7 +505,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
           </server>
         </servers>
 
-        If called with force_list=('interface',), it will produce
+        If called with `force_list=('interface',)`, it will produce
         this dictionary:
         {'servers':
           {'server':
@@ -422,6 +514,26 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
              'interfaces':
               {'interface':
                 [ {'name': 'em0', 'ip_address': '10.0.0.1' } ] } } }
+
+    You can use the `new_style` argument to cause the function to
+    return output that uses classes based on the XMLNodeMetaClass. The
+    main functional difference is that the XML attributes are placed
+    in a class attribute, rather than being placed in a dictionary
+    entry. The XML attributes are accessible/settable using these
+    functions:
+        obj.hasXMLattributes(): Returns True if there are XML
+          attributes, or False otherwise.
+        obj.setXMLattribute(attr, val): Sets the XML attribute of name
+         `attr` to `val`.
+        obj.getXMLattribute(attr[, default]): Gets the XML attribute
+          of name `attr`. If there is no such attribute, it will
+          return default (if supplied) or raise a KeyError.
+
+    The classes returned when the `new_style` argument is True also
+    have a `prettyprint` method, which is mostly a pass-through to the
+    pprint() function. The main difference is that it strips the
+    attributes and converts the contents into simple types (such as
+    list and dict) so pprint will function as expected.
     """
     handler = _DictSAXHandler(namespace_separator=namespace_separator,
                               **kwargs)
@@ -467,18 +579,19 @@ def _emit(key, value, content_handler,
         # entries and as hidden attributes. Prefer the "normal"
         # dictionary entries (if present) over the attributes.
         if value.has_key(tag_key):
-            key = value[tag_key]
-            del value[tag_key]
+            key = value.pop(tag_key)
         elif hasattr(value, tag_key):
             key = getattr(value, tag_key)
         delete_level=False
         if value.has_key(delete_key):
-            delete_level=value[delete_key]
-            del value[delete_key]
+            delete_level=value.pop(delete_key)
         if delete_level or getattr(value, delete_key, False):
             newvalue=[]
             for sub_hierachy in value.keys():
-                newvalue.append(value[sub_hierachy])
+                if isinstance(value[sub_hierachy], list):
+                    newvalue.extend(value[sub_hierachy])
+                else:
+                    newvalue.append(value[sub_hierachy])
             value = newvalue
     if preprocessor is not None:
         result = preprocessor(key, value)
@@ -499,7 +612,7 @@ def _emit(key, value, content_handler,
         if isinstance(v, _basestring):
             v = OrderedDict(((cdata_key, v),))
         cdata = None
-        attrs = OrderedDict()
+        attrs = getattr(v, "XMLattrs", OrderedDict())
         children = []
         for ik, iv in v.items():
             if ik == cdata_key:
