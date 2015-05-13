@@ -24,6 +24,39 @@ except ImportError: # pragma no cover
     def pprint(obj, *args, **kwargs):
         print(obj)
 
+QNameDecode = None
+try: # pragma no cover
+    from lxml import etree
+    QNameDecode = etree.QName
+except ImportError: # pragma no cover
+    try:
+        import xml.etree.cElementTree as etree
+    except ImportError:
+        try:
+            import xml.etree.ElementTree as etree
+            # Not tested; but, should be the same as cElementTree
+        except ImportError:
+            try:
+                import cElementTree as etree
+                print "Warning: Not tested with cElementTree"
+            except ImportError:
+                try:
+                    import elementtree.ElementTree as etree
+                    print "Warning: Not tested with elementtree.ElementTree"
+                except ImportError:
+                    print "Unable to import etree: lxml functionality disabled"
+
+if etree and QNameDecode == None: # pragma no cover
+    class QNameDecode():
+        def __init__(self, node):
+            endidx = node.tag.rfind('}')
+            if node.tag[0] != '{' or endidx < 0:
+                self.namespace = None
+                self.localname = node.tag
+            else:
+                self.namespace = node.tag[1:endidx]
+                self.localname = node.tag[endidx+1:]
+
 try:  # pragma no cover
     _basestring = basestring
 except NameError:  # pragma no cover
@@ -248,9 +281,10 @@ class _DictSAXHandler(object):
             rv = attrs
         else:
             rv = self.dict_constructor(zip(attrs[0::2], attrs[1::2]))
-        for k in rv.keys():
-            if k == "xmlns" or k.startswith("xmlns:"):
-                del rv[k]
+        if self.strip_namespace:
+            for k in rv.keys():
+                if k == "xmlns" or k.startswith("xmlns:"):
+                    del rv[k]
         return rv
 
     def startElement(self, full_name, attrs):
@@ -584,6 +618,120 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         parser.Parse(xml_input, True)
     return handler.item
 
+if etree:
+    def parse_lxml_node(node, handler, process_namespaces,
+                        strip_namespace, namespace_separator,
+                        namespace_dict=None, rootElement=False):
+        # Initialize the namespace_dict, if needed.
+        if namespace_dict == None:
+            namespace_dict = {'nexttag': _unicode('ns0')}
+        if node.tag not in (etree.PI, etree.Comment):
+            # Make attribute copy
+            attrib = node.attrib.copy()
+
+            # Figure out NS:
+            # If 'strip_namespace' is set, just strip it out here to save
+            # processing time.
+            # Otherwise, if process_namespaces is True, emulate what the
+            # expat processor would do.
+            # Otherwise, try to restore the original nodename ("ns:tag")
+            # and XMLNS attributes. (Again, this emulates what the expat
+            # processor would do.) If we've lost the original
+            # namespace identifiers, make up our own.
+            if strip_namespace:
+                tag = QNameDecode(node).localname
+            elif process_namespaces:
+                parsed_tag = QNameDecode(node)
+                if not parsed_tag.namespace:
+                    tag = parsed_tag.localname
+                else:
+                    tag = namespace_separator.join((parsed_tag.namespace,
+                                                    parsed_tag.localname))
+            elif not hasattr(node, 'nsmap'):
+                # If the node doesn't have the nsmap attribute, all NS
+                # identfiers are lost. We can recreate them with
+                # locally-generated identifiers.
+                parsed_tag = QNameDecode(node)
+                if not parsed_tag.namespace:
+                    tag = parsed_tag.localname
+                else:
+                    if parsed_tag.namespace not in namespace_dict:
+                        newns = namespace_dict['nexttag']
+                        namespace_dict[parsed_tag.namespace] = newns
+                        namespace_dict['nexttag'] = _unicode("ns%d" % (int(newns[2:]) + 1, ))
+                        attrib[_unicode("xmlns:" + newns)] = parsed_tag.namespace
+                    tag = namespace_separator.join((namespace_dict[parsed_tag.namespace],
+                                                    parsed_tag.localname))
+            else:
+                # Add xmlns attributes necessary to parse this.
+                # Recall that the xmlns attribute only needs to be
+                # defined once and it will be inherited by all child nodes
+                # until it is redefined.
+                #
+                # Also, if a namespace is part of the tag, len(node.nsmap)
+                # should be greater than 0. Therefore, there is no need to
+                # invoke QNameDecode when len(node.nsmap) is 0.
+                #
+                # Finally, we *do* want to invoke this code whenever
+                # node.nsmap is greater than 0 so we can find new/changed
+                # NS definitions.
+                if len(node.nsmap) > 0:
+                    parsed_tag = QNameDecode(node)
+                    tag = _unicode("")
+                    if rootElement:
+                        parent_nsmap = {}
+                    else:
+                        parent_nsmap = node.getparent().nsmap
+                    for (k,v) in node.nsmap.iteritems():
+                        if parsed_tag.namespace and v == parsed_tag.namespace:
+                            if k:
+                                tag = _unicode(k + namespace_separator)
+                        if parent_nsmap.get(k, '@@NOMATCH@@') != v:
+                            if k:
+                                attrib[_unicode("xmlns:" + k)] = v
+                            else:
+                                attrib[_unicode("xmlns")] = v
+                    tag += parsed_tag.localname
+                else:
+                    tag = node.tag
+            handler.startElement(tag, attrib)
+            if node.text and len(node.text) > 0:
+                handler.characters(node.text)
+            for child in node:
+                parse_lxml_node(child, handler, process_namespaces,
+                                strip_namespace, namespace_separator,
+                                namespace_dict)
+            handler.endElement(tag)
+        if (not rootElement) and node.tail and len(node.tail) > 0:
+            handler.characters(node.tail)
+
+    class LXMLParser(object):
+        def __init__(self, process_namespaces=False,
+                     namespace_separator=':', allow_extra_args=False,
+                     **kwargs):
+            self.process_namespaces = process_namespaces
+            self.namespace_separator = namespace_separator
+            self.allow_extra_args = allow_extra_args
+            self.kwargs = kwargs
+            self.strip_namespace = kwargs.get('strip_namespace',False)
+        def __call__(self, lxml_root, *args, **kwargs):
+            if (len(args) + len(kwargs)) > 0 and not self.allow_extra_args:
+                raise TypeError("%s callable takes 1 argument (%d given)" %
+                                (self.__class__.__name__,
+                                 len(args) + len(kwargs)))
+            handler = _DictSAXHandler(namespace_separator=self.namespace_separator,
+                                      **self.kwargs)
+            if isinstance(lxml_root, etree.ElementTree):
+                lxml_root = lxml_root.getroot()
+            parse_lxml_node(lxml_root, handler,
+                            self.process_namespaces,
+                            self.strip_namespace,
+                            self.namespace_separator,
+                            rootElement=True)
+            return handler.item
+                            
+    def parse_lxml(lxml_root, *args, **kwargs):
+        return LXMLParser(*args, **kwargs)(lxml_root)
 
 def _emit(key, value, content_handler,
           attr_prefix='@',
@@ -627,6 +775,7 @@ def _emit(key, value, content_handler,
     for index, v in enumerate(value):
         if full_document and depth == 0 and index > 0:
             raise ValueError('document with multiple roots')
+        attrs = getattr(v, "XMLattrs", OrderedDict())
         if v is None:
             v = OrderedDict()
         elif not isinstance(v, dict):
@@ -634,7 +783,6 @@ def _emit(key, value, content_handler,
         if isinstance(v, _basestring):
             v = OrderedDict(((cdata_key, v),))
         cdata = None
-        attrs = getattr(v, "XMLattrs", OrderedDict())
         children = []
         for ik, iv in v.items():
             if ik == cdata_key:
