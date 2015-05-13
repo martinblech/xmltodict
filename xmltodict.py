@@ -65,6 +65,11 @@ def getXMLattribute(self, attr, defval=NoArg()):
 
 _XMLNodeMetaClassImports.append(getXMLattribute)
 
+def delXMLattribute(self, attr):
+    del self.XMLattrs[attr]
+
+_XMLNodeMetaClassImports.append(delXMLattribute)
+
 def _XMLNodeMetaClassRepr(self):
     return "%s(XMLattrs=%r, value=%s)" % (getattr(self, "__const_class_name__", self.__class__.__name__), self.XMLattrs, self.__parent__.__repr__(self))
 
@@ -528,6 +533,8 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         obj.getXMLattribute(attr[, default]): Gets the XML attribute
           of name `attr`. If there is no such attribute, it will
           return default (if supplied) or raise a KeyError.
+        obj.delXMLattribute(attr, val): Deletes the XML attribute of name
+         `attr`.
 
     The classes returned when the `new_style` argument is True also
     have a `prettyprint` method, which is mostly a pass-through to the
