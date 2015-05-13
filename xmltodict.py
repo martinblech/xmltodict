@@ -714,13 +714,19 @@ if etree:
             self.allow_extra_args = allow_extra_args
             self.kwargs = kwargs
             self.strip_namespace = kwargs.get('strip_namespace',False)
-        def __call__(self, lxml_root, *args, **kwargs):
-            if (len(args) + len(kwargs)) > 0 and not self.allow_extra_args:
-                raise TypeError("%s callable takes 1 argument (%d given)" %
-                                (self.__class__.__name__,
-                                 len(args) + len(kwargs)))
             handler = _DictSAXHandler(namespace_separator=self.namespace_separator,
-                                      **self.kwargs)
+                                      **kwargs)
+            del handler
+        def __call__(self, lxml_root, *args, **kwargs):
+            if len(args) > 0 and not self.allow_extra_args:
+                raise TypeError("%s callable takes 1 argument (%d given)" %
+                                (self.__class__.__name__, len(args)))
+
+            newkwargs = dict(self.kwargs)
+            newkwargs.update(kwargs)
+
+            handler = _DictSAXHandler(namespace_separator=self.namespace_separator,
+                                      **newkwargs)
             try:
                 if isinstance(lxml_root, etree._ElementTree):
                     lxml_root = lxml_root.getroot()
