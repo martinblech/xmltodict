@@ -183,6 +183,7 @@ class _DictSAXHandler(object):
                  index_keys_compress=True,
                  delete_key='#deletelevel',
                  force_list=(),
+                 strip_namespace=False,
                  new_style=False):
         self.path = []
         self.stack = []
@@ -204,6 +205,7 @@ class _DictSAXHandler(object):
         self.index_keys_compress = index_keys_compress
         self.delete_key = delete_key
         self.force_list = force_list
+        self.strip_namespace = strip_namespace
         self.new_style = new_style
         if self.new_style:
             self.list_constructor = XMLListNode
@@ -227,12 +229,14 @@ class _DictSAXHandler(object):
             self.attr_prefix = attr_prefix
 
     def _build_name(self, full_name):
-        if not self.namespaces:
+        if (not self.namespaces) and (not self.strip_namespace):
             return full_name
         i = full_name.rfind(self.namespace_separator)
         if i == -1:
             return full_name
         namespace, name = full_name[:i], full_name[i+1:]
+        if self.strip_namespace:
+            return name
         short_namespace = self.namespaces.get(namespace, namespace)
         if not short_namespace:
             return name
@@ -241,8 +245,13 @@ class _DictSAXHandler(object):
 
     def _attrs_to_dict(self, attrs):
         if isinstance(attrs, dict):
-            return attrs
-        return self.dict_constructor(zip(attrs[0::2], attrs[1::2]))
+            rv = attrs
+        else:
+            rv = self.dict_constructor(zip(attrs[0::2], attrs[1::2]))
+        for k in rv.keys():
+            if k == "xmlns" or k.startswith("xmlns:"):
+                del rv[k]
+        return rv
 
     def startElement(self, full_name, attrs):
         name = self._build_name(full_name)
@@ -541,6 +550,12 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     pprint() function. The main difference is that it strips the
     attributes and converts the contents into simple types (such as
     list and dict) so pprint will function as expected.
+
+    You can use the `strip_namespace` parameter to strip XML namespace
+    information from the returned dictionary. If the `strip_namespace`
+    parameter is set to True, he parser will remove the namespace
+    prefix (if any) from the element name and will remove the xmlns
+    attributes from the nodes.
     """
     handler = _DictSAXHandler(namespace_separator=namespace_separator,
                               **kwargs)
