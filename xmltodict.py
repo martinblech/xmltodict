@@ -373,7 +373,7 @@ class _DictSAXHandler(object):
                 return item
             key, data = result
         result = self._promote_keys(key, data)
-        if self.index_keys_compress and not result is None:
+        if self.index_keys_compress and result is not None:
             key, data = result
         if item is None:
             item = self.dict_constructor()
@@ -382,7 +382,7 @@ class _DictSAXHandler(object):
                 value = item[key]
                 if isinstance(value, list):
                     value.append(data)
-                if isinstance(value, dict) and (not self.index_keys_compress) and getattr(value, self.delete_key, False):
+                elif isinstance(value, dict) and (not self.index_keys_compress) and getattr(value, self.delete_key, False):
                     raise ValueError("Mixture of data types: some have index keys and some do not, while processing \"%s\" key" % key)
                 else:
                     item[key] = self.list_constructor((value, data))
@@ -627,7 +627,7 @@ if etree:
             namespace_dict = {'nexttag': _unicode('ns0')}
         if node.tag not in (etree.PI, etree.Comment):
             # Make attribute copy
-            attrib = node.attrib.copy()
+            attrib = dict(node.attrib)
 
             # Figure out NS:
             # If 'strip_namespace' is set, just strip it out here to save
@@ -721,8 +721,16 @@ if etree:
                                  len(args) + len(kwargs)))
             handler = _DictSAXHandler(namespace_separator=self.namespace_separator,
                                       **self.kwargs)
-            if isinstance(lxml_root, etree.ElementTree):
-                lxml_root = lxml_root.getroot()
+            try:
+                if isinstance(lxml_root, etree._ElementTree):
+                    lxml_root = lxml_root.getroot()
+            except:
+                try:
+                    if isinstance(lxml_root, etree.ElementTree):
+                        lxml_root = lxml_root.getroot()
+                except:
+                    if not hasattr(lxml_root, 'tag'):
+                        lxml_root = lxml_root.getroot()
             parse_lxml_node(lxml_root, handler,
                             self.process_namespaces,
                             self.strip_namespace,
