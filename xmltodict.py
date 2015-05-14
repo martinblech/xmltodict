@@ -407,6 +407,47 @@ class _DictSAXHandler(object):
                 setattr(item[key], self.delete_key, True)
         return item
 
+class Parser(object):
+    def __init__(self, encoding=None, expat=expat,
+                 process_namespaces=False, namespace_separator=':',
+                 **kwargs):
+        self.encoding=encoding
+        self.expat=expat
+        self.process_namespaces=process_namespaces
+        self.namespace_separator=namespace_separator
+        self.kwargs=kwargs
+
+        # Try the arguments to catch argument errors now. We will toss
+        # out the created handler and parser, anyway.
+        handler = _DictSAXHandler(namespace_separator=namespace_separator,
+                                  **kwargs)
+        if not encoding:
+            encoding = 'utf-8'
+        if not process_namespaces:
+            namespace_separator = None
+        parser = expat.ParserCreate(
+            encoding,
+            namespace_separator
+        )
+        del handler
+        del parser
+    def __call__(self, xml_input, **kwargs):
+        # NOTE: For now, this just calls the external parse()
+        # method. I would prefer to rewrite this so the external
+        # parse() method just calls this class (similar to the
+        # relationship between the parse_lxml() method and the
+        # LXMLParser class). However, I am writing this class in this
+        # way to make the diffs easier to read.
+        encoding = kwargs.pop('encoding', self.encoding)
+        expat = kwargs.pop('expat', self.expat)
+        process_namespaces = kwargs.pop('process_namespaces',
+                                        self.process_namespaces)
+        namespace_separator = kwargs.pop('namespace_separator',
+                                         self.namespace_separator)
+        newkwargs = dict(self.kwargs)
+        newkwargs.update(kwargs)
+        return parse(xml_input, encoding, expat, process_namespaces,
+                     namespace_separator, **newkwargs)
 
 def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
           namespace_separator=':', **kwargs):
