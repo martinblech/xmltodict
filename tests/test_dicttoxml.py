@@ -1,5 +1,5 @@
 import sys
-from xmltodict import parse, unparse, OrderedDict
+from xmltodict import parse, unparse, OrderedDict, XMLDictNode
 
 try:
     import unittest2 as unittest
@@ -155,3 +155,56 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertTrue(xml_declaration_re.match(unparse({'a': 1})))
         self.assertFalse(
             xml_declaration_re.match(unparse({'a': 1}, full_document=False)))
+
+    def test_index_keys_with_compress_dict(self):
+        obj = {
+            'a': {
+                'key': {
+                    'c': 'key',
+                    '#tag': 'b',
+                }
+            }
+        }
+        expectedResult = '<a><b><c>key</c></b></a>'
+        self.assertEqual(unparse(obj, full_document=False), expectedResult)
+
+    def test_index_keys_with_compress_newstyle(self):
+        obj = {
+            'a': {
+                'key': XMLDictNode({
+                    'c': 'key',
+                }),
+            }
+        }
+        setattr(obj['a']['key'], "#tag", 'b')
+        expectedResult = '<a><b><c>key</c></b></a>'
+        self.assertEqual(unparse(obj, full_document=False), expectedResult)
+
+    def test_index_keys_without_compress_dict(self):
+        obj = {
+            'a': {
+                'b': {
+                    'key': {
+                        'c': 'key',
+                    },
+                    '#deletelevel': True,
+                }
+            }
+        }
+        expectedResult = '<a><b><c>key</c></b></a>'
+        self.assertEqual(unparse(obj, full_document=False), expectedResult)
+
+    def test_index_keys_without_compress_newstyle(self):
+        obj = {
+            'a': {
+                'b': XMLDictNode({
+                    'key': {
+                        'c': 'key',
+                    }
+                }),
+            }
+        }
+        obj['a']['b']['foo'] = [{'c': 'foo'}, {'c': 'foo'}]
+        setattr(obj['a']['b'], "#deletelevel", True)
+        expectedResult = '<a><b><c>key</c></b><b><c>foo</c></b><b><c>foo</c></b></a>'
+        self.assertEqual(unparse(obj, full_document=False), expectedResult)
