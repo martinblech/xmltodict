@@ -22,7 +22,14 @@ try: # pragma no cover
     from pprint import pprint
 except ImportError: # pragma no cover
     def pprint(obj, *args, **kwargs):
-        print(obj)
+        if len(args) > 0:
+            stream = args[0]
+        else:
+            stream = kwargs.get("stream", None)
+        if stream is not None:
+            stream.write("%r\n" % obj)
+        else:
+            print("%r" % obj)
 
 QNameDecode = None
 try: # pragma no cover
@@ -46,16 +53,20 @@ except ImportError: # pragma no cover
                 except ImportError:
                     print "Unable to import etree: lxml functionality disabled"
 
+class QNameSeparator():
+    def __init__(self, text):
+        endidx = text.rfind('}')
+        if text[0] != '{' or endidx < 0:
+            self.namespace = None
+            self.localname = text
+        else:
+            self.namespace = text[1:endidx]
+            self.localname = text[endidx+1:]
+
 if etree and QNameDecode == None: # pragma no cover
-    class QNameDecode():
+    class QNameDecode(QNameSeparator):
         def __init__(self, node):
-            endidx = node.tag.rfind('}')
-            if node.tag[0] != '{' or endidx < 0:
-                self.namespace = None
-                self.localname = node.tag
-            else:
-                self.namespace = node.tag[1:endidx]
-                self.localname = node.tag[endidx+1:]
+            QNameSeparator.__init__(self, node.tag)
 
 try:  # pragma no cover
     _basestring = basestring
@@ -97,6 +108,11 @@ def getXMLattribute(self, attr, defval=NoArg()):
         raise
 
 _XMLNodeMetaClassImports.append(getXMLattribute)
+
+def getXMLattributes(self):
+    return self.XMLattrs
+
+_XMLNodeMetaClassImports.append(getXMLattributes)
 
 def delXMLattribute(self, attr):
     del self.XMLattrs[attr]
@@ -283,7 +299,14 @@ class _DictSAXHandler(object):
             rv = self.dict_constructor(zip(attrs[0::2], attrs[1::2]))
         if self.strip_namespace:
             for k in rv.keys():
-                if k == "xmlns" or k.startswith("xmlns:"):
+                if k == "xmlns" or k.startswith("xmlns" + self.namespace_separator):
+                    del rv[k]
+            for k in rv.keys():
+                if k.rfind(":") >= 0:
+                    newkey = k[k.rfind(self.namespace_separator) + 1:]
+                    if rv.has_key(newkey):
+                        raise ValueError("Stripping namespace causes duplicate attribute \"%s\"" % newkey)
+                    rv[newkey] = rv[k]
                     del rv[k]
         return rv
 
@@ -334,6 +357,8 @@ class _DictSAXHandler(object):
                     node = item
                 elif data is not None:
                     node = data
+                elif len(attrs) > 0:
+                    node = data = self.cdata_constructor()
                 else:
                     node = None
                 if node is not None:
@@ -660,81 +685,160 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     return handler.item
 
 if etree:
+    class NamespaceError(ValueError):
+        def __init__(self, namespace):
+            self.namespace = namespace
+        def __str__(self):
+            return "Namespace \"%s\" not found in namespace store." % self.namespace
+        def __repr__(self):
+            return "%s(namespace=%s)" % (self.__class__.__name__,
+                                         self.namespace)
+
+    def parse_attrib(in_dict, out_dict, ns_dict, namespace_separator):
+        for (k,v) in in_dict.items():
+            parsed_attr = QNameSeparator(k)
+            if not parsed_attr.namespace:
+                out_dict[k] = v
+                del in_dict[k]
+            else:
+                try:
+                    new_ns = ns_dict[parsed_attr.namespace]
+                except KeyError:
+                    raise NamespaceError(parsed_attr.namespace)
+                new_k = namespace_separator.join(
+                    (new_ns,
+                     parsed_attr.localname)
+                )
+                out_dict[new_k] = v
+                del in_dict[k]
+
     def parse_lxml_node(node, handler, process_namespaces,
                         strip_namespace, namespace_separator,
                         namespace_dict=None, rootElement=False):
+        # Parsing LXML/ElementTree is actually quite simple. We
+        # can just recursively call this function to walk through
+        # the tree of elements and call the same handler we use
+        # for parsing the text version through a SAX parser.
+        # Almost all of the complexity is handling the namespaces.
+
         # Initialize the namespace_dict, if needed.
         if namespace_dict == None:
             namespace_dict = {'nexttag': _unicode('ns0')}
-        if node.tag not in (etree.PI, etree.Comment):
-            # Make attribute copy
-            attrib = dict(node.attrib)
 
+        # Ignore processing instructions and comments.
+        if node.tag not in (etree.PI, etree.Comment):
             # Figure out NS:
-            # If 'strip_namespace' is set, just strip it out here to save
-            # processing time.
-            # Otherwise, if process_namespaces is True, emulate what the
-            # expat processor would do.
+            # If 'strip_namespace' or 'process_namespaces' are set, we
+            # can do the same thing. In these cases, we just care about
+            # making sure the attributes and tags are formed correctly so
+            # that the handler will do the correct thing. In general, our
+            # goal is to emulate what the expat processor would do if
+            # process_namespaces was set to True.
+            #
             # Otherwise, try to restore the original nodename ("ns:tag")
             # and XMLNS attributes. (Again, this emulates what the expat
             # processor would do.) If we've lost the original
             # namespace identifiers, make up our own.
-            if strip_namespace:
-                tag = QNameDecode(node).localname
-            elif process_namespaces:
+            if strip_namespace or process_namespaces:
                 parsed_tag = QNameDecode(node)
                 if not parsed_tag.namespace:
                     tag = parsed_tag.localname
                 else:
                     tag = namespace_separator.join((parsed_tag.namespace,
                                                     parsed_tag.localname))
-            elif not hasattr(node, 'nsmap'):
+
+                # Fix the attributes. Just paste them together with
+                # the namespace separator. The standard parsing code
+                # can handle them further. (In the case where
+                # strip_namespace is set, it can check for name
+                # conflicts (e.g.  <a a:attr1="" b:attr1=""
+                # c:attr1=""/>). That is the reason we don't strip
+                # them out here when strip_namespace is true. It seems
+                # best to have the logic in a single place.
+                attrib = dict()
+                for (k,v) in node.attrib.items():
+                    parsed_attr = QNameSeparator(k)
+                    if not parsed_attr.namespace:
+                        attrib[k] = v
+                    else:
+                        new_k = namespace_separator.join(
+                            (parsed_attr.namespace,
+                             parsed_attr.localname)
+                        )
+                        attrib[new_k] = v
+
+            elif hasattr(node, 'nsmap') and len(node.nsmap) == 0:
+                # If nsmap is present (lxml) and it is 0, then we
+                # should have no namespace information to process.
+                # If nsmap is present and it is greater than 0,
+                # then we want to process the namespace information,
+                # even if all we do is create proper xmlns attributes.
+                tag = node.tag
+                attrib = dict(node.attrib)
+            else:
+                # If the node has the nsmap attribute, reverse it to
+                # create a namespace lookup dictionary for us.
+                if hasattr(node, 'nsmap'):
+                    ns_resolve_dict = dict(zip(node.nsmap.itervalues(),
+                                               node.nsmap.iterkeys()))
                 # If the node doesn't have the nsmap attribute, all NS
                 # identfiers are lost. We can recreate them with
-                # locally-generated identifiers.
+                # locally-generated identifiers, which we store in the
+                # namespace_dict.
+                else:
+                    ns_resolve_dict = namespace_dict
+
+                # Initialize the new attributes
+                attrib = dict()
+
+                # Determine if we need to add a namespace to the tag.
                 parsed_tag = QNameDecode(node)
-                if not parsed_tag.namespace:
+                if (not parsed_tag.namespace) or (not ns_resolve_dict.get(parsed_tag.namespace, '@@NOMATCH@@')):
                     tag = parsed_tag.localname
                 else:
-                    if parsed_tag.namespace not in namespace_dict:
+                    # If the namespace isn't in our resolver dictionary,
+                    # add it to the namespace_dict. Note that this
+                    # will not work correctly if the node had an nsmap.
+                    # It isn't supposed to work correctly in that case.
+                    # If the tag uses a namespace that isn't in the
+                    # nsmap, that seems like a bug.
+                    if parsed_tag.namespace not in ns_resolve_dict:
                         newns = namespace_dict['nexttag']
                         namespace_dict[parsed_tag.namespace] = newns
                         namespace_dict['nexttag'] = _unicode("ns%d" % (int(newns[2:]) + 1, ))
                         attrib[_unicode("xmlns:" + newns)] = parsed_tag.namespace
-                    tag = namespace_separator.join((namespace_dict[parsed_tag.namespace],
+                    tag = namespace_separator.join((ns_resolve_dict[parsed_tag.namespace],
                                                     parsed_tag.localname))
-            else:
-                # Add xmlns attributes necessary to parse this.
-                # Recall that the xmlns attribute only needs to be
-                # defined once and it will be inherited by all child nodes
-                # until it is redefined.
-                #
-                # Also, if a namespace is part of the tag, len(node.nsmap)
-                # should be greater than 0. Therefore, there is no need to
-                # invoke QNameDecode when len(node.nsmap) is 0.
-                #
-                # Finally, we *do* want to invoke this code whenever
-                # node.nsmap is greater than 0 so we can find new/changed
-                # NS definitions.
-                if len(node.nsmap) > 0:
-                    parsed_tag = QNameDecode(node)
-                    tag = _unicode("")
+
+                # Deal with the attributes.
+                old_attrib = dict(node.attrib)
+                while len(old_attrib) > 0:
+                    try:
+                        parse_attrib(old_attrib, attrib, ns_resolve_dict,
+                                     namespace_separator)
+                    except NamespaceError, e:
+                        if hasattr(node, 'nsmap'):
+                            raise
+                        newns = namespace_dict['nexttag']
+                        namespace_dict[e.namespace] = newns
+                        namespace_dict['nexttag'] = _unicode(
+                            "ns%d" % (int(newns[2:]) + 1, )
+                        )
+                        attrib[_unicode("xmlns:" + newns)] = e.namespace
+
+                # Add any necessary xmlns tags.
+                if hasattr(node, "nsmap"):
                     if rootElement:
                         parent_nsmap = {}
                     else:
                         parent_nsmap = node.getparent().nsmap
                     for (k,v) in node.nsmap.iteritems():
-                        if parsed_tag.namespace and v == parsed_tag.namespace:
-                            if k:
-                                tag = _unicode(k + namespace_separator)
                         if parent_nsmap.get(k, '@@NOMATCH@@') != v:
                             if k:
                                 attrib[_unicode("xmlns:" + k)] = v
                             else:
                                 attrib[_unicode("xmlns")] = v
-                    tag += parsed_tag.localname
-                else:
-                    tag = node.tag
+
             handler.startElement(tag, attrib)
             if node.text and len(node.text) > 0:
                 handler.characters(node.text)
