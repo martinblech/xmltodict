@@ -85,44 +85,6 @@ __license__ = 'MIT'
 class NoArg():
     pass
 
-# Methods that will be added by the XMLNodeMetaClass
-_XMLNodeMetaClassImports = []
-
-def hasXMLattributes(self):
-    if len(self.XMLattrs) > 0:
-        return True
-    return False
-
-_XMLNodeMetaClassImports.append(hasXMLattributes)
-
-def setXMLattribute(self, attr, val):
-    self.XMLattrs[attr] = val
-
-_XMLNodeMetaClassImports.append(setXMLattribute)
-
-def getXMLattribute(self, attr, defval=NoArg()):
-    try:
-        return self.XMLattrs[attr]
-    except KeyError:
-        if not isinstance(defval, NoArg):
-            return defval
-        raise
-
-_XMLNodeMetaClassImports.append(getXMLattribute)
-
-def getXMLattributes(self):
-    return self.XMLattrs
-
-_XMLNodeMetaClassImports.append(getXMLattributes)
-
-def delXMLattribute(self, attr):
-    del self.XMLattrs[attr]
-
-_XMLNodeMetaClassImports.append(delXMLattribute)
-
-def _XMLNodeMetaClassRepr(self):
-    return "%s(XMLattrs=%r, value=%s)" % (getattr(self, "__const_class_name__", self.__class__.__name__), self.XMLattrs, self.__parent__.__repr__(self))
-
 class OrderedDict(_OrderedDict):
     def __repr__(self, _repr_running={}):
         temp = self.__class__.__name__
@@ -143,13 +105,10 @@ class OrderedDict(_OrderedDict):
             self.__class__.__name__ = temp
         return rv
 
-class XMLNodeMetaClass(type):
+class _XMLNodeMetaClass(type):
     def __new__(cls, name, bases, dict):
         dict["XMLattrs"] = OrderedDict()
-        dict["__parent__"] = bases[0]
-        dict["__repr__"] = _XMLNodeMetaClassRepr
-        for method in _XMLNodeMetaClassImports:
-            dict[method.__name__] = method
+        dict["__parent__"] = bases[-1]
         return type.__new__(cls, name, bases, dict)
     def __call__(self, *args, **kwargs):
         XMLattrs=kwargs.pop("XMLattrs", OrderedDict())
@@ -157,13 +116,50 @@ class XMLNodeMetaClass(type):
         obj.XMLattrs = XMLattrs
         return obj
 
-if sys.version_info.major >= 3:
-    metaclassarg = dict(metaclass=XMLNodeMetaClass)
-else:
-    metaclassarg = dict()
 
-class XMLCDATANode(_unicode, **metaclassarg):
-    __metaclass__ = XMLNodeMetaClass
+# The below is Python 2/3 Portable equivalent to
+#   class XMLNodeMetaClass(object, metaclass=_XMLNodeMetaClass):
+#       pass
+if sys.version_info.major >= 3:
+    _temp_class_dict = {'__module__': _XMLNodeMetaClass.__module__,
+                        '__qualname__': 'XMLNodeMetaClass'}
+else:
+    _temp_class_dict = {'__module__': _XMLNodeMetaClass.__module__,
+                        '__metaclass__': _XMLNodeMetaClass}
+
+XMLNodeMetaClass = _XMLNodeMetaClass(str("XMLNodeMetaClass"),
+                                     (object,), _temp_class_dict)
+
+del _temp_class_dict
+
+class XMLNodeBase(XMLNodeMetaClass):
+    def hasXMLattributes(self):
+        if len(self.XMLattrs) > 0:
+            return True
+        return False
+
+    def setXMLattribute(self, attr, val):
+        self.XMLattrs[attr] = val
+
+    def getXMLattribute(self, attr, defval=NoArg()):
+        try:
+            return self.XMLattrs[attr]
+        except KeyError:
+            if not isinstance(defval, NoArg):
+                return defval
+            raise
+
+    def getXMLattributes(self):
+        return self.XMLattrs
+
+    def delXMLattribute(self, attr):
+        del self.XMLattrs[attr]
+
+    def __repr__(self):
+        return "%s(XMLattrs=%r, value=%s)" % (getattr(self, "__const_class_name__", self.__class__.__name__), self.XMLattrs, self.__parent__.__repr__(self))
+
+
+class XMLCDATANode(XMLNodeBase, _unicode):
     def strip(self, arg=None):
         newtext = _unicode.strip(self, arg)
         return XMLCDATANode(newtext, XMLattrs=self.XMLattrs)
@@ -175,8 +171,7 @@ class XMLCDATANode(_unicode, **metaclassarg):
         else:
             return newobj
 
-class XMLListNode(list, **metaclassarg):
-    __metaclass__ = XMLNodeMetaClass
+class XMLListNode(XMLNodeBase, list):
     def prettyprint(self, *args, **kwargs):
         currdepth = kwargs.pop("currdepth", 0)
         depth = kwargs.get("depth", None)
@@ -194,8 +189,7 @@ class XMLListNode(list, **metaclassarg):
         else:
             return newlist
 
-class XMLDictNode(OrderedDict, **metaclassarg):
-    __metaclass__ = XMLNodeMetaClass
+class XMLDictNode(XMLNodeBase, OrderedDict):
     def __init__(self, *args, **kwargs):
         self.__const_class_name__ = self.__class__.__name__
         OrderedDict.__init__(self, *args, **kwargs)
