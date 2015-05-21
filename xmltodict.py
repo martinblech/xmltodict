@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 "Makes working with XML feel like you are working with JSON"
 
+import sys
 from xml.parsers import expat
 from xml.sax.saxutils import XMLGenerator
 from xml.sax.xmlreader import AttributesImpl
@@ -45,13 +46,13 @@ except ImportError: # pragma no cover
         except ImportError:
             try:
                 import cElementTree as etree
-                print "Warning: Not tested with cElementTree"
+                print("Warning: Not tested with cElementTree")
             except ImportError:
                 try:
                     import elementtree.ElementTree as etree
-                    print "Warning: Not tested with elementtree.ElementTree"
+                    print("Warning: Not tested with elementtree.ElementTree")
                 except ImportError:
-                    print "Unable to import etree: lxml functionality disabled"
+                    print("Unable to import etree: lxml functionality disabled")
 
 class QNameSeparator():
     def __init__(self, text):
@@ -156,7 +157,12 @@ class XMLNodeMetaClass(type):
         obj.XMLattrs = XMLattrs
         return obj
 
-class XMLCDATANode(_unicode):
+if sys.version_info.major >= 3:
+    metaclassarg = dict(metaclass=XMLNodeMetaClass)
+else:
+    metaclassarg = dict()
+
+class XMLCDATANode(_unicode, **metaclassarg):
     __metaclass__ = XMLNodeMetaClass
     def strip(self, arg=None):
         newtext = _unicode.strip(self, arg)
@@ -169,7 +175,7 @@ class XMLCDATANode(_unicode):
         else:
             return newobj
 
-class XMLListNode(list):
+class XMLListNode(list, **metaclassarg):
     __metaclass__ = XMLNodeMetaClass
     def prettyprint(self, *args, **kwargs):
         currdepth = kwargs.pop("currdepth", 0)
@@ -188,7 +194,7 @@ class XMLListNode(list):
         else:
             return newlist
 
-class XMLDictNode(OrderedDict):
+class XMLDictNode(OrderedDict, **metaclassarg):
     __metaclass__ = XMLNodeMetaClass
     def __init__(self, *args, **kwargs):
         self.__const_class_name__ = self.__class__.__name__
@@ -200,7 +206,7 @@ class XMLDictNode(OrderedDict):
             return {}
         # Construct a new item, recursively.
         newdict = dict()
-        for (k,v) in self.iteritems():
+        for (k,v) in self.items():
             if hasattr(v, "prettyprint"):
                 newdict[k] = v.prettyprint(*args, currdepth=currdepth+1, **kwargs)
             else:
@@ -298,13 +304,13 @@ class _DictSAXHandler(object):
         else:
             rv = self.dict_constructor(zip(attrs[0::2], attrs[1::2]))
         if self.strip_namespace:
-            for k in rv.keys():
+            for k in list(rv.keys()):
                 if k == "xmlns" or k.startswith("xmlns" + self.namespace_separator):
                     del rv[k]
-            for k in rv.keys():
+            for k in list(rv.keys()):
                 if k.rfind(":") >= 0:
                     newkey = k[k.rfind(self.namespace_separator) + 1:]
-                    if rv.has_key(newkey):
+                    if newkey in rv:
                         raise ValueError("Stripping namespace causes duplicate attribute \"%s\"" % newkey)
                     rv[newkey] = rv[k]
                     del rv[k]
@@ -383,10 +389,10 @@ class _DictSAXHandler(object):
     def _promote_keys(self, key, value):
         if isinstance(value, dict):
             for i in self.index_keys:
-                if value.has_key(i):
+                if i in value:
                     if self.index_keys_compress:
                         setattr(value, self.tag_key, key)
-                    if isinstance(value[i], dict) and value[i].has_key(self.cdata_key):
+                    if isinstance(value[i], dict) and self.cdata_key in value[i]:
                         return (_unicode(value[i][self.cdata_key]), value)
                     return (_unicode(value[i]), value)
         return None
@@ -420,7 +426,7 @@ class _DictSAXHandler(object):
             try:
                 value = item[key]
                 if isinstance(value, dict) and getattr(value, self.delete_key, False):
-                    if value.has_key(result[0]):
+                    if result[0] in value:
                         value[result[0]] = self.list_constructor((value[result[0]], result[1]))
                     else:
                         value[result[0]] = result[1]
@@ -695,7 +701,7 @@ if etree:
                                          self.namespace)
 
     def parse_attrib(in_dict, out_dict, ns_dict, namespace_separator):
-        for (k,v) in in_dict.items():
+        for (k,v) in list(in_dict.items()):
             parsed_attr = QNameSeparator(k)
             if not parsed_attr.namespace:
                 out_dict[k] = v
@@ -779,8 +785,8 @@ if etree:
                 # If the node has the nsmap attribute, reverse it to
                 # create a namespace lookup dictionary for us.
                 if hasattr(node, 'nsmap'):
-                    ns_resolve_dict = dict(zip(node.nsmap.itervalues(),
-                                               node.nsmap.iterkeys()))
+                    ns_resolve_dict = dict(zip(node.nsmap.values(),
+                                               node.nsmap.keys()))
                 # If the node doesn't have the nsmap attribute, all NS
                 # identfiers are lost. We can recreate them with
                 # locally-generated identifiers, which we store in the
@@ -816,7 +822,13 @@ if etree:
                     try:
                         parse_attrib(old_attrib, attrib, ns_resolve_dict,
                                      namespace_separator)
-                    except NamespaceError, e:
+                    except NamespaceError:
+                        # NOTE: "except NamespaceError as e" is not
+                        # supported in older Python versions. Once
+                        # support for those versions is deprecated, we
+                        # should consider changing this to the more
+                        # standard syntax.
+                        e = sys.exc_info()[1]
                         if hasattr(node, 'nsmap'):
                             raise
                         newns = namespace_dict['nexttag']
@@ -832,7 +844,7 @@ if etree:
                         parent_nsmap = {}
                     else:
                         parent_nsmap = node.getparent().nsmap
-                    for (k,v) in node.nsmap.iteritems():
+                    for (k,v) in node.nsmap.items():
                         if parent_nsmap.get(k, '@@NOMATCH@@') != v:
                             if k:
                                 attrib[_unicode("xmlns:" + k)] = v
@@ -907,12 +919,12 @@ def _emit(key, value, content_handler,
         # Support tag_key and delete_key both as "normal" dictionary
         # entries and as hidden attributes. Prefer the "normal"
         # dictionary entries (if present) over the attributes.
-        if value.has_key(tag_key):
+        if tag_key in value:
             key = value.pop(tag_key)
         elif hasattr(value, tag_key):
             key = getattr(value, tag_key)
         delete_level=False
-        if value.has_key(delete_key):
+        if delete_key in value:
             delete_level=value.pop(delete_key)
         if delete_level or getattr(value, delete_key, False):
             newvalue=[]

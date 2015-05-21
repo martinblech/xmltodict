@@ -10,6 +10,7 @@ try:
 except ImportError:
     from xmltodict import StringIO
 
+unicode = xmltodict._unicode
 
 def _encode(s):
     try:
@@ -329,6 +330,7 @@ class XMLToDictTestCase(unittest.TestCase):
         xml = self.xmlTextToTestFormat(xml)
         if not (isinstance(xml, str) or isinstance(xml, unicode)):
             raise unittest.SkipTest("Test only makes sense when parsing text.")
+
         self.assertEqual(self.parse(xml),
                          self.parse(xml.encode('utf-8')))
         self.assertEqual(self.parse(xml, new_style=True),
@@ -450,7 +452,7 @@ class XMLToDictTestCase(unittest.TestCase):
             items = []
             rv = xmltodict.XMLCDATANode(root)
         else:
-            items = root.items()
+            items = list(root.items())
             if isinstance(root, xmltodict.XMLDictNode):
                 rv = xmltodict.XMLDictNode()
             else:
@@ -472,7 +474,7 @@ class XMLToDictTestCase(unittest.TestCase):
 
                 # Build a namespace dictionary for this node.
                 if isinstance(child, dict):
-                    for (childK, childV) in child.iteritems():
+                    for (childK, childV) in child.items():
                         if childK.startswith("@xmlns"):
                             index = childK.rfind(":")
                             if index < 0:
@@ -481,7 +483,7 @@ class XMLToDictTestCase(unittest.TestCase):
                             else:
                                 new_ns[childK[index+1:]] = childV
                 if hasattr(child, "getXMLattributes"):
-                    for (childK, childV) in child.getXMLattributes().iteritems():
+                    for (childK, childV) in child.getXMLattributes().items():
                         if childK.startswith("xmlns"):
                             index = childK.rfind(":")
                             if index < 0:
@@ -509,7 +511,7 @@ class XMLToDictTestCase(unittest.TestCase):
                 if (not nsurl) or (not ns_map.get(nsurl, '@@NOMATCH@@')):
                     newtag = basetag
                 else:
-                    self.assertTrue(nsurl in ns_map.iterkeys())
+                    self.assertTrue(nsurl in ns_map)
                     newtag = ns_map[nsurl] + ":" + basetag
 
                 # Build the entry
@@ -524,7 +526,7 @@ class XMLToDictTestCase(unittest.TestCase):
 
         # Special case: If all we are returning is a text node, promote
         # it.
-        if isinstance(rv, dict) and rv.keys() == ['#text'] and (not force_cdata):
+        if isinstance(rv, dict) and list(rv.keys()) == ['#text'] and (not force_cdata):
             if isinstance(rv, xmltodict.XMLDictNode):
                 newAttrs = rv.getXMLattributes()
                 newAttrs.update(rv['#text'].getXMLattributes())
@@ -561,15 +563,15 @@ class XMLToDictTestCase(unittest.TestCase):
         if isinstance(xml, str) or isinstance(xml, unicode) or hasattr(xml, "nsmap") or (hasattr(xml, "getroot") and hasattr(xml.getroot(), "nsmap")):
             self.assertEqual(self.parse(xml), expectedResult)
             expectedAttributes = dict(root={})
-            for (k,v) in expectedResult['root'].items():
+            for (k,v) in list(expectedResult['root'].items()):
                 if k.startswith("@"):
                     expectedAttributes['root'][k[1:]] = expectedResult['root'].pop(k)
                 elif isinstance(v, dict):
                     expectedAttributes[k]={}
-                    for childK in expectedResult['root'][k].keys():
+                    for childK in list(expectedResult['root'][k].keys()):
                         if childK.startswith("@"):
                             expectedAttributes[k][childK[1:]] = expectedResult['root'][k].pop(childK)
-                    if len(expectedResult['root'][k]) == 1 and expectedResult['root'][k].keys() == ['#text']:
+                    if list(expectedResult['root'][k].keys()) == ['#text']:
                         expectedResult['root'][k] = expectedResult['root'][k]['#text']
             rv = self.parse(xml, new_style=True)
             self.assertEqual(rv, expectedResult)
@@ -584,7 +586,7 @@ class XMLToDictTestCase(unittest.TestCase):
             # The key thing is that the NS relationships be the
             # same.
             ns_map = dict()
-            for k in expectedResult['root'].keys():
+            for k in list(expectedResult['root'].keys()):
                 if k.startswith('@xmlns'):
                     v = expectedResult['root'].pop(k)
                     if k.rfind(":") >= 0:
@@ -596,15 +598,15 @@ class XMLToDictTestCase(unittest.TestCase):
             self.assertEqual(rv, expectedResult)
             rv = self.translate_namespace(self.parse(xml, new_style=True),
                                           ns_map)
-            for (k,v) in expectedResult['root'].items():
+            for (k,v) in list(expectedResult['root'].items()):
                 if k.startswith("@"):
                     self.assertEqual(rv['root'].getXMLattribute(k[1:]),
                                      expectedResult['root'].pop(k))
                 elif isinstance(v, dict):
-                    for childK in expectedResult['root'][k].keys():
+                    for childK in list(expectedResult['root'][k].keys()):
                         if childK.startswith("@"):
                             self.assertTrue(
-                                rv['root'][k].getXMLattributes().has_key(childK[1:]),
+                                childK[1:] in rv['root'][k].getXMLattributes(),
                                 msg="%s attribute not in attribute store %r" % (
                                     childK[1:],
                                     rv['root'][k].getXMLattributes()
@@ -614,7 +616,7 @@ class XMLToDictTestCase(unittest.TestCase):
                                 rv['root'][k].getXMLattribute(childK[1:]),
                                 expectedResult['root'][k].pop(childK),
                             )
-                    if len(expectedResult['root'][k]) == 1 and expectedResult['root'][k].has_key('#text'):
+                    if list(expectedResult['root'][k].keys()) == ['#text']:
                         expectedResult['root'][k] = expectedResult['root'][k]['#text']
             self.assertEqual(rv, expectedResult)
 
@@ -1184,9 +1186,9 @@ class EtreeToDictTestCase(XMLToDictTestCase):
 
 class NewStyleClassTestCase(unittest.TestCase):
     def pprint_compare(self, obj1, obj2, **kwargs):
-        ioObj1 = StringIO()
+        ioObj1 = xmltodict.StringIO()
         obj1.prettyprint(width=1000, stream=ioObj1, **kwargs)
-        ioObj2 = StringIO()
+        ioObj2 = xmltodict.StringIO()
         xmltodict.pprint(obj2, width=1000, stream=ioObj2, **kwargs)
         self.assertEqual(ioObj1.getvalue(), ioObj2.getvalue())
 
