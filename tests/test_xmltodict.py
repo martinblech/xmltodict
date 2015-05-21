@@ -146,11 +146,11 @@ class XMLToDictTestCase(unittest.TestCase):
         self.assertEqual(self.parse(xml),
                          {'a': {'@href': 'xyz'}})
         rv = self.parse(xml, new_style=True)
-        self.assertEqual(rv, {u'a': ''})
+        self.assertEqual(rv, {'a': ''})
         self.assertFalse(rv.hasXMLattributes())
         self.assertTrue(rv['a'].hasXMLattributes())
         self.assertEqual(rv['a'].getXMLattribute("href", None), 'xyz')
-        self.assertEqual(rv['a'].getXMLattributes(), {u'href': 'xyz'})
+        self.assertEqual(rv['a'].getXMLattributes(), {'href': 'xyz'})
 
     def test_attrib_leaf(self):
         xml = '<root><a href="xyz"/></root>'
@@ -158,13 +158,13 @@ class XMLToDictTestCase(unittest.TestCase):
         self.assertEqual(self.parse(xml),
                          {'root': {'a': {'@href': 'xyz'}}})
         rv = self.parse(xml, new_style=True)
-        self.assertEqual(rv, {'root': {u'a': ''}})
+        self.assertEqual(rv, {'root': {'a': ''}})
         self.assertFalse(rv.hasXMLattributes())
         self.assertFalse(rv['root'].hasXMLattributes())
         nodea = rv['root']['a']
         self.assertTrue(nodea.hasXMLattributes())
         self.assertEqual(nodea.getXMLattribute("href", None), 'xyz')
-        self.assertEqual(nodea.getXMLattributes(), {u'href': 'xyz'})
+        self.assertEqual(nodea.getXMLattributes(), {'href': 'xyz'})
 
     def test_skip_attrib(self):
         xml = '<a href="xyz"/>'
@@ -1193,20 +1193,20 @@ class NewStyleClassTestCase(unittest.TestCase):
         self.assertEqual(ioObj1.getvalue(), ioObj2.getvalue())
 
     def test_newstyle_prettyprint(self):
-        data1_orig = u"data1"
+        data1_orig = "data1"
         data1 = xmltodict.XMLCDATANode(data1_orig)
-        data2_orig = u"data2"
+        data2_orig = "data2"
         data2 = xmltodict.XMLCDATANode(data2_orig)
         list1_orig = [data1_orig, data2_orig]
         list1 = xmltodict.XMLListNode((data1, data2))
-        nodec = xmltodict.XMLDictNode({u'c': list1})
-        nodeb = xmltodict.XMLDictNode({u'b': nodec})
-        nodea = xmltodict.XMLDictNode({u'a': nodeb})
+        nodec = xmltodict.XMLDictNode({'c': list1})
+        nodeb = xmltodict.XMLDictNode({'b': nodec})
+        nodea = xmltodict.XMLDictNode({'a': nodeb})
 
         for depth in (None, 1, 2, 3, 4, 5):
             #dict level
             self.pprint_compare(nodea,
-                                {u'a': {u'b': {u'c': list1_orig}}},
+                                {'a': {'b': {'c': list1_orig}}},
                                 depth=depth)
 
             # list level
@@ -1218,6 +1218,6 @@ class NewStyleClassTestCase(unittest.TestCase):
         # Check non-XML*Node elements under an XML*Node element
         list1 = xmltodict.XMLListNode((data1, data2_orig))
         self.pprint_compare(list1, list1_orig)
-        nodec[u'd'] = data2_orig
+        nodec['d'] = data2_orig
         self.pprint_compare(nodec,
-                            {u'c': list1_orig, u'd': data2_orig})
+                            {'c': list1_orig, 'd': data2_orig})
