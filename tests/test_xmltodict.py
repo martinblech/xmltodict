@@ -1193,9 +1193,9 @@ class NewStyleClassTestCase(unittest.TestCase):
         self.assertEqual(ioObj1.getvalue(), ioObj2.getvalue())
 
     def test_newstyle_prettyprint(self):
-        data1_orig = "data1"
+        data1_orig = unicode("data1")
         data1 = xmltodict.XMLCDATANode(data1_orig)
-        data2_orig = "data2"
+        data2_orig = unicode("data2")
         data2 = xmltodict.XMLCDATANode(data2_orig)
         list1_orig = [data1_orig, data2_orig]
         list1 = xmltodict.XMLListNode((data1, data2))
