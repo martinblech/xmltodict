@@ -120,7 +120,7 @@ class _XMLNodeMetaClass(type):
 # The below is Python 2/3 Portable equivalent to
 #   class XMLNodeMetaClass(object, metaclass=_XMLNodeMetaClass):
 #       pass
-if sys.version_info.major >= 3:
+if sys.version_info[0] >= 3:
     _temp_class_dict = {'__module__': _XMLNodeMetaClass.__module__,
                         '__qualname__': 'XMLNodeMetaClass'}
 else:
