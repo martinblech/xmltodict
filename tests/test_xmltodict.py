@@ -28,6 +28,18 @@ if not hasattr(unittest.TestCase, "assertIsNotInstance"):
 else:
     need_assertIsNotInstance = False
 
+# Deal with Python 2.6 unittest, which does not have the
+# unittest.skip decorator.
+if hasattr(unittest, "skip"):
+    skiptest = unittest.skip
+else:
+    def skiptest(reason):
+        def decorate(f):
+            def donothing(*args, **kwargs):
+                pass
+            return donothing
+        return decorate
+
 class XMLToDictTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         unittest.TestCase.__init__(self, *args, **kwargs)
@@ -328,8 +340,6 @@ class XMLToDictTestCase(unittest.TestCase):
             value = chr(39321)
         xml = '<a>%s</a>' % value
         xml = self.xmlTextToTestFormat(xml)
-        if not (isinstance(xml, str) or isinstance(xml, unicode)):
-            raise unittest.SkipTest("Test only makes sense when parsing text.")
 
         self.assertEqual(self.parse(xml),
                          self.parse(xml.encode('utf-8')))
@@ -1173,10 +1183,18 @@ class EtreeToDictTestCase(XMLToDictTestCase):
             xml = xml.encode('utf-8')
             return xmltodict.etree.fromstring(xml)
 
-    @unittest.skip("Test does not make sense in the Etree context")
+    # XMLToDictTestCase tests that do not make sense to run in the
+    # ElementTree context.
+    @skiptest("Test does not make sense in the Etree context")
     def test_string_vs_file(self):
         pass
 
+    @skiptest("Test does not make sense in the Etree context")
+    def test_encoded_string(self):
+        pass
+
+    # Additional test case(s) that are specific to
+    # ElementTree parsing.
     def test_element_vs_element_tree(self):
         xml = '<a>data</a>'
         xml_element = xmltodict.etree.fromstring(xml)
