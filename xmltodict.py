@@ -510,13 +510,19 @@ def _parse_generator(xml_input, parser, cb):
         ioObj = xml_input
 
     atEof=False
+    interrupt=False
     while not atEof:
         buf = ioObj.read(parsingIncrement)
         if len(buf) == 0:
             atEof=True
-        parser.Parse(buf, atEof)
+        try:
+            parser.Parse(buf, atEof)
+        except ParsingInterrupted:
+            interrupt=True
         for rv in cb.get_items():
             yield rv
+        if interrupt:
+            raise ParsingInterrupted()
 
 def parse(xml_input, encoding=None, expat=expat,
           process_namespaces=False, namespace_separator=':',
@@ -943,14 +949,20 @@ if etree:
             if node.text and len(node.text) > 0:
                 handler.characters(node.text)
             for child in node:
+                interrupt=False
                 child_iterator = parse_lxml_node(
                     child, handler, process_namespaces, strip_namespace,
                     namespace_separator, cb, namespace_dict
                 )
-                for rv in child_iterator:
-                    yield rv
+                try:
+                    for rv in child_iterator:
+                        yield rv
+                except ParsingInterrupted:
+                    interrupt=True
                 for rv in cb.get_items():
                     yield rv
+                if interrupt:
+                    raise ParsingInterrupted()
             handler.endElement(tag)
         if (not rootElement) and node.tail and len(node.tail) > 0:
             handler.characters(node.tail)
