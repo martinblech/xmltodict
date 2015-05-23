@@ -74,7 +74,7 @@ It also lets you collapse certain namespaces to shorthand prefixes, or skip them
 True
 ```
 
-## Streaming mode
+## Streaming Mode
 
 `xmltodict` is very fast ([Expat](http://docs.python.org/library/pyexpat.html)-based) and has a streaming mode with a small memory footprint, suitable for big XML dumps like [Discogs](http://discogs.com/data/) or [Wikipedia](http://dumps.wikimedia.org/).
 
@@ -82,7 +82,7 @@ In the streaming mode, intermediate values are returned during parsing (rather t
 
 You activate streaming mode by calling the parser with a `generator` argument that evaluates to True and/or an `item_depth` argument that is greater than 0.
 
-### Generator/Iterator
+### Streaming Mode: Generator/Iterator
 
 If the `generator` argument evaluates to True, the function returns an iterator. On each iteration, it returns a new node from the specified `item_depth`. (An `item_depth` of 0 will return the full tree, an `item_depth` of 1 will return the contents of the root tag, an `item_depth` of 2 will return the contents of the tags of the root element's children, etc.) Each iteration returns a tuple of the `path` from the document root to the item (name-attribs pairs) and the `item` (the contents of the item). The contents of the item will be the value of the sub-node. If the sub-node is an XML tree that would be represened by a dictionary, the iterator will return a dictionary as the `item`. If the sub-node only contains CDATA that would be represented in a text node, the iterator will return a text node as the `item`. If the node is an empty tag which would be represented by None, the iterator returns None as the `item`.
 
@@ -92,7 +92,7 @@ Example:
 ... <a prop="x">
 ...   <b>1</b>
 ...   <b>2</b>
-... </a>\"\"\"
+... </a>"""
 >>> for (path, item) in xmltodict.parse(xml, generator=True, item_depth=2):
 ...     print 'path:%s item:%s' % (path, item)
 ...
@@ -100,7 +100,7 @@ path:[(u'a', {u'prop': u'x'}), (u'b', None)] item:1
 path:[(u'a', {u'prop': u'x'}), (u'b', None)] item:2
 ```
 
-### Callback
+### Streaming Mode: Callback
 
 If `item_depth` is greater than 0 and the user specifies an `item_callback`, it will call the `item_callback` every time an item at the specified depth is found.
 
@@ -113,11 +113,11 @@ The `item_callback` function receives the same parameters returned by the `gener
 ...     print 'path:%s item:%s' % (path, item)
 ...     return True
 ...
->>> xml = \"\"\"\\
+>>> xml = """\
 ... <a prop="x">
 ...   <b>1</b>
 ...   <b>2</b>
-... </a>\"\"\"
+... </a>"""
 >>> xmltodict.parse(xml, item_depth=2, item_callback=handle)
 path:[(u'a', {u'prop': u'x'}), (u'b', None)] item:1
 path:[(u'a', {u'prop': u'x'}), (u'b', None)] item:2
