@@ -5,6 +5,7 @@ import sys
 from xml.parsers import expat
 from xml.sax.saxutils import XMLGenerator
 from xml.sax.xmlreader import AttributesImpl
+from copy import deepcopy
 try:  # pragma no cover
     from cStringIO import StringIO
 except ImportError:  # pragma no cover
@@ -12,6 +13,10 @@ except ImportError:  # pragma no cover
         from StringIO import StringIO
     except ImportError:
         from io import StringIO
+try: # pragma no cover
+    from io import BytesIO
+except ImportError: # pragma no cover
+    BytesIO = StringIO
 try:  # pragma no cover
     from collections import OrderedDict as _OrderedDict
 except ImportError:  # pragma no cover
@@ -77,6 +82,14 @@ try:  # pragma no cover
     _unicode = unicode
 except NameError:  # pragma no cover
     _unicode = str
+try:  # pragma no cover
+    _bytes = bytes
+except NameError:  # pragma no cover
+    _bytes = str
+
+# While doing processing for a generator, process XML text 1KB at a
+# time.
+parsingIncrement = 1024
 
 __author__ = 'Martin Blech'
 __version__ = '0.9.2'
@@ -334,6 +347,8 @@ class _DictSAXHandler(object):
 
     def endElement(self, full_name):
         name = self._build_name(full_name)
+        if self.strip_whitespace and self.data is not None:
+            self.data = self.data.strip() or None
         if len(self.path) == self.item_depth:
             item = self.item
             if item is None:
@@ -348,8 +363,6 @@ class _DictSAXHandler(object):
             else:
                 item, data = self.item, self.data
                 self.item, self.data = self.stack.pop()
-            if self.strip_whitespace and data is not None:
-                data = data.strip() or None
             if data and self.force_cdata and item is None:
                 item = self.dict_constructor()
             if self.new_style and isinstance(attrs, dict):
@@ -433,14 +446,17 @@ class _DictSAXHandler(object):
         return item
 
 class Parser(object):
-    def __init__(self, encoding=None, expat=expat,
-                 process_namespaces=False, namespace_separator=':',
-                 **kwargs):
-        self.encoding=encoding
-        self.expat=expat
-        self.process_namespaces=process_namespaces
-        self.namespace_separator=namespace_separator
-        self.kwargs=kwargs
+    def __init__(self, **kwargs):
+        # Save the arguments for later.
+        self.kwargs=dict(kwargs)
+
+        # For now, pop off the arguments that we don't want to pass to
+        # the handler class.
+        encoding=kwargs.pop('encoding', None)
+        my_expat=kwargs.pop('expat', expat)
+        process_namespaces=kwargs.pop('process_namespaces', False)
+        namespace_separator=kwargs.pop('namespace_separator', ':')
+        generator=kwargs.pop('generator', False)
 
         # Try the arguments to catch argument errors now. We will toss
         # out the created handler and parser, anyway.
@@ -450,7 +466,7 @@ class Parser(object):
             encoding = 'utf-8'
         if not process_namespaces:
             namespace_separator = None
-        parser = expat.ParserCreate(
+        parser = my_expat.ParserCreate(
             encoding,
             namespace_separator
         )
@@ -463,19 +479,48 @@ class Parser(object):
         # relationship between the parse_lxml() method and the
         # LXMLParser class). However, I am writing this class in this
         # way to make the diffs easier to read.
-        encoding = kwargs.pop('encoding', self.encoding)
-        expat = kwargs.pop('expat', self.expat)
-        process_namespaces = kwargs.pop('process_namespaces',
-                                        self.process_namespaces)
-        namespace_separator = kwargs.pop('namespace_separator',
-                                         self.namespace_separator)
         newkwargs = dict(self.kwargs)
         newkwargs.update(kwargs)
-        return parse(xml_input, encoding, expat, process_namespaces,
-                     namespace_separator, **newkwargs)
+        return parse(xml_input, **newkwargs)
 
-def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
-          namespace_separator=':', **kwargs):
+class _GeneratorCallback(object):
+    def __init__(self, item_callback=None):
+        if item_callback == None:
+            item_callback = lambda *args: True
+        self.item_callback = item_callback
+        self.stack = []
+    def get_items(self):
+        done = False
+        while not done:
+            try:
+                yield self.stack.pop(0)
+            except IndexError:
+                done=True
+    def add_item(self, stack, value):
+        rv = self.item_callback(stack, value)
+        self.stack.append((deepcopy(stack), value))
+        return rv
+
+def _parse_generator(xml_input, parser, cb):
+    if isinstance(xml_input, str) or isinstance(xml_input, _unicode):
+        ioObj = StringIO(xml_input)
+    elif isinstance(xml_input, _bytes):
+        ioObj = BytesIO(xml_input)
+    else:
+        ioObj = xml_input
+
+    atEof=False
+    while not atEof:
+        buf = ioObj.read(parsingIncrement)
+        if len(buf) == 0:
+            atEof=True
+        parser.Parse(buf, atEof)
+        for rv in cb.get_items():
+            yield rv
+
+def parse(xml_input, encoding=None, expat=expat,
+          process_namespaces=False, namespace_separator=':',
+          generator=False, **kwargs):
     """Parse the given XML input and convert it into a dictionary.
 
     `xml_input` can either be a `string` or a file-like object.
@@ -498,27 +543,64 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         >>> doc['a']['b']
         [u'1', u'2']
 
-    If `item_depth` is `0`, the function returns a dictionary for the root
-    element (default behavior). Otherwise, it calls `item_callback` every time
-    an item at the specified depth is found and returns `None` in the end
-    (streaming mode).
+    This also supports "streaming mode", where intermediate values are
+    returned during parsing. There are two versions of "streaming
+    mode": one which uses a callback functon and one which returns an
+    iterator. (The two modes can actually be combined, as well.)
 
-    The callback function receives two parameters: the `path` from the document
-    root to the item (name-attribs pairs), and the `item` (dict). If the
-    callback's return value is false-ish, parsing will be stopped with the
+    If `generator` evaluates to True, the function returns an
+    iterator. On each iteration, it returns a new node from the
+    specified `item_depth`. (An `item_depth` of 0 will return the full
+    tree, an `item_depth` of 1 will return the contents of the root
+    tag, an `item_depth` of 2 will return the contents of the tags of
+    the root element's children, etc.) Each iteration returns a tuple
+    of the `path` from the document root to the item (name-attribs
+    pairs) and the `item` (the contents of the item). The contents of
+    the item will be the value of that sub-node. If it would be a
+    dictionary, it returns a dictionary. If it would be a text node,
+    it returns a text node. If it would be None (empty tag), it
+    returns None.
+
+    If `item_depth` is non-0 and the user specifies an
+    `item_callback`, it will call the `item_callback` every time an
+    item at the specified depth is found.
+
+    If `item_depth` is non-0 and `generator` evaluates to False, the
+    function will not return a dictionary for the root element (which
+    is the default behavior). Instead, it will call the
+    `item_callback` every time an item at the specified depth is found
+    and will return `None` in the end (streaming mode).
+
+    The `item_callback` function receives the same parameters returned
+    by the `generator`: the `path` from the document root to the item
+    (name-attribs pairs), and the `item` (dict). If the callback's
+    return value is false-ish, parsing will be stopped with the
     :class:`ParsingInterrupted` exception.
 
-    Streaming example::
+    Generator/Iterator example:
+        >>> xml = \"\"\"\\
+        ... <a prop="x">
+        ...   <b>1</b>
+        ...   <b>2</b>
+        ... </a>\"\"\"
+        >>> for (path, item) in xmltodict.parse(xml, generator=True, item_depth=2):
+        ...     print 'path:%s item:%s' % (path, item)
+        ... 
+        path:[(u'a', {u'prop': u'x'}), (u'b', None)] item:1
+        path:[(u'a', {u'prop': u'x'}), (u'b', None)] item:2
+
+    Callback example::
 
         >>> def handle(path, item):
         ...     print 'path:%s item:%s' % (path, item)
         ...     return True
         ...
-        >>> xmltodict.parse(\"\"\"
+        >>> xml = \"\"\"\\
         ... <a prop="x">
         ...   <b>1</b>
         ...   <b>2</b>
-        ... </a>\"\"\", item_depth=2, item_callback=handle)
+        ... </a>\"\"\"
+        >>> xmltodict.parse(xml, item_depth=2, item_callback=handle)
         path:[(u'a', {u'prop': u'x'}), (u'b', None)] item:1
         path:[(u'a', {u'prop': u'x'}), (u'b', None)] item:2
 
@@ -653,10 +735,15 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
 
     You can use the `strip_namespace` parameter to strip XML namespace
     information from the returned dictionary. If the `strip_namespace`
-    parameter is set to True, he parser will remove the namespace
+    parameter is set to True, the parser will remove the namespace
     prefix (if any) from the element name and will remove the xmlns
     attributes from the nodes.
+
     """
+    if generator and kwargs.get('item_depth', 0) > 0:
+        cb = _GeneratorCallback(kwargs.get('item_callback', None))
+        kwargs['item_callback'] = cb.add_item
+
     handler = _DictSAXHandler(namespace_separator=namespace_separator,
                               **kwargs)
     if isinstance(xml_input, _unicode):
@@ -678,11 +765,18 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     parser.EndElementHandler = handler.endElement
     parser.CharacterDataHandler = handler.characters
     parser.buffer_text = True
-    try:
-        parser.ParseFile(xml_input)
-    except (TypeError, AttributeError):
-        parser.Parse(xml_input, True)
-    return handler.item
+    if generator and kwargs.get('item_depth', 0) > 0:
+        return _parse_generator(xml_input=xml_input, parser=parser,
+                                cb=cb)
+    else:
+        try:
+            parser.ParseFile(xml_input)
+        except (TypeError, AttributeError):
+            parser.Parse(xml_input, True)
+    if generator:
+        return [([], handler.item)]
+    else:
+        return handler.item
 
 if etree:
     class NamespaceError(ValueError):
@@ -713,7 +807,7 @@ if etree:
                 del in_dict[k]
 
     def parse_lxml_node(node, handler, process_namespaces,
-                        strip_namespace, namespace_separator,
+                        strip_namespace, namespace_separator, cb,
                         namespace_dict=None, rootElement=False):
         # Parsing LXML/ElementTree is actually quite simple. We
         # can just recursively call this function to walk through
@@ -849,9 +943,14 @@ if etree:
             if node.text and len(node.text) > 0:
                 handler.characters(node.text)
             for child in node:
-                parse_lxml_node(child, handler, process_namespaces,
-                                strip_namespace, namespace_separator,
-                                namespace_dict)
+                child_iterator = parse_lxml_node(
+                    child, handler, process_namespaces, strip_namespace,
+                    namespace_separator, cb, namespace_dict
+                )
+                for rv in child_iterator:
+                    yield rv
+                for rv in cb.get_items():
+                    yield rv
             handler.endElement(tag)
         if (not rootElement) and node.tail and len(node.tail) > 0:
             handler.characters(node.tail)
@@ -859,10 +958,11 @@ if etree:
     class LXMLParser(object):
         def __init__(self, process_namespaces=False,
                      namespace_separator=':', allow_extra_args=False,
-                     **kwargs):
+                     generator=False, **kwargs):
             self.process_namespaces = process_namespaces
             self.namespace_separator = namespace_separator
             self.allow_extra_args = allow_extra_args
+            self.generator = generator
             self.kwargs = kwargs
             self.strip_namespace = kwargs.get('strip_namespace',False)
             handler = _DictSAXHandler(namespace_separator=self.namespace_separator,
@@ -872,12 +972,18 @@ if etree:
             if len(args) > 0 and not self.allow_extra_args:
                 raise TypeError("%s callable takes 1 argument (%d given)" %
                                 (self.__class__.__name__, len(args)))
-
+            generator = kwargs.pop('generator', self.generator)
             newkwargs = dict(self.kwargs)
             newkwargs.update(kwargs)
 
-            handler = _DictSAXHandler(namespace_separator=self.namespace_separator,
-                                      **newkwargs)
+            cb = _GeneratorCallback(newkwargs.get('item_callback', None))
+            if generator and newkwargs.get('item_depth', 0) > 0:
+                newkwargs['item_callback'] = cb.add_item
+
+            handler = _DictSAXHandler(
+                namespace_separator=self.namespace_separator,
+                **newkwargs
+            )
             try:
                 if isinstance(lxml_root, etree._ElementTree):
                     lxml_root = lxml_root.getroot()
@@ -888,12 +994,20 @@ if etree:
                 except:
                     if not hasattr(lxml_root, 'tag'):
                         lxml_root = lxml_root.getroot()
-            parse_lxml_node(lxml_root, handler,
-                            self.process_namespaces,
-                            self.strip_namespace,
-                            self.namespace_separator,
-                            rootElement=True)
-            return handler.item
+            childIter = parse_lxml_node(lxml_root, handler,
+                                        self.process_namespaces,
+                                        self.strip_namespace,
+                                        self.namespace_separator,
+                                        cb, rootElement=True)
+            if generator and newkwargs.get('item_depth', 0) > 0:
+                return childIter
+            else:
+                for i in childIter:
+                    pass
+                if generator:
+                    return [([], handler.item)]
+                else:
+                    return handler.item
                             
     def parse_lxml(lxml_root, *args, **kwargs):
         return LXMLParser(*args, **kwargs)(lxml_root)
