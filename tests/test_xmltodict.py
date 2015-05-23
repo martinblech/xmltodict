@@ -295,6 +295,82 @@ class XMLToDictTestCase(unittest.TestCase):
                           parse, '<a>x</a>',
                           item_depth=1, item_callback=cb)
 
+    def test_generator_method(self):
+        xml = '<a x="y"><b>1</b><b>2</b><b>3</b></a>'
+        xml = self.xmlTextToTestFormat(xml)
+        expected_stack = [('a', {'x': "y"}), ('b', None)]
+        expected_values = ['1', '2', '3']
+        expected_values.sort()
+        actual_results = list()
+        for (item, value) in self.parse(xml, generator=True, item_depth=2):
+            self.assertEqual(item, expected_stack)
+            actual_results.append(value)
+        actual_results.sort()
+        self.assertEqual(actual_results, expected_values)
+        actual_results = list()
+        iterator = self.parse(xml, generator=True, item_depth=2,
+                               new_style=True)
+        for (item, value) in iterator:
+            self.assertEqual(item, expected_stack)
+            actual_results.append(value)
+        actual_results.sort()
+        self.assertEqual(actual_results, expected_values)
+
+    def test_generator_class(self):
+        xml = '<a x="y"><b>1</b><b>2</b><b>3</b></a>'
+        xml = self.xmlTextToTestFormat(xml)
+        expected_stack = [('a', {'x': "y"}), ('b', None)]
+        expected_values = ['1', '2', '3']
+        expected_values.sort()
+        tests = []
+        tests.append((self.Parser(generator=True, item_depth=2), {}))
+        tests.append((self.Parser(item_depth=2), {'generator': True}))
+        tests.append((self.Parser(), {'generator': True, 'item_depth': 2}))
+        for (parser, kwargs) in tests:
+            for new_style in (False, True):
+                kwargs['new_style'] = new_style
+            actual_results = list()
+            for (item, value) in parser(xml, **kwargs):
+                self.assertEqual(item, expected_stack)
+                actual_results.append(value)
+            actual_results.sort()
+            self.assertEqual(actual_results, expected_values)
+
+    def test_generator_string_vs_file(self):
+        xml = '<a x="y">'
+        expected_values = []
+        for i in range(1,10240):
+            xml += "<b>%d</b><c>%d</c>" % (i, i + 100000)
+            expected_values.append(str(i))
+        xml += '</a>'
+        ioObj = StringIO(_encode(xml))
+        expected_stack = [('a', {'x': "y"}), ('b', None)]
+        expected_values.sort()
+
+        # file-like IO: Must do partial reads, must produce the same
+        # values as working on the string, and must produce the same
+        # values as expected.
+        parser = self.Parser(generator=True, item_depth=2)
+        fileio_values = list()
+        for (item, value) in parser(ioObj):
+            if len(fileio_values) < 10:
+                self.assertTrue(ioObj.tell() < len(xml))
+            if item == expected_stack:
+                fileio_values.append(value)
+
+        # string: Must produce the same values as woring on file-like
+        # IO, and must produce the same values as expected.
+        stringio_values = list()
+        for (item, value) in parser(xml):
+            if item == expected_stack:
+                stringio_values.append(value)
+
+        self.assertEqual(fileio_values, stringio_values)
+        fileio_values.sort()
+        self.assertEqual(fileio_values, expected_values)
+        stringio_values.sort()
+        self.assertEqual(stringio_values, expected_values)
+
     def test_postprocessor(self):
         def postprocessor(path, key, value):
             try:
@@ -1191,6 +1267,10 @@ class EtreeToDictTestCase(XMLToDictTestCase):
 
     @skiptest("Test does not make sense in the Etree context")
     def test_encoded_string(self):
+        pass
+
+    @skiptest("Test does not make sense in the Etree context")
+    def test_generator_string_vs_file(self):
         pass
 
     # Additional test case(s) that are specific to
