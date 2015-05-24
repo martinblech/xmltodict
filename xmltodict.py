@@ -120,13 +120,13 @@ class OrderedDict(_OrderedDict):
 
 class _XMLNodeMetaClass(type):
     def __new__(cls, name, bases, dict):
-        dict["XMLattrs"] = OrderedDict()
+        dict["xml_attrs"] = OrderedDict()
         dict["__parent__"] = bases[-1]
         return type.__new__(cls, name, bases, dict)
     def __call__(self, *args, **kwargs):
-        XMLattrs=kwargs.pop("XMLattrs", OrderedDict())
+        xml_attrs=kwargs.pop("xml_attrs", OrderedDict())
         obj = type.__call__(self, *args, **kwargs)
-        obj.XMLattrs = XMLattrs
+        obj.xml_attrs = xml_attrs
         return obj
 
 
@@ -146,36 +146,36 @@ XMLNodeMetaClass = _XMLNodeMetaClass(str("XMLNodeMetaClass"),
 del _temp_class_dict
 
 class XMLNodeBase(XMLNodeMetaClass):
-    def hasXMLattributes(self):
-        if len(self.XMLattrs) > 0:
+    def has_xml_attrs(self):
+        if len(self.xml_attrs) > 0:
             return True
         return False
 
-    def setXMLattribute(self, attr, val):
-        self.XMLattrs[attr] = val
+    def set_xml_attr(self, attr, val):
+        self.xml_attrs[attr] = val
 
-    def getXMLattribute(self, attr, defval=NoArg()):
+    def get_xml_attr(self, attr, defval=NoArg()):
         try:
-            return self.XMLattrs[attr]
+            return self.xml_attrs[attr]
         except KeyError:
             if not isinstance(defval, NoArg):
                 return defval
             raise
 
-    def getXMLattributes(self):
-        return self.XMLattrs
+    def get_xml_attrs(self):
+        return self.xml_attrs
 
-    def delXMLattribute(self, attr):
-        del self.XMLattrs[attr]
+    def delete_xml_attr(self, attr):
+        del self.xml_attrs[attr]
 
     def __repr__(self):
-        return "%s(XMLattrs=%r, value=%s)" % (getattr(self, "__const_class_name__", self.__class__.__name__), self.XMLattrs, self.__parent__.__repr__(self))
+        return "%s(xml_attrs=%r, value=%s)" % (getattr(self, "__const_class_name__", self.__class__.__name__), self.xml_attrs, self.__parent__.__repr__(self))
 
 
 class XMLCDATANode(XMLNodeBase, _unicode):
     def strip(self, arg=None):
         newtext = _unicode.strip(self, arg)
-        return XMLCDATANode(newtext, XMLattrs=self.XMLattrs)
+        return XMLCDATANode(newtext, xml_attrs=self.xml_attrs)
     def prettyprint(self, *args, **kwargs):
         currdepth = kwargs.pop("currdepth", 0)
         newobj = self.__parent__(self)
@@ -376,7 +376,7 @@ class _DictSAXHandler(object):
                     node = None
                 if node is not None:
                     for (key, value) in attrs.items():
-                        node.setXMLattribute(key, value)
+                        node.set_xml_attr(key, value)
             if item is not None:
                 if data:
                     self.push_data(item, self.cdata_key, data)
@@ -723,14 +723,14 @@ def parse(xml_input, encoding=None, expat=expat,
     in a class attribute, rather than being placed in a dictionary
     entry. The XML attributes are accessible/settable using these
     functions:
-        obj.hasXMLattributes(): Returns True if there are XML
+        obj.has_xml_attrs(): Returns True if there are XML
           attributes, or False otherwise.
-        obj.setXMLattribute(attr, val): Sets the XML attribute of name
+        obj.set_xml_attr(attr, val): Sets the XML attribute of name
          `attr` to `val`.
-        obj.getXMLattribute(attr[, default]): Gets the XML attribute
+        obj.get_xml_attr(attr[, default]): Gets the XML attribute
           of name `attr`. If there is no such attribute, it will
           return default (if supplied) or raise a KeyError.
-        obj.delXMLattribute(attr, val): Deletes the XML attribute of name
+        obj.delete_xml_attr(attr, val): Deletes the XML attribute of name
          `attr`.
 
     The classes returned when the `new_style` argument is True also
@@ -1066,7 +1066,7 @@ def _emit(key, value, content_handler,
     for index, v in enumerate(value):
         if full_document and depth == 0 and index > 0:
             raise ValueError('document with multiple roots')
-        attrs = getattr(v, "XMLattrs", OrderedDict())
+        attrs = getattr(v, "xml_attrs", OrderedDict())
         if v is None:
             v = OrderedDict()
         elif not isinstance(v, dict):

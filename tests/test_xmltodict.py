@@ -94,10 +94,10 @@ class XMLToDictTestCase(unittest.TestCase):
                          expectedResult)
         rv = self.parse(xml, new_style=True)
         self.assertEqual(rv, expectedResult)
-        self.assertFalse(rv.hasXMLattributes())
+        self.assertFalse(rv.has_xml_attrs())
         rv = self.parse(xml, force_cdata=True, new_style=True)
         self.assertEqual(rv, expectedResult)
-        self.assertFalse(rv.hasXMLattributes())
+        self.assertFalse(rv.has_xml_attrs())
 
     def test_simple(self):
         xml = '<a>data</a>'
@@ -106,8 +106,8 @@ class XMLToDictTestCase(unittest.TestCase):
         self.assertEqual(self.parse(xml), expectedResult)
         rv = self.parse(xml, new_style=True)
         self.assertEqual(rv, expectedResult)
-        self.assertFalse(rv.hasXMLattributes())
-        self.assertEqual(rv.getXMLattributes(), {})
+        self.assertFalse(rv.has_xml_attrs())
+        self.assertEqual(rv.get_xml_attrs(), {})
 
     def test_list_simple(self):
         xml = '<a><b>data1</b><b>data2</b></a>'
@@ -116,12 +116,12 @@ class XMLToDictTestCase(unittest.TestCase):
         self.assertEqual(self.parse(xml), expectedResult)
         rv = self.parse(xml, new_style=True)
         self.assertEqual(rv, expectedResult)
-        self.assertFalse(rv.hasXMLattributes())
-        self.assertEqual(rv.getXMLattributes(), {})
-        self.assertFalse(rv['a'].hasXMLattributes())
-        self.assertFalse(rv['a']['b'].hasXMLattributes())
-        self.assertFalse(rv['a']['b'][0].hasXMLattributes())
-        self.assertFalse(rv['a']['b'][1].hasXMLattributes())
+        self.assertFalse(rv.has_xml_attrs())
+        self.assertEqual(rv.get_xml_attrs(), {})
+        self.assertFalse(rv['a'].has_xml_attrs())
+        self.assertFalse(rv['a']['b'].has_xml_attrs())
+        self.assertFalse(rv['a']['b'][0].has_xml_attrs())
+        self.assertFalse(rv['a']['b'][1].has_xml_attrs())
 
     def test_force_cdata(self):
         xml = '<a>data</a>'
@@ -131,7 +131,7 @@ class XMLToDictTestCase(unittest.TestCase):
         self.assertEqual(parser(xml), expectedResult)
         rv = parser(xml, new_style=True)
         self.assertEqual(rv, expectedResult)
-        self.assertFalse(rv.hasXMLattributes())
+        self.assertFalse(rv.has_xml_attrs())
 
     def test_custom_cdata(self):
         xml = '<a>data</a>'
@@ -141,7 +141,7 @@ class XMLToDictTestCase(unittest.TestCase):
         self.assertEqual(parser(xml), expectedResult)
         rv = parser(xml, new_style=True)
         self.assertEqual(rv, expectedResult)
-        self.assertFalse(rv.hasXMLattributes())
+        self.assertFalse(rv.has_xml_attrs())
 
     def test_list(self):
         xml = '<a><b>1</b><b>2</b><b>3</b></a>'
@@ -150,7 +150,7 @@ class XMLToDictTestCase(unittest.TestCase):
         self.assertEqual(self.parse(xml), expectedResult)
         rv = self.parse(xml, new_style=True)
         self.assertEqual(rv, expectedResult)
-        self.assertFalse(rv.hasXMLattributes())
+        self.assertFalse(rv.has_xml_attrs())
 
     def test_attrib_root(self):
         xml = '<a href="xyz"/>'
@@ -159,10 +159,10 @@ class XMLToDictTestCase(unittest.TestCase):
                          {'a': {'@href': 'xyz'}})
         rv = self.parse(xml, new_style=True)
         self.assertEqual(rv, {'a': ''})
-        self.assertFalse(rv.hasXMLattributes())
-        self.assertTrue(rv['a'].hasXMLattributes())
-        self.assertEqual(rv['a'].getXMLattribute("href", None), 'xyz')
-        self.assertEqual(rv['a'].getXMLattributes(), {'href': 'xyz'})
+        self.assertFalse(rv.has_xml_attrs())
+        self.assertTrue(rv['a'].has_xml_attrs())
+        self.assertEqual(rv['a'].get_xml_attr("href", None), 'xyz')
+        self.assertEqual(rv['a'].get_xml_attrs(), {'href': 'xyz'})
 
     def test_attrib_leaf(self):
         xml = '<root><a href="xyz"/></root>'
@@ -171,12 +171,12 @@ class XMLToDictTestCase(unittest.TestCase):
                          {'root': {'a': {'@href': 'xyz'}}})
         rv = self.parse(xml, new_style=True)
         self.assertEqual(rv, {'root': {'a': ''}})
-        self.assertFalse(rv.hasXMLattributes())
-        self.assertFalse(rv['root'].hasXMLattributes())
+        self.assertFalse(rv.has_xml_attrs())
+        self.assertFalse(rv['root'].has_xml_attrs())
         nodea = rv['root']['a']
-        self.assertTrue(nodea.hasXMLattributes())
-        self.assertEqual(nodea.getXMLattribute("href", None), 'xyz')
-        self.assertEqual(nodea.getXMLattributes(), {'href': 'xyz'})
+        self.assertTrue(nodea.has_xml_attrs())
+        self.assertEqual(nodea.get_xml_attr("href", None), 'xyz')
+        self.assertEqual(nodea.get_xml_attrs(), {'href': 'xyz'})
 
     def test_skip_attrib(self):
         xml = '<a href="xyz"/>'
@@ -186,7 +186,7 @@ class XMLToDictTestCase(unittest.TestCase):
         self.assertEqual(parser(xml), expectedResult)
         rv = parser(xml, new_style=True)
         self.assertEqual(rv, expectedResult)
-        self.assertFalse(rv.hasXMLattributes())
+        self.assertFalse(rv.has_xml_attrs())
 
     def test_custom_attrib(self):
         xml = '<a href="xyz"/>'
@@ -196,9 +196,9 @@ class XMLToDictTestCase(unittest.TestCase):
                          {'a': {'!href': 'xyz'}})
         rv = parser(xml, new_style=True)
         self.assertEqual(rv, {'a': ''})
-        self.assertFalse(rv.hasXMLattributes())
-        self.assertTrue(rv['a'].hasXMLattributes())
-        self.assertEqual(rv['a'].getXMLattributes(),
+        self.assertFalse(rv.has_xml_attrs())
+        self.assertTrue(rv['a'].has_xml_attrs())
+        self.assertEqual(rv['a'].get_xml_attrs(),
                          {'!href': 'xyz'})
 
     def test_attrib_and_cdata(self):
@@ -208,9 +208,9 @@ class XMLToDictTestCase(unittest.TestCase):
                          {'a': {'@href': 'xyz', '#text': '123'}})
         rv = self.parse(xml, new_style=True)
         self.assertEqual(rv, {'a': '123'})
-        self.assertFalse(rv.hasXMLattributes())
-        self.assertTrue(rv['a'].hasXMLattributes())
-        self.assertEqual(rv['a'].getXMLattributes(),
+        self.assertFalse(rv.has_xml_attrs())
+        self.assertTrue(rv['a'].has_xml_attrs())
+        self.assertEqual(rv['a'].get_xml_attrs(),
                          {'href': 'xyz'})
 
     def test_semi_structured(self):
@@ -257,11 +257,11 @@ class XMLToDictTestCase(unittest.TestCase):
             {'root': {'emptya': None,
                       'emptyb': '',
                       'value': 'hello'}})
-        self.assertFalse(rv.hasXMLattributes())
-        self.assertFalse(rv['root'].hasXMLattributes())
-        self.assertFalse(rv['root']['value'].hasXMLattributes())
-        self.assertTrue(rv['root']['emptyb'].hasXMLattributes())
-        self.assertEqual(rv['root']['emptyb'].getXMLattributes(),
+        self.assertFalse(rv.has_xml_attrs())
+        self.assertFalse(rv['root'].has_xml_attrs())
+        self.assertFalse(rv['root']['value'].has_xml_attrs())
+        self.assertTrue(rv['root']['emptyb'].has_xml_attrs())
+        self.assertEqual(rv['root']['emptyb'].get_xml_attrs(),
                          {'attr': 'attrvalue'})
 
     def test_keep_whitespace(self):
@@ -454,12 +454,12 @@ class XMLToDictTestCase(unittest.TestCase):
         }
         rv = parser(xml, new_style=True)
         self.assertEqual(rv, expectedResult)
-        self.assertFalse(rv.hasXMLattributes())
-        self.assertFalse(rv['http://defaultns.com/:root'].hasXMLattributes())
-        self.assertFalse(rv['http://defaultns.com/:root']['http://a.com/:y'].hasXMLattributes())
-        self.assertFalse(rv['http://defaultns.com/:root']['http://b.com/:z'].hasXMLattributes())
+        self.assertFalse(rv.has_xml_attrs())
+        self.assertFalse(rv['http://defaultns.com/:root'].has_xml_attrs())
+        self.assertFalse(rv['http://defaultns.com/:root']['http://a.com/:y'].has_xml_attrs())
+        self.assertFalse(rv['http://defaultns.com/:root']['http://b.com/:z'].has_xml_attrs())
         self.assertEqual(
-            rv['http://defaultns.com/:root']['http://defaultns.com/:x'].getXMLattributes(),
+            rv['http://defaultns.com/:root']['http://defaultns.com/:x'].get_xml_attrs(),
             {'http://a.com/:attr': 'val'})
 
     def test_namespace_collapse(self):
@@ -498,12 +498,12 @@ class XMLToDictTestCase(unittest.TestCase):
         }
         rv = parser(xml, new_style=True)
         self.assertEqual(rv, expectedResult)
-        self.assertFalse(rv.hasXMLattributes())
-        self.assertFalse(rv['root'].hasXMLattributes())
-        self.assertFalse(rv['root']['ns_a:y'].hasXMLattributes())
-        self.assertFalse(rv['root']['http://b.com/:z'].hasXMLattributes())
-        self.assertTrue(rv['root']['x'].hasXMLattributes())
-        self.assertEqual(rv['root']['x'].getXMLattributes(),
+        self.assertFalse(rv.has_xml_attrs())
+        self.assertFalse(rv['root'].has_xml_attrs())
+        self.assertFalse(rv['root']['ns_a:y'].has_xml_attrs())
+        self.assertFalse(rv['root']['http://b.com/:z'].has_xml_attrs())
+        self.assertTrue(rv['root']['x'].has_xml_attrs())
+        self.assertEqual(rv['root']['x'].get_xml_attrs(),
                          {'ns_a:attr': 'val'})
 
     def translate_namespace(self, root, ns_map, _inherited_ns={}, force_cdata=False):
@@ -544,7 +544,7 @@ class XMLToDictTestCase(unittest.TestCase):
             else:
                 rv = dict()
         if isinstance(root, xmltodict.XMLCDATANode) or isinstance(root, xmltodict.XMLDictNode):
-            for (k,v) in root.getXMLattributes().items():
+            for (k,v) in root.get_xml_attrs().items():
                 items.append(("@" + k, v))
 
         for (k,v) in items:
@@ -568,8 +568,8 @@ class XMLToDictTestCase(unittest.TestCase):
                                 new_ns[""] = childV
                             else:
                                 new_ns[childK[index+1:]] = childV
-                if hasattr(child, "getXMLattributes"):
-                    for (childK, childV) in child.getXMLattributes().items():
+                if hasattr(child, "get_xml_attrs"):
+                    for (childK, childV) in child.get_xml_attrs().items():
                         if childK.startswith("xmlns"):
                             index = childK.rfind(":")
                             if index < 0:
@@ -602,7 +602,7 @@ class XMLToDictTestCase(unittest.TestCase):
 
                 # Build the entry
                 if (isinstance(rv, xmltodict.XMLDictNode) or isinstance(rv, xmltodict.XMLCDATANode)) and k[0] == "@":
-                    rv.setXMLattribute(newtag, v)
+                    rv.set_xml_attr(newtag, v)
                 else:
                     if k[0] == "@":
                         newtag = "@" + newtag
@@ -614,9 +614,9 @@ class XMLToDictTestCase(unittest.TestCase):
         # it.
         if isinstance(rv, dict) and list(rv.keys()) == ['#text'] and (not force_cdata):
             if isinstance(rv, xmltodict.XMLDictNode):
-                newAttrs = rv.getXMLattributes()
-                newAttrs.update(rv['#text'].getXMLattributes())
-                rv['#text'].XMLattrs = newAttrs
+                newAttrs = rv.get_xml_attrs()
+                newAttrs.update(rv['#text'].get_xml_attrs())
+                rv['#text'].xml_attrs = newAttrs
             return rv['#text']
         return rv
 
@@ -661,10 +661,10 @@ class XMLToDictTestCase(unittest.TestCase):
                         expectedResult['root'][k] = expectedResult['root'][k]['#text']
             rv = self.parse(xml, new_style=True)
             self.assertEqual(rv, expectedResult)
-            self.assertEqual(rv['root'].getXMLattributes(),
+            self.assertEqual(rv['root'].get_xml_attrs(),
                              expectedAttributes.pop('root'))
             for k in expectedAttributes.keys():
-                self.assertEqual(rv['root'][k].getXMLattributes(),
+                self.assertEqual(rv['root'][k].get_xml_attrs(),
                                  expectedAttributes[k])
         else:
             # Here, the NS identifiers may be different because they
@@ -686,20 +686,20 @@ class XMLToDictTestCase(unittest.TestCase):
                                           ns_map)
             for (k,v) in list(expectedResult['root'].items()):
                 if k.startswith("@"):
-                    self.assertEqual(rv['root'].getXMLattribute(k[1:]),
+                    self.assertEqual(rv['root'].get_xml_attr(k[1:]),
                                      expectedResult['root'].pop(k))
                 elif isinstance(v, dict):
                     for childK in list(expectedResult['root'][k].keys()):
                         if childK.startswith("@"):
                             self.assertTrue(
-                                childK[1:] in rv['root'][k].getXMLattributes(),
+                                childK[1:] in rv['root'][k].get_xml_attrs(),
                                 msg="%s attribute not in attribute store %r" % (
                                     childK[1:],
-                                    rv['root'][k].getXMLattributes()
+                                    rv['root'][k].get_xml_attrs()
                                 )
                             )
                             self.assertEqual(
-                                rv['root'][k].getXMLattribute(childK[1:]),
+                                rv['root'][k].get_xml_attr(childK[1:]),
                                 expectedResult['root'][k].pop(childK),
                             )
                     if list(expectedResult['root'][k].keys()) == ['#text']:
@@ -728,10 +728,10 @@ class XMLToDictTestCase(unittest.TestCase):
         self.assertEqual(parser(xml), expectedResult)
         rv = parser(xml, new_style=True)
         self.assertEqual(rv, expectedResult)
-        self.assertFalse(rv.hasXMLattributes())
-        self.assertFalse(rv['root'].hasXMLattributes())
+        self.assertFalse(rv.has_xml_attrs())
+        self.assertFalse(rv['root'].has_xml_attrs())
         for k in rv['root'].keys():
-            self.assertFalse(rv['root'][k].hasXMLattributes())
+            self.assertFalse(rv['root'][k].has_xml_attrs())
 
     def test_namespace_strip_attributes_positive(self):
         xml = """
@@ -769,12 +769,12 @@ class XMLToDictTestCase(unittest.TestCase):
         }
         rv = parser(xml, new_style=True)
         self.assertEqual(rv, expectedResult)
-        self.assertFalse(rv.hasXMLattributes())
-        self.assertFalse(rv['root'].hasXMLattributes())
-        self.assertFalse(rv['root']['x'].hasXMLattributes())
-        self.assertEqual(rv['root']['y'].getXMLattributes(),
+        self.assertFalse(rv.has_xml_attrs())
+        self.assertFalse(rv['root'].has_xml_attrs())
+        self.assertFalse(rv['root']['x'].has_xml_attrs())
+        self.assertEqual(rv['root']['y'].get_xml_attrs(),
                          {'a': 'val'})
-        self.assertEqual(rv['root']['z'].getXMLattributes(),
+        self.assertEqual(rv['root']['z'].get_xml_attrs(),
                          {'a': 'val1', 'b': 'val2'})
 
     def test_namespace_strip_attributes_negative(self):
@@ -813,12 +813,12 @@ class XMLToDictTestCase(unittest.TestCase):
         }
         rv = self.parse(xml, new_style=True)
         self.assertEqual(rv, expectedResult)
-        self.assertFalse(rv.hasXMLattributes())
-        self.assertFalse(rv['root'].hasXMLattributes())
-        self.assertTrue(rv['root']['x'].hasXMLattributes())
-        self.assertEqual(rv['root']['x'].getXMLattribute('a'), "val1")
-        self.assertEqual(rv['root']['x'].getXMLattribute('b', '@@@@'), '@@@@')
-        self.assertRaises(KeyError, rv['root']['x'].getXMLattribute, 'b')
+        self.assertFalse(rv.has_xml_attrs())
+        self.assertFalse(rv['root'].has_xml_attrs())
+        self.assertTrue(rv['root']['x'].has_xml_attrs())
+        self.assertEqual(rv['root']['x'].get_xml_attr('a'), "val1")
+        self.assertEqual(rv['root']['x'].get_xml_attr('b', '@@@@'), '@@@@')
+        self.assertRaises(KeyError, rv['root']['x'].get_xml_attr, 'b')
 
     def test_newstyle_xmlattribute_set(self):
         xml = """
@@ -834,23 +834,23 @@ class XMLToDictTestCase(unittest.TestCase):
         }
         rv = self.parse(xml, new_style=True)
         self.assertEqual(rv, expectedResult)
-        self.assertFalse(rv.hasXMLattributes())
-        self.assertFalse(rv['root'].hasXMLattributes())
-        self.assertTrue(rv['root']['x'].hasXMLattributes())
-        self.assertEqual(rv['root']['x'].getXMLattribute('a'), "val1")
-        rv['root']['x'].setXMLattribute('a', "val2")
-        self.assertEqual(rv['root']['x'].getXMLattribute('a'), "val2")
-        self.assertRaises(KeyError, rv['root']['x'].getXMLattribute, 'b')
-        rv['root']['x'].setXMLattribute('b', "val3")
-        self.assertEqual(rv['root']['x'].getXMLattribute('a'), "val2")
-        self.assertEqual(rv['root']['x'].getXMLattribute('b'), "val3")
-        self.assertEqual(rv['root']['x'].getXMLattributes(),
+        self.assertFalse(rv.has_xml_attrs())
+        self.assertFalse(rv['root'].has_xml_attrs())
+        self.assertTrue(rv['root']['x'].has_xml_attrs())
+        self.assertEqual(rv['root']['x'].get_xml_attr('a'), "val1")
+        rv['root']['x'].set_xml_attr('a', "val2")
+        self.assertEqual(rv['root']['x'].get_xml_attr('a'), "val2")
+        self.assertRaises(KeyError, rv['root']['x'].get_xml_attr, 'b')
+        rv['root']['x'].set_xml_attr('b', "val3")
+        self.assertEqual(rv['root']['x'].get_xml_attr('a'), "val2")
+        self.assertEqual(rv['root']['x'].get_xml_attr('b'), "val3")
+        self.assertEqual(rv['root']['x'].get_xml_attrs(),
                          {'a': "val2", 'b': "val3"})
-        self.assertEqual(rv['root'].getXMLattributes(), dict())
-        rv['root'].setXMLattribute('newattrib', "@@@")
-        self.assertTrue(rv['root'].hasXMLattributes())
-        self.assertEqual(rv['root'].getXMLattribute('newattrib'), "@@@")
-        self.assertEqual(rv['root'].getXMLattributes(),
+        self.assertEqual(rv['root'].get_xml_attrs(), dict())
+        rv['root'].set_xml_attr('newattrib', "@@@")
+        self.assertTrue(rv['root'].has_xml_attrs())
+        self.assertEqual(rv['root'].get_xml_attr('newattrib'), "@@@")
+        self.assertEqual(rv['root'].get_xml_attrs(),
                          {'newattrib': "@@@"})
 
     def test_newstyle_xmlattribute_delete(self):
@@ -867,19 +867,19 @@ class XMLToDictTestCase(unittest.TestCase):
         }
         rv = self.parse(xml, new_style=True)
         self.assertEqual(rv, expectedResult)
-        self.assertFalse(rv.hasXMLattributes())
-        self.assertFalse(rv['root'].hasXMLattributes())
-        self.assertTrue(rv['root']['x'].hasXMLattributes())
-        self.assertEqual(rv['root']['x'].getXMLattribute('a'), "val1")
-        self.assertEqual(rv['root']['x'].getXMLattributes(),
+        self.assertFalse(rv.has_xml_attrs())
+        self.assertFalse(rv['root'].has_xml_attrs())
+        self.assertTrue(rv['root']['x'].has_xml_attrs())
+        self.assertEqual(rv['root']['x'].get_xml_attr('a'), "val1")
+        self.assertEqual(rv['root']['x'].get_xml_attrs(),
                          {'a': "val1"})
-        self.assertRaises(KeyError, rv['root']['x'].delXMLattribute,
+        self.assertRaises(KeyError, rv['root']['x'].delete_xml_attr,
                           'b')
-        self.assertEqual(rv['root']['x'].getXMLattributes(),
+        self.assertEqual(rv['root']['x'].get_xml_attrs(),
                          {'a': "val1"})
-        rv['root']['x'].delXMLattribute('a')
-        self.assertFalse(rv['root']['x'].hasXMLattributes())
-        self.assertEqual(rv['root']['x'].getXMLattributes(), dict())
+        rv['root']['x'].delete_xml_attr('a')
+        self.assertFalse(rv['root']['x'].has_xml_attrs())
+        self.assertEqual(rv['root']['x'].get_xml_attrs(), dict())
 
     def test_key_promotion_with_compress(self):
         xml = """
