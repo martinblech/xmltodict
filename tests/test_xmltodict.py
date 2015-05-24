@@ -360,9 +360,14 @@ class XMLToDictTestCase(unittest.TestCase):
         # values as expected.
         parser = self.Parser(generator=True, item_depth=2)
         fileio_values = list()
+        num_iterations = 0
         for (item, value) in parser(ioObj):
-            if len(fileio_values) < 10:
-                self.assertTrue(ioObj.bytes_read < len(xml))
+            num_iterations += 1
+            if num_iterations <= 10:
+                self.assertTrue(
+                    ioObj.bytes_read < len(xml),
+                    msg="Bytes read (%d) is not less than the length of the full XML document (%d)" % (ioObj.bytes_read, len(xml))
+                )
             if item == expected_stack:
                 fileio_values.append(value)
 
