@@ -343,7 +343,15 @@ class XMLToDictTestCase(unittest.TestCase):
             xml += "<b>%d</b><c>%d</c>" % (i, i + 100000)
             expected_values.append(str(i))
         xml += '</a>'
-        ioObj = StringIO(_encode(xml))
+        class StringIOWithCounter(StringIO):
+            def __init__(self, *args, **kwargs):
+                StringIO.__init__(self, *args, **kwargs)
+                self.bytes_read = 0
+            def read(self, num_bytes):
+                rv = StringIO.read(self, num_bytes)
+                self.bytes_read += len(rv)
+                return rv
+        ioObj = StringIOWithCounter(_encode(xml))
         expected_stack = [('a', {'x': "y"}), ('b', None)]
         expected_values.sort()
 
@@ -354,7 +362,7 @@ class XMLToDictTestCase(unittest.TestCase):
         fileio_values = list()
         for (item, value) in parser(ioObj):
             if len(fileio_values) < 10:
-                self.assertTrue(ioObj.tell() < len(xml))
+                self.assertTrue(ioObj.bytes_read < len(xml))
             if item == expected_stack:
                 fileio_values.append(value)
 
