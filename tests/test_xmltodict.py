@@ -1,4 +1,5 @@
 from xmltodict import parse, Parser, parse_lxml, LXMLParser, ParsingInterrupted
+from copy import deepcopy
 import xmltodict
 
 try:
@@ -29,16 +30,48 @@ else:
     need_assertIsNotInstance = False
 
 # Deal with Python 2.6 unittest, which does not have the
-# unittest.skip decorator.
+# unittest.skip or unittest.skipUnless decorators.
 if hasattr(unittest, "skip"):
-    skiptest = unittest.skip
+    skip = unittest.skip
 else:
-    def skiptest(reason):
+    def skip(reason):
         def decorate(f):
             def donothing(*args, **kwargs):
                 pass
             return donothing
         return decorate
+if hasattr(unittest, "skipUnless"):
+    skipUnless = unittest.skipUnless
+else:
+    def skipUnless(condition, reason):
+        if not condition:
+            return skip(reason)
+        else:
+            return lambda func: func
+
+# Setup a large XML string we will use in more than one test.
+large_xml_string = '<a x="y">\n'
+large_xml_values = []
+for i in range(1,10240):
+    large_xml_string += "<b>%d</b>\n<c>%d</c>\n" % (i, i + 100000)
+    large_xml_values.append(str(i))
+large_xml_string += '</a>'
+
+# Test to see whether the expat parser will call the handler
+# functions "as it goes", or only once the entire document
+# is processed.
+def _test_expat_partial_processing():
+    xml = _encode(large_xml_string)
+    ioObj = StringIO(xml)
+    parser = xmltodict.expat.ParserCreate('ascii')
+    def raise_error(full_name):
+        raise ParsingInterrupted()
+    parser.EndElementHandler = raise_error
+    try:
+        parser.ParseFile(ioObj)
+    except ParsingInterrupted:
+        pass
+    return (ioObj.tell() < len(xml))
 
 class XMLToDictTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -336,38 +369,47 @@ class XMLToDictTestCase(unittest.TestCase):
             actual_results.sort()
             self.assertEqual(actual_results, expected_values)
 
+    @skipUnless(_test_expat_partial_processing(), "Expat does not do partial processing of a file; no need to check for generator correctness.")
+    def test_generator_file_cb_vs_generator(self):
+        xml = _encode(large_xml_string)
+        ioObj = StringIO(xml)
+        class CallBackStack(object):
+            def __init__(self):
+                self.stack = []
+            def __call__(self, *args):
+                self.stack.append(deepcopy(args))
+                if len(self.stack) < 10:
+                    return True
+                return False
+        cb = CallBackStack()
+        parser = self.Parser(generator=True, item_callback=cb, item_depth=2)
+        stack = []
+        sawException=False
+        try:
+            for i in parser(ioObj):
+                stack.append(i)
+        except ParsingInterrupted:
+            sawException=True
+        self.assertTrue(sawException)
+        self.assertEqual(len(stack), 10)
+        self.assertEqual(cb.stack, stack)
+        self.assertTrue(
+            ioObj.tell() < len(xml),
+            msg="Bytes read (%d) is not less than the length of the full XML document (%d)" % (ioObj.tell(), len(xml))
+        )
+
     def test_generator_string_vs_file(self):
-        xml = '<a x="y">'
-        expected_values = []
-        for i in range(1,10240):
-            xml += "<b>%d</b><c>%d</c>" % (i, i + 100000)
-            expected_values.append(str(i))
-        xml += '</a>'
-        class StringIOWithCounter(StringIO):
-            def __init__(self, *args, **kwargs):
-                StringIO.__init__(self, *args, **kwargs)
-                self.bytes_read = 0
-            def read(self, num_bytes):
-                rv = StringIO.read(self, num_bytes)
-                self.bytes_read += len(rv)
-                return rv
-        ioObj = StringIOWithCounter(_encode(xml))
+        xml = large_xml_string
+        expected_values = list(large_xml_values)
+        ioObj = StringIO(_encode(xml))
         expected_stack = [('a', {'x': "y"}), ('b', None)]
         expected_values.sort()
 
-        # file-like IO: Must do partial reads, must produce the same
-        # values as working on the string, and must produce the same
-        # values as expected.
+        # file-like IO: Must produce the same values as working on the
+        # string, and must produce the same values as expected.
         parser = self.Parser(generator=True, item_depth=2)
         fileio_values = list()
-        num_iterations = 0
         for (item, value) in parser(ioObj):
-            num_iterations += 1
-            if num_iterations <= 10:
-                self.assertTrue(
-                    ioObj.bytes_read < len(xml),
-                    msg="Bytes read (%d) is not less than the length of the full XML document (%d)" % (ioObj.bytes_read, len(xml))
-                )
             if item == expected_stack:
                 fileio_values.append(value)
 
@@ -1274,15 +1316,19 @@ class EtreeToDictTestCase(XMLToDictTestCase):
 
     # XMLToDictTestCase tests that do not make sense to run in the
     # ElementTree context.
-    @skiptest("Test does not make sense in the Etree context")
+    @skip("Test does not make sense in the Etree context")
     def test_string_vs_file(self):
         pass
 
-    @skiptest("Test does not make sense in the Etree context")
+    @skip("Test does not make sense in the Etree context")
     def test_encoded_string(self):
         pass
 
-    @skiptest("Test does not make sense in the Etree context")
+    @skip("Test does not make sense in the Etree context")
+    def test_generator_file_cb_vs_generator(self):
+        pass
+
+    @skip("Test does not make sense in the Etree context")
     def test_generator_string_vs_file(self):
         pass
 
