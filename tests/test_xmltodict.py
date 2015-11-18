@@ -227,3 +227,24 @@ class XMLToDictTestCase(unittest.TestCase):
             },
         }
         self.assertEqual(parse(xml), d)
+
+    def test_force_list_basic(self):
+        xml = """
+        <servers>
+          <server>
+            <name>server1</name>
+            <os>os1</os>
+          </server>
+        </servers>
+        """
+        expectedResult = {
+            'servers': {
+                'server': [
+                    {
+                        'name': 'server1',
+                        'os': 'os1',
+                    },
+                ],
+            }
+        }
+        self.assertEqual(parse(xml, force_list=('server',)), expectedResult)
