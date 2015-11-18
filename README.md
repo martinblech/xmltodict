@@ -160,6 +160,12 @@ There is an [official Fedora package for xmltodict](https://admin.fedoraproject.
 $ sudo yum install python-xmltodict
 ```
 
+There is also an [official Arch Linux package for xmltodict](https://www.archlinux.org/packages/community/any/python-xmltodict/). You can use pacman to install if you are using Arch:
+
+```sh
+$ sudo pacman -S python-xmltodict
+```
+
 ## Donate
 
 If you love `xmltodict`, consider supporting the author [on Gittip](https://www.gittip.com/martinblech/).
