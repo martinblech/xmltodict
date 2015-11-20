@@ -54,7 +54,7 @@ class _DictSAXHandler(object):
                  force_list=()):
         self.path = []
         self.stack = []
-        self.data = None
+        self.data = []
         self.item = None
         self.item_depth = item_depth
         self.xml_attribs = xml_attribs
@@ -101,21 +101,25 @@ class _DictSAXHandler(object):
             else:
                 attrs = None
             self.item = attrs or None
-            self.data = None
+            self.data = []
 
     def endElement(self, full_name):
         name = self._build_name(full_name)
         if len(self.path) == self.item_depth:
             item = self.item
             if item is None:
-                item = self.data
+                item = (None if not self.data
+                        else self.cdata_separator.join(self.data))
+
             should_continue = self.item_callback(self.path, item)
             if not should_continue:
                 raise ParsingInterrupted()
         if len(self.stack):
-            item, data = self.item, self.data
+            data = (None if not self.data
+                    else self.cdata_separator.join(self.data))
+            item = self.item
             self.item, self.data = self.stack.pop()
-            if self.strip_whitespace and data is not None:
+            if self.strip_whitespace and data:
                 data = data.strip() or None
             if data and self.force_cdata and item is None:
                 item = self.dict_constructor()
@@ -126,14 +130,15 @@ class _DictSAXHandler(object):
             else:
                 self.item = self.push_data(self.item, name, data)
         else:
-            self.item = self.data = None
+            self.item = None
+            self.data = []
         self.path.pop()
 
     def characters(self, data):
         if not self.data:
-            self.data = data
+            self.data = [data]
         else:
-            self.data += self.cdata_separator + data
+            self.data.append(data)
 
     def push_data(self, item, key, data):
         if self.postprocessor is not None:
