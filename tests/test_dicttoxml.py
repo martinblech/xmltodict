@@ -1,12 +1,12 @@
 import sys
-from xmltodict import parse, unparse, OrderedDict
+from xmltodict import parse, unparse
+from xmltodict.xmltodict import OrderedDict
 
 try:
     import unittest2 as unittest
 except ImportError:
     import unittest
 import re
-import collections
 from textwrap import dedent
 
 IS_JYTHON = sys.platform.startswith('java')
