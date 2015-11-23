@@ -6,8 +6,8 @@ __author__ = 'Martin Blech'
 __email__ = 'martinblech@gmail.com'
 __url__ = 'https://github.com/martinblech/xmltodict'
 
-from xmltodict.xmltodict import parse
-from xmltodict.xmltodict import unparse
+from .xmltodict import parse
+from .xmltodict import unparse
 
 __all__ = [
     parse.__name__,
