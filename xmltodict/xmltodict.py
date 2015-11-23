@@ -378,24 +378,3 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
         except AttributeError:  # pragma no cover
             pass
         return value
-
-if __name__ == '__main__':  # pragma: no cover
-    import sys
-    import marshal
-
-    (item_depth,) = sys.argv[1:]
-    item_depth = int(item_depth)
-
-    def handle_item(path, item):
-        marshal.dump((path, item), sys.stdout)
-        return True
-
-    try:
-        root = parse(sys.stdin,
-                     item_depth=item_depth,
-                     item_callback=handle_item,
-                     dict_constructor=dict)
-        if item_depth == 0:
-            handle_item([], root)
-    except KeyboardInterrupt:
-        pass
