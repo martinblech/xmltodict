@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+v0.9.3
+------
+
+* Review the packaging
+
 v0.9.2
 ------
 
@@ -183,4 +188,3 @@ v0.2
 * links in README
 * improved README
 * initial commit
-
