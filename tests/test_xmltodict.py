@@ -1,4 +1,5 @@
-from xmltodict import parse, ParsingInterrupted
+from xmltodict import parse
+from xmltodict.xmltodict import ParsingInterrupted
 
 try:
     import unittest2 as unittest

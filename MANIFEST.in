@@ -1,4 +1,5 @@
-include README.md
 include LICENSE
-include ez_setup.py
+include README.md
+include CHANGELOG.md
 recursive-include tests *
+recursive-include xmltodict *
