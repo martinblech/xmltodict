@@ -248,3 +248,40 @@ class XMLToDictTestCase(unittest.TestCase):
             }
         }
         self.assertEqual(parse(xml, force_list=('server',)), expectedResult)
+
+    def test_force_list_callable(self):
+        xml = """
+        <config>
+            <servers>
+              <server>
+                <name>server1</name>
+                <os>os1</os>
+              </server>
+            </servers>
+            <skip>
+                <server></server>
+            </skip>
+        </config>
+        """
+        def force_list(path, key, value):
+            """Only return True for servers/server, but not for skip/server."""
+            if key != 'server':
+                return False
+            return path and path[-1][0] == 'servers'
+
+        expectedResult = {
+            'config': {
+                'servers': {
+                    'server': [
+                        {
+                            'name': 'server1',
+                            'os': 'os1',
+                        },
+                    ],
+                },
+                'skip': {
+                    'server': None,
+                },
+            },
+        }
+        self.assertEqual(parse(xml, force_list=force_list, dict_constructor=dict), expectedResult)

@@ -51,7 +51,7 @@ class _DictSAXHandler(object):
                  strip_whitespace=True,
                  namespace_separator=':',
                  namespaces=None,
-                 force_list=()):
+                 force_list=None):
         self.path = []
         self.stack = []
         self.data = []
@@ -155,11 +155,19 @@ class _DictSAXHandler(object):
             else:
                 item[key] = [value, data]
         except KeyError:
-            if key in self.force_list:
+            if self._should_force_list(key, data):
                 item[key] = [data]
             else:
                 item[key] = data
         return item
+
+    def _should_force_list(self, key, value):
+        if not self.force_list:
+            return False
+        try:
+            return key in self.force_list
+        except TypeError:
+            return self.force_list(self.path[:-1], key, value)
 
 
 def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
@@ -261,6 +269,10 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
              'interfaces':
               {'interface':
                 [ {'name': 'em0', 'ip_address': '10.0.0.1' } ] } } }
+
+        `force_list` can also be a callable that receives `path`, `key` and
+        `value`. This is helpful in cases where the logic that decides whether
+        a list should be forced is more complex.
     """
     handler = _DictSAXHandler(namespace_separator=namespace_separator,
                               **kwargs)
