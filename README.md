@@ -165,7 +165,3 @@ There is also an [official Arch Linux package for xmltodict](https://www.archlin
 ```sh
 $ sudo pacman -S python-xmltodict
 ```
-
-## Donate
-
-If you love `xmltodict`, consider supporting the author [on Gittip](https://www.gittip.com/martinblech/).
