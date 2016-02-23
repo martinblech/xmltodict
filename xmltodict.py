@@ -399,16 +399,23 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
 if __name__ == '__main__':  # pragma: no cover
     import sys
     import marshal
+    try:
+        stdin = sys.stdin.buffer
+        stdout = sys.stdout.buffer
+    except AttributeError:
+        stdin = sys.stdin
+        stdout = sys.stdout
 
     (item_depth,) = sys.argv[1:]
     item_depth = int(item_depth)
 
+
     def handle_item(path, item):
-        marshal.dump((path, item), sys.stdout)
+        marshal.dump((path, item), stdout)
         return True
 
     try:
-        root = parse(sys.stdin,
+        root = parse(stdin,
                      item_depth=item_depth,
                      item_callback=handle_item,
                      dict_constructor=dict)
