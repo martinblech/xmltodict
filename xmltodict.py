@@ -29,7 +29,7 @@ except NameError:  # pragma no cover
     _unicode = str
 
 __author__ = 'Martin Blech'
-__version__ = '0.9.2'
+__version__ = '0.10.0'
 __license__ = 'MIT'
 
 
