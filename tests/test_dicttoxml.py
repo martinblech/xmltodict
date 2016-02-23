@@ -155,3 +155,11 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertTrue(xml_declaration_re.match(unparse({'a': 1})))
         self.assertFalse(
             xml_declaration_re.match(unparse({'a': 1}, full_document=False)))
+
+    def test_non_string_value(self):
+        obj = {'a': 1}
+        self.assertEqual('<a>1</a>', _strip(unparse(obj)))
+
+    def test_non_string_attr(self):
+        obj = {'a': {'@attr': 1}}
+        self.assertEqual('<a attr="1"></a>', _strip(unparse(obj)))

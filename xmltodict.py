@@ -344,6 +344,8 @@ def _emit(key, value, content_handler,
                 cdata = iv
                 continue
             if ik.startswith(attr_prefix):
+                if not isinstance(iv, _unicode):
+                    iv = _unicode(iv)
                 attrs[ik[len(attr_prefix):]] = iv
                 continue
             children.append((ik, iv))
