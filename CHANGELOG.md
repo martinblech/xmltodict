@@ -1,6 +1,14 @@
 CHANGELOG
 =========
 
+v0.10.1
+-------
+
+* Use defusedexpat if available.
+* Allow non-string attributes in unparse.
+* Add postprocessor support for attributes.
+* Make command line interface Python 3-compatible.
+
 v0.10.0
 -------
 
