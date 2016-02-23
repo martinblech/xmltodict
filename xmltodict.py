@@ -344,7 +344,7 @@ def _emit(key, value, content_handler,
                 cdata = iv
                 continue
             if ik.startswith(attr_prefix):
-                attrs[ik[len(attr_prefix):]] = iv
+                attrs[ik[len(attr_prefix):]] = _unicode(iv)
                 continue
             children.append((ik, iv))
         if pretty:
