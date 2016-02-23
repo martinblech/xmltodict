@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 "Makes working with XML feel like you are working with JSON"
 
-from xml.parsers import expat
+try:
+    import defusedexpat as expat
+except ImportError:
+    from xml.parsers import expat
 from xml.sax.saxutils import XMLGenerator
 from xml.sax.xmlreader import AttributesImpl
 try:  # pragma no cover
