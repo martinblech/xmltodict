@@ -129,6 +129,16 @@ class XMLToDictTestCase(unittest.TestCase):
                          parse('<a><b>1</b><b>2</b><b>x</b></a>',
                                postprocessor=postprocessor))
 
+    def test_postprocessor_attribute(self):
+        def postprocessor(path, key, value):
+            try:
+                return key + ':int', int(value)
+            except (ValueError, TypeError):
+                return key, value
+        self.assertEqual({'a': {'@b:int': 1}},
+                         parse('<a b="1"/>',
+                               postprocessor=postprocessor))
+
     def test_postprocessor_skip(self):
         def postprocessor(path, key, value):
             if key == 'b':

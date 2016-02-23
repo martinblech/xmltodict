@@ -95,9 +95,16 @@ class _DictSAXHandler(object):
         if len(self.path) > self.item_depth:
             self.stack.append((self.item, self.data))
             if self.xml_attribs:
-                attrs = self.dict_constructor(
-                    (self.attr_prefix+self._build_name(key), value)
-                    for (key, value) in attrs.items())
+                attr_entries = []
+                for key, value in attrs.items():
+                    key = self.attr_prefix+self._build_name(key)
+                    if self.postprocessor:
+                        entry = self.postprocessor(self.path, key, value)
+                    else:
+                        entry = (key, value)
+                    if entry:
+                        attr_entries.append(entry)
+                attrs = self.dict_constructor(attr_entries)
             else:
                 attrs = None
             self.item = attrs or None
