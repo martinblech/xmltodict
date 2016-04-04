@@ -165,20 +165,34 @@ Text values for nodes can be specified with the `cdata_key` key in the python di
 
 ## Ok, how do I get it?
 
+### Using pypi
+
 You just need to
 
 ```sh
 $ pip install xmltodict
 ```
 
-There is an [official Fedora package for xmltodict](https://admin.fedoraproject.org/pkgdb/acls/name/python-xmltodict). If you are on Fedora or RHEL, you can do:
+### RPM-based distro (Fedora, RHEL, …)
+
+There is an [official Fedora package for xmltodict](https://admin.fedoraproject.org/pkgdb/acls/name/python-xmltodict).
 
 ```sh
 $ sudo yum install python-xmltodict
 ```
 
-There is also an [official Arch Linux package for xmltodict](https://www.archlinux.org/packages/community/any/python-xmltodict/). You can use pacman to install if you are using Arch:
+### Arch Linux
+
+There is an [official Arch Linux package for xmltodict](https://www.archlinux.org/packages/community/any/python-xmltodict/).
 
 ```sh
 $ sudo pacman -S python-xmltodict
+```
+
+### Debian-based distro (Debian, Ubuntu, …)
+
+There is an [official Debian package for xmltodict](https://tracker.debian.org/pkg/python-xmltodict).
+
+```sh
+$ sudo apt install python-xmltodict
 ```
