@@ -71,6 +71,7 @@ class _DictSAXHandler(object):
         self.strip_whitespace = strip_whitespace
         self.namespace_separator = namespace_separator
         self.namespaces = namespaces
+        self.namespace_declarations = OrderedDict()
         self.force_list = force_list
 
     def _build_name(self, full_name):
@@ -91,9 +92,15 @@ class _DictSAXHandler(object):
             return attrs
         return self.dict_constructor(zip(attrs[0::2], attrs[1::2]))
 
+    def startNamespaceDecl(self, prefix, uri):
+        self.namespace_declarations[prefix or ''] = uri
+
     def startElement(self, full_name, attrs):
         name = self._build_name(full_name)
         attrs = self._attrs_to_dict(attrs)
+        if attrs and self.namespace_declarations:
+            attrs['xmlns'] = self.namespace_declarations
+            self.namespace_declarations = OrderedDict()
         self.path.append((name, attrs or None))
         if len(self.path) > self.item_depth:
             self.stack.append((self.item, self.data))
@@ -301,6 +308,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     except AttributeError:
         # Jython's expat does not support ordered_attributes
         pass
+    parser.StartNamespaceDeclHandler = handler.startNamespaceDecl
     parser.StartElementHandler = handler.startElement
     parser.EndElementHandler = handler.endElement
     parser.CharacterDataHandler = handler.characters
