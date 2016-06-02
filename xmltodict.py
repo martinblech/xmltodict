@@ -2,7 +2,7 @@
 "Makes working with XML feel like you are working with JSON"
 
 try:
-    import defusedexpat as expat
+    from defusedexpat import pyexpat as expat
 except ImportError:
     from xml.parsers import expat
 from xml.sax.saxutils import XMLGenerator
