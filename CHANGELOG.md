@@ -1,6 +1,12 @@
 CHANGELOG
 =========
 
+v0.10.2
+-------
+
+* Fixed defusedexpat expat import.
+  * Thanks, @fiebiga!
+
 v0.10.1
 -------
 
