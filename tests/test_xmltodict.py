@@ -345,7 +345,13 @@ class XMLToDictTestCase(unittest.TestCase):
             parser.ExternalEntityRefHandler = lambda *x: 0
             return parser
         expat.ParserCreate = raising_external_ref_handler
-        with self.assertRaises(expat.ExpatError):
-            self.assertRaises(TypeError, parse(xml, disable_entities=False, expat=expat))
+        # Using this try/catch because a TypeError is thrown before 
+        # the ExpatError, and Python 2.6 is confused by that.
+        try:
+            parse(xml, disable_entities=False, expat=expat)
+        except expat.ExpatError:
+            self.assertTrue(True)
+        else:
+            self.assertTrue(False)
         expat.ParserCreate = ParserCreate
 
