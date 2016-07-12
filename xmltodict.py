@@ -181,7 +181,7 @@ class _DictSAXHandler(object):
 
 
 def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
-          namespace_separator=':', **kwargs):
+          namespace_separator=':', disable_entities=True, **kwargs):
     """Parse the given XML input and convert it into a dictionary.
 
     `xml_input` can either be a `string` or a file-like object.
@@ -305,6 +305,10 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     parser.EndElementHandler = handler.endElement
     parser.CharacterDataHandler = handler.characters
     parser.buffer_text = True
+    if disable_entities:
+        parser.UseForeignDTD(False)
+        parser.DefaultHandler = lambda x: None
+        parser.ExternalEntityRefHandler = lambda *x: 1
     try:
         parser.ParseFile(xml_input)
     except (TypeError, AttributeError):
