@@ -307,7 +307,9 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     parser.buffer_text = True
     if disable_entities:
         parser.UseForeignDTD(False)
+        # Anything not handled ends up here and entities aren't expanded.
         parser.DefaultHandler = lambda x: None
+        # Expects an integer return; zero means failure -> expat.ExpatError.
         parser.ExternalEntityRefHandler = lambda *x: 1
     try:
         parser.ParseFile(xml_input)
