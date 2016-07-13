@@ -308,7 +308,12 @@ class XMLToDictTestCase(unittest.TestCase):
         <bomb>&c;</bomb>
         """
         expectedResult = {'bomb': None}
-        self.assertEqual(parse(xml, disable_entities=True), expectedResult)
+        try:
+            parse_attempt = parse(xml, disable_entities=True)
+        except expat.ExpatError:
+            self.assertTrue(True)
+        else:
+            self.assertEqual(parse_attempt, expectedResult)
 
     def test_disable_entities_false_returns_xmlbomb(self):
         xml = """
@@ -331,7 +336,12 @@ class XMLToDictTestCase(unittest.TestCase):
         <root>&ee;</root>
         """
         expectedResult = {'root': None}
-        self.assertEqual(parse(xml, disable_entities=True), expectedResult)
+        try:
+            parse_attempt = parse(xml, disable_entities=True)
+        except expat.ExpatError:
+            self.assertTrue(True)
+        else:
+            self.assertEqual(parse_attempt, expectedResult)
 
     def test_disable_entities_true_attempts_external_dtd(self):
         xml = """
@@ -343,6 +353,11 @@ class XMLToDictTestCase(unittest.TestCase):
         def raising_external_ref_handler(*args, **kwargs):
             parser = ParserCreate(*args, **kwargs)
             parser.ExternalEntityRefHandler = lambda *x: 0
+            try:
+                feature = "http://apache.org/xml/features/disallow-doctype-decl"
+                parser._reader.setFeature(feature, True)
+            except AttributeError:
+                pass
             return parser
         expat.ParserCreate = raising_external_ref_handler
         # Using this try/catch because a TypeError is thrown before 
