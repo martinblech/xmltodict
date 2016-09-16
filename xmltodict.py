@@ -468,25 +468,28 @@ class XMLGeneratorShort(XMLGenerator):
 
     def __init__(self, out=None, encoding="iso-8859-1",
                  short_empty_elements=False):
-        super(XMLGeneratorShort, self).__init__(out, encoding)
+        XMLGenerator.__init__(self, out, encoding)
         self._short_empty_elements = short_empty_elements
+        self._pending_start_element = False
 
     def startElement(self, name, attrs):
-        self._finish_pending_start_element()
-        self._write('<' + name)
+        if self._pending_start_element:
+            self._write(u'>')
+            self._pending_start_element = False
+        self._write(u'<' + name)
         for (name, value) in attrs.items():
-            self._write(' %s=%s' % (name, quoteattr(value)))
+            self._write(u' %s=%s' % (name, quoteattr(value)))
         if self._short_empty_elements:
             self._pending_start_element = True
         else:
-            self._write(">")
+            self._write(u">")
 
     def endElement(self, name):
         if self._pending_start_element:
-            self._write('/>')
+            self._write(u'/>')
             self._pending_start_element = False
         else:
-            self._write('</%s>' % name)
+            self._write(u'</%s>' % name)
 
 
 def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
