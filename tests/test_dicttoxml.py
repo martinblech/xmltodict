@@ -6,8 +6,10 @@ try:
 except ImportError:
     import unittest
 import re
-import collections
 from textwrap import dedent
+import os
+from zipfile import ZipFile
+from io import TextIOWrapper
 
 IS_JYTHON = sys.platform.startswith('java')
 
@@ -163,3 +165,116 @@ class DictToXMLTestCase(unittest.TestCase):
     def test_non_string_attr(self):
         obj = {'a': {'@attr': 1}}
         self.assertEqual('<a attr="1"></a>', _strip(unparse(obj)))
+
+
+class OrderedMixedChildrenTests(unittest.TestCase):
+
+    order_at_leaf_xml = \
+        """<?xml version="1.0" encoding="utf-8"?>\n""" \
+        """<a><b>1</b><c>2</c><b>3</b><c>4</c></a>"""
+
+    order_at_branch_xml = \
+        """<?xml version="1.0" encoding="utf-8"?>\n""" \
+        """<a><b><d>1</d><d>2</d></b><c><f>5</f><f>6</f></c>""" \
+        """<b><e>test</e></b><c><g>a</g><g>b</g></c></a>"""
+
+    @classmethod
+    def setUpClass(cls):
+        xml_zip = os.path.join(os.path.dirname(__file__), 'large_document.zip')
+        with ZipFile(xml_zip) as zip_file:
+            with zip_file.open('xform.xml') as xml_file:
+                cls.large_document = TextIOWrapper(xml_file).read()
+
+    def test_order_at_leaf(self):
+        obj = {"a": OrderedDict((
+            ("b", (
+                {"@__order__": 1, "#text": "1"},
+                {"@__order__": 3, "#text": "3"}
+            )),
+            ("c", (
+                {"@__order__": 2, "#text": "2"},
+                {"@__order__": 4, "#text": "4"}
+            ))
+        ))}
+        expected = self.order_at_leaf_xml
+        observed = unparse(obj, ordered_mixed_children=True)
+        self.assertEqual(expected, observed)
+
+    def test_order_at_leaf_round_trip_equal(self):
+        expected = self.order_at_leaf_xml
+        parsed = parse(expected, ordered_mixed_children=True)
+        observed = unparse(parsed, ordered_mixed_children=True)
+        self.assertEqual(expected, observed)
+
+    def test_order_at_branch(self):
+        obj = {"a": OrderedDict((
+            ("b", (
+                {"@__order__": 1, "d": (1, 2)},
+                {"@__order__": 3, "e": "test"}
+            )),
+            ("c", (
+                {"@__order__": 2, "f": (5, 6)},
+                {"@__order__": 4, "g": ("a", "b")}
+            ))
+        ))}
+        expected = self.order_at_branch_xml
+        observed = unparse(obj, ordered_mixed_children=True)
+        self.assertEqual(expected, observed)
+
+    def test_order_at_branch_round_trip_equal(self):
+        expected = self.order_at_branch_xml
+        parsed = parse(expected, ordered_mixed_children=True)
+        observed = unparse(parsed, ordered_mixed_children=True)
+        self.assertEqual(expected, observed)
+
+    def test_round_trip_not_equal_permutations(self):
+        flag_sets = ((True, False), (False, True), (False, False))
+        expected_set = (
+            self.order_at_leaf_xml,
+            self.order_at_branch_xml,
+            self.large_document
+        )
+        for i, expected in enumerate(expected_set):
+            for parse_flag, unparse_flag in flag_sets:
+                parsed = parse(expected, ordered_mixed_children=parse_flag)
+                observed = unparse(parsed, ordered_mixed_children=unparse_flag)
+                fail_msg = "\nInput: {0}, Parse: {1}, Unparse: {2}".format(
+                    i+1, parse_flag, unparse_flag)
+                self.assertNotEqual(expected, observed, fail_msg)
+
+    def test_order_unspecified_goes_last(self):
+        obj = {"a": OrderedDict((
+            ("b", (
+                1, {"@__order__": 3, "#text": "3"}, 0
+            )),
+            ("c", (
+                {"@__order__": 2, "#text": "2"}, 5, 4
+            ))
+        ))}
+        expected = """<?xml version="1.0" encoding="utf-8"?>\n""" \
+                   """<a><c>2</c><b>3</b><b>1</b><b>0</b><c>5</c><c>4</c></a>"""
+        observed = unparse(obj, ordered_mixed_children=True)
+        self.assertEqual(expected, observed)
+
+    def test_large_document_round_trip(self):
+        expected = self.large_document
+        xml_dict = parse(expected, ordered_mixed_children=True)
+        observed = unparse(xml_dict, ordered_mixed_children=True)
+        self.assertEqual(expected, observed)
+
+
+class XMLGeneratorShortTests(unittest.TestCase):
+
+    def test_flag_on_produces_short_empty_tags(self):
+        obj = {'a': {'b': None}}
+        expected = """<?xml version="1.0" encoding="utf-8"?>\n""" \
+                   """<a><b/></a>"""
+        observed = unparse(obj, short_empty_elements=True)
+        self.assertEqual(expected, observed)
+
+    def test_flag_off_produces_expanded_empty_tags(self):
+        obj = {'a': {'b': None}}
+        expected = """<?xml version="1.0" encoding="utf-8"?>\n""" \
+                   """<a><b></b></a>"""
+        observed = unparse(obj, short_empty_elements=False)
+        self.assertEqual(expected, observed)

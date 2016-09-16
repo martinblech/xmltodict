@@ -5,7 +5,7 @@ try:
     from defusedexpat import pyexpat as expat
 except ImportError:
     from xml.parsers import expat
-from xml.sax.saxutils import XMLGenerator
+from xml.sax.saxutils import XMLGenerator, quoteattr
 from xml.sax.xmlreader import AttributesImpl
 try:  # pragma no cover
     from cStringIO import StringIO
@@ -54,7 +54,8 @@ class _DictSAXHandler(object):
                  strip_whitespace=True,
                  namespace_separator=':',
                  namespaces=None,
-                 force_list=None):
+                 force_list=None,
+                 ordered_mixed_children=False):
         self.path = []
         self.stack = []
         self.data = []
@@ -72,6 +73,8 @@ class _DictSAXHandler(object):
         self.namespace_separator = namespace_separator
         self.namespaces = namespaces
         self.force_list = force_list
+        self.ordered_mixed_children = ordered_mixed_children
+        self.counter = 0
 
     def _build_name(self, full_name):
         if not self.namespaces:
@@ -87,9 +90,13 @@ class _DictSAXHandler(object):
             return self.namespace_separator.join((short_namespace, name))
 
     def _attrs_to_dict(self, attrs):
-        if isinstance(attrs, dict):
-            return attrs
-        return self.dict_constructor(zip(attrs[0::2], attrs[1::2]))
+        ret_attrs = attrs
+        if not isinstance(attrs, dict):
+            ret_attrs = self.dict_constructor(zip(attrs[0::2], attrs[1::2]))
+        if self.ordered_mixed_children:
+            ret_attrs["__order__"] = self.counter
+            self.counter += 1
+        return ret_attrs
 
     def startElement(self, full_name, attrs):
         name = self._build_name(full_name)
@@ -181,7 +188,8 @@ class _DictSAXHandler(object):
 
 
 def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
-          namespace_separator=':', disable_entities=True, **kwargs):
+          namespace_separator=':', disable_entities=True,
+          ordered_mixed_children=False, **kwargs):
     """Parse the given XML input and convert it into a dictionary.
 
     `xml_input` can either be a `string` or a file-like object.
@@ -256,35 +264,72 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     The index_keys operation takes precendence over this. This is applied
     after any user-supplied postprocessor has already run.
 
-        For example, given this input:
-        <servers>
-          <server>
-            <name>host1</name>
-            <os>Linux</os>
-            <interfaces>
-              <interface>
-                <name>em0</name>
-                <ip_address>10.0.0.1</ip_address>
-              </interface>
-            </interfaces>
-          </server>
-        </servers>
+    For example, given this input:
+    <servers>
+      <server>
+        <name>host1</name>
+        <os>Linux</os>
+        <interfaces>
+          <interface>
+            <name>em0</name>
+            <ip_address>10.0.0.1</ip_address>
+          </interface>
+        </interfaces>
+      </server>
+    </servers>
 
-        If called with force_list=('interface',), it will produce
-        this dictionary:
-        {'servers':
-          {'server':
-            {'name': 'host1',
-             'os': 'Linux'},
-             'interfaces':
-              {'interface':
-                [ {'name': 'em0', 'ip_address': '10.0.0.1' } ] } } }
+    If called with force_list=('interface',), it will produce
+    this dictionary:
+    {'servers':
+      {'server':
+        {'name': 'host1',
+         'os': 'Linux'},
+         'interfaces':
+          {'interface':
+            [ {'name': 'em0', 'ip_address': '10.0.0.1' } ] } } }
 
-        `force_list` can also be a callable that receives `path`, `key` and
-        `value`. This is helpful in cases where the logic that decides whether
-        a list should be forced is more complex.
+    `force_list` can also be a callable that receives `path`, `key` and
+    `value`. This is helpful in cases where the logic that decides whether
+    a list should be forced is more complex.
+
+    The parameter ordered_mixed_children will cause the parser to add an
+    attribute to each element in the data with a key `@__order__`, with a value
+    that corresponds to the element's processing order within the document.
+    By default, mixed child elements are grouped by name and only keep their
+    relative order. Sometimes the order does matter, but the system you're
+    working with doesn't have any other way to indicate order than by the
+    coincidence of order in the document.
+
+    For example, this input:
+    <a>
+      <b>1</b>
+      <c>2</c>
+      <b>3</b>
+    </a>
+
+    Would normally be parsed as:
+    {"a": {"b": [1, 3], "c": 2}}
+
+    This would then be unparsed as:
+    <a>
+      <b>1</b>
+      <b>3</b>
+      <c>2</c>
+    </a>
+
+    With `ordered_mixed_children=True`, the order information is included so
+    that the original input is produced when unparsing (the `@__order__`
+    attribute is removed).
+    {"a": {
+      "@__order__": 1,
+      "b": ({"@__order__": 2, "#text": 1},
+           {"@__order__": 3, "#text": 3}),
+      "c": {"@__order__": 4, "#text": 2}
+      }
+    }
     """
     handler = _DictSAXHandler(namespace_separator=namespace_separator,
+                              ordered_mixed_children=ordered_mixed_children,
                               **kwargs)
     if isinstance(xml_input, _unicode):
         if not encoding:
@@ -332,7 +377,8 @@ def _emit(key, value, content_handler,
           pretty=False,
           newl='\n',
           indent='\t',
-          full_document=True):
+          full_document=True,
+          ordered_mixed_children=False):
     if preprocessor is not None:
         result = preprocessor(key, value)
         if result is None:
@@ -364,15 +410,38 @@ def _emit(key, value, content_handler,
                 attrs[ik[len(attr_prefix):]] = iv
                 continue
             children.append((ik, iv))
+
+        if ordered_mixed_children:
+            order_attr = "__order__"
+            attrs.pop(order_attr, None)
+            order_key = attr_prefix + order_attr
+            # Each ordered element is "lifted" one level into a list of dicts.
+            lift_list = []
+            for child_key, child_value in children:
+                if isinstance(child_value, (list, tuple)):
+                    for val in child_value:
+                        lift_list.append((child_key, val))
+                else:
+                    lift_list.append((child_key, child_value))
+            children = sorted(
+                lift_list, key=lambda x: get_child_order_key(x, order_key))
+
         if pretty:
             content_handler.ignorableWhitespace(depth * indent)
+        if len(attrs) == 0 and cdata is None and len(children) == 0:
+            content_handler.startElement(key, attrs)
+            content_handler.endElement(key)
+            if pretty:
+                content_handler.ignorableWhitespace(newl)
+            continue
         content_handler.startElement(key, AttributesImpl(attrs))
         if pretty and children:
             content_handler.ignorableWhitespace(newl)
         for child_key, child_value in children:
             _emit(child_key, child_value, content_handler,
                   attr_prefix, cdata_key, depth+1, preprocessor,
-                  pretty, newl, indent)
+                  pretty, newl, indent,
+                  ordered_mixed_children=ordered_mixed_children)
         if cdata is not None:
             content_handler.characters(cdata)
         if pretty and children:
@@ -382,8 +451,46 @@ def _emit(key, value, content_handler,
             content_handler.ignorableWhitespace(newl)
 
 
+def get_child_order_key(item, order_key):
+    """
+    Get the order key for a child element, default to infinity (stable last).
+    """
+    infinity = float('inf')
+    item_key, item_value = item
+    if isinstance(item_value, dict):
+        return item_value.pop(order_key, infinity)
+    else:
+        return infinity
+
+
+class XMLGeneratorShort(XMLGenerator):
+    """Copy of functionality added in Python 3.2 for short empty elements."""
+
+    def __init__(self, out=None, encoding="iso-8859-1",
+                 short_empty_elements=False):
+        super(XMLGeneratorShort, self).__init__(out, encoding)
+        self._short_empty_elements = short_empty_elements
+
+    def startElement(self, name, attrs):
+        self._finish_pending_start_element()
+        self._write('<' + name)
+        for (name, value) in attrs.items():
+            self._write(' %s=%s' % (name, quoteattr(value)))
+        if self._short_empty_elements:
+            self._pending_start_element = True
+        else:
+            self._write(">")
+
+    def endElement(self, name):
+        if self._pending_start_element:
+            self._write('/>')
+            self._pending_start_element = False
+        else:
+            self._write('</%s>' % name)
+
+
 def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
-            **kwargs):
+            ordered_mixed_children=False, short_empty_elements=False, **kwargs):
     """Emit an XML document for the given `input_dict` (reverse of `parse`).
 
     The resulting XML document is returned as a string, but if `output` (a
@@ -397,6 +504,18 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
     mode, lines are terminated with `'\n'` and indented with `'\t'`, but this
     can be customized with the `newl` and `indent` parameters.
 
+    The `ordered_mixed_children` parameter (default=`False`) is available if
+    the output of mixed child elements is significant. By default, mixed child
+    elements are grouped by name and only keep their relative order. In addition
+    to this parameter, the order must be specified in the data. To do this,
+    add the sort order to an `@__order__` attribute in each element that should
+    be ordered. The order attribute is removed from the output XML. Unordered
+    elements are placed after those with an order specified, in their relative
+    order.
+
+    The `short_empty_elements` parameter (default=False) will cause empty
+    elements to be output in their short form, e.g. "<tag/>" vs. "<tag></tag>".
+    This feature was added to the default XMLGenerator in Python 3.2.
     """
     if full_document and len(input_dict) != 1:
         raise ValueError('Document must have exactly one root.')
@@ -404,12 +523,12 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
     if output is None:
         output = StringIO()
         must_return = True
-    content_handler = XMLGenerator(output, encoding)
+    content_handler = XMLGeneratorShort(output, encoding, short_empty_elements)
     if full_document:
         content_handler.startDocument()
     for key, value in input_dict.items():
         _emit(key, value, content_handler, full_document=full_document,
-              **kwargs)
+              ordered_mixed_children=ordered_mixed_children, **kwargs)
     if full_document:
         content_handler.endDocument()
     if must_return:
