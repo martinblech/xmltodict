@@ -229,11 +229,10 @@ class OrderedMixedChildrenTests(unittest.TestCase):
 
     def test_round_trip_not_equal_permutations(self):
         flag_sets = ((True, False), (False, True), (False, False))
-        expected_set = (
-            self.order_at_leaf_xml,
-            self.order_at_branch_xml,
-            self.large_document
-        )
+        expected_set = [self.order_at_leaf_xml, self.order_at_branch_xml]
+        if not IS_JYTHON:
+            # Jython's SAX does not preserve attribute order (would always fail)
+            expected_set.append(self.large_document)
         for i, expected in enumerate(expected_set):
             for parse_flag, unparse_flag in flag_sets:
                 parsed = parse(expected, ordered_mixed_children=parse_flag)
@@ -256,11 +255,13 @@ class OrderedMixedChildrenTests(unittest.TestCase):
         observed = unparse(obj, ordered_mixed_children=True)
         self.assertEqual(expected, observed)
 
-    def test_large_document_round_trip(self):
-        expected = self.large_document
-        xml_dict = parse(expected, ordered_mixed_children=True)
-        observed = unparse(xml_dict, ordered_mixed_children=True)
-        self.assertEqual(expected, observed)
+    if not IS_JYTHON:
+        # Jython's SAX does not preserve attribute order (would always fail)
+        def test_large_document_round_trip(self):
+            expected = self.large_document
+            xml_dict = parse(expected, ordered_mixed_children=True)
+            observed = unparse(xml_dict, ordered_mixed_children=True)
+            self.assertEqual(expected, observed)
 
 
 class XMLGeneratorShortTests(unittest.TestCase):
