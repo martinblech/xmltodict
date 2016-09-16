@@ -466,29 +466,26 @@ def get_child_order_key(item, order_key):
 class XMLGeneratorShort(XMLGenerator):
     """Copy of functionality added in Python 3.2 for short empty elements."""
 
-    def __init__(self, out=None, encoding="iso-8859-1",
+    def __init__(self, out=None, encoding="utf-8",
                  short_empty_elements=False):
         XMLGenerator.__init__(self, out, encoding)
         self._short_empty_elements = short_empty_elements
         self._pending_start_element = False
-        try:
-            # Jython
-            self._write = self._out.write
-        except AttributeError:
-            # Not Jython
-            pass
+        if getattr(self, "_out", None) is None:
+            # Python 3.2 removed this for no apparent reason.
+            self._out = out
 
     def startElement(self, name, attrs):
         if self._pending_start_element:
             self._write(_unicode('>'))
             self._pending_start_element = False
-        self._write(_unicode('<') + name)
+        self._write(_unicode('<' + name))
         for (name, value) in attrs.items():
             self._write(_unicode(' %s=%s' % (name, quoteattr(value))))
         if self._short_empty_elements:
             self._pending_start_element = True
         else:
-            self._write(_unicode(">"))
+            self._write(_unicode('>'))
 
     def endElement(self, name):
         if self._pending_start_element:
@@ -496,6 +493,12 @@ class XMLGeneratorShort(XMLGenerator):
             self._pending_start_element = False
         else:
             self._write(_unicode('</%s>' % name))
+
+    def _write(self, text):
+        if isinstance(text, str):
+            self._out.write(text)
+        else:
+            self._out.write(text.encode(self._encoding, 'xmlcharrefreplace'))
 
 
 def unparse(input_dict, output=None, encoding='utf-8', full_document=True,

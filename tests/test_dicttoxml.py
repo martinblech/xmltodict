@@ -9,7 +9,7 @@ import re
 from textwrap import dedent
 import os
 from zipfile import ZipFile
-from io import TextIOWrapper
+import contextlib
 
 IS_JYTHON = sys.platform.startswith('java')
 
@@ -181,13 +181,9 @@ class OrderedMixedChildrenTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         xml_zip = os.path.join(os.path.dirname(__file__), 'large_document.zip')
-        try:
-            zip_file = ZipFile(xml_zip)
-            xml_file = zip_file.open('xform.xml')
-            cls.large_document = TextIOWrapper(xml_file).read()
-        finally:
-            xml_file.close()
-            zip_file.close()
+        with contextlib.closing(ZipFile(xml_zip)) as zip_file:
+            with contextlib.closing(zip_file.open('xform.xml')) as xml_file:
+                cls.large_document = xml_file.read().decode()
 
     def test_order_at_leaf(self):
         obj = {"a": OrderedDict((
