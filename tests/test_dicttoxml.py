@@ -181,9 +181,13 @@ class OrderedMixedChildrenTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         xml_zip = os.path.join(os.path.dirname(__file__), 'large_document.zip')
-        with ZipFile(xml_zip) as zip_file:
-            with zip_file.open('xform.xml') as xml_file:
-                cls.large_document = TextIOWrapper(xml_file).read()
+        try:
+            zip_file = ZipFile(xml_zip)
+            xml_file = zip_file.open('xform.xml')
+            cls.large_document = TextIOWrapper(xml_file).read()
+        finally:
+            xml_file.close()
+            zip_file.close()
 
     def test_order_at_leaf(self):
         obj = {"a": OrderedDict((

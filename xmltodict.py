@@ -471,25 +471,31 @@ class XMLGeneratorShort(XMLGenerator):
         XMLGenerator.__init__(self, out, encoding)
         self._short_empty_elements = short_empty_elements
         self._pending_start_element = False
+        try:
+            # Jython
+            self._write = self._out.write
+        except AttributeError:
+            # Not Jython
+            pass
 
     def startElement(self, name, attrs):
         if self._pending_start_element:
-            self._write(u'>')
+            self._write(_unicode('>'))
             self._pending_start_element = False
-        self._write(u'<' + name)
+        self._write(_unicode('<') + name)
         for (name, value) in attrs.items():
-            self._write(u' %s=%s' % (name, quoteattr(value)))
+            self._write(_unicode(' %s=%s' % (name, quoteattr(value))))
         if self._short_empty_elements:
             self._pending_start_element = True
         else:
-            self._write(u">")
+            self._write(_unicode(">"))
 
     def endElement(self, name):
         if self._pending_start_element:
-            self._write(u'/>')
+            self._write(_unicode('/>'))
             self._pending_start_element = False
         else:
-            self._write(u'</%s>' % name)
+            self._write(_unicode('</%s>' % name))
 
 
 def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
