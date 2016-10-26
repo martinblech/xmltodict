@@ -71,6 +71,7 @@ class _DictSAXHandler(object):
         self.strip_whitespace = strip_whitespace
         self.namespace_separator = namespace_separator
         self.namespaces = namespaces
+        self.namespace_declarations = OrderedDict()
         self.force_list = force_list
 
     def _build_name(self, full_name):
@@ -91,9 +92,15 @@ class _DictSAXHandler(object):
             return attrs
         return self.dict_constructor(zip(attrs[0::2], attrs[1::2]))
 
+    def startNamespaceDecl(self, prefix, uri):
+        self.namespace_declarations[prefix or ''] = uri
+
     def startElement(self, full_name, attrs):
         name = self._build_name(full_name)
         attrs = self._attrs_to_dict(attrs)
+        if attrs and self.namespace_declarations:
+            attrs['xmlns'] = self.namespace_declarations
+            self.namespace_declarations = OrderedDict()
         self.path.append((name, attrs or None))
         if len(self.path) > self.item_depth:
             self.stack.append((self.item, self.data))
@@ -301,6 +308,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     except AttributeError:
         # Jython's expat does not support ordered_attributes
         pass
+    parser.StartNamespaceDeclHandler = handler.startNamespaceDecl
     parser.StartElementHandler = handler.startElement
     parser.EndElementHandler = handler.endElement
     parser.CharacterDataHandler = handler.characters
@@ -312,6 +320,21 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     return handler.item
 
 
+def _process_namespace(name, namespaces, ns_sep=':', attr_prefix='@'):
+    if not namespaces:
+        return name
+    try:
+        ns, name = name.rsplit(ns_sep, 1)
+    except ValueError:
+        pass
+    else:
+        ns_res = namespaces.get(ns.strip(attr_prefix))
+        name = '{0}{1}{2}{3}'.format(
+            attr_prefix if ns.startswith(attr_prefix) else '',
+            ns_res, ns_sep, name) if ns_res else name
+    return name
+
+
 def _emit(key, value, content_handler,
           attr_prefix='@',
           cdata_key='#text',
@@ -320,7 +343,10 @@ def _emit(key, value, content_handler,
           pretty=False,
           newl='\n',
           indent='\t',
+          namespace_separator=':',
+          namespaces=None,
           full_document=True):
+    key = _process_namespace(key, namespaces, namespace_separator, attr_prefix)
     if preprocessor is not None:
         result = preprocessor(key, value)
         if result is None:
@@ -347,6 +373,13 @@ def _emit(key, value, content_handler,
                 cdata = iv
                 continue
             if ik.startswith(attr_prefix):
+                ik = _process_namespace(ik, namespaces, namespace_separator,
+                                        attr_prefix)
+                if ik == '@xmlns' and isinstance(iv, dict):
+                    for k, v in iv.items():
+                        attr = 'xmlns{0}'.format(':{0}'.format(k) if k else '')
+                        attrs[attr] = _unicode(v)
+                    continue
                 if not isinstance(iv, _unicode):
                     iv = _unicode(iv)
                 attrs[ik[len(attr_prefix):]] = iv
@@ -360,7 +393,8 @@ def _emit(key, value, content_handler,
         for child_key, child_value in children:
             _emit(child_key, child_value, content_handler,
                   attr_prefix, cdata_key, depth+1, preprocessor,
-                  pretty, newl, indent)
+                  pretty, newl, indent, namespaces=namespaces,
+                  namespace_separator=namespace_separator)
         if cdata is not None:
             content_handler.characters(cdata)
         if pretty and children:
