@@ -163,3 +163,9 @@ class DictToXMLTestCase(unittest.TestCase):
     def test_non_string_attr(self):
         obj = {'a': {'@attr': 1}}
         self.assertEqual('<a attr="1"></a>', _strip(unparse(obj)))
+
+    def test_short_empty_elements(self):
+        if sys.version_info < (3, 2):
+            return
+        obj = {'a': None}
+        self.assertEqual('<a/>', _strip(unparse(obj, short_empty_elements=True)))
