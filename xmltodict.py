@@ -217,7 +217,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     Streaming example::
 
         >>> def handle(path, item):
-        ...     print 'path:%s item:%s' % (path, item)
+        ...     print('path:%s item:%s' % (path, item))
         ...     return True
         ...
         >>> xmltodict.parse(\"\"\"
