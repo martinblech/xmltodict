@@ -313,9 +313,9 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     parser.EndElementHandler = handler.endElement
     parser.CharacterDataHandler = handler.characters
     parser.buffer_text = True
-    try:
+    if hasattr(xml_input, 'read'):
         parser.ParseFile(xml_input)
-    except (TypeError, AttributeError):
+    else:
         parser.Parse(xml_input, True)
     return handler.item
 
