@@ -9,6 +9,8 @@ try:
 except ImportError:
     from xmltodict import StringIO
 
+from xml.parsers.expat import ParserCreate
+from xml.parsers import expat
 
 def _encode(s):
     try:
@@ -306,3 +308,76 @@ class XMLToDictTestCase(unittest.TestCase):
             },
         }
         self.assertEqual(parse(xml, force_list=force_list, dict_constructor=dict), expectedResult)
+
+    def test_disable_entities_true_ignores_xmlbomb(self):
+        xml = """
+        <!DOCTYPE xmlbomb [
+            <!ENTITY a "1234567890" >
+            <!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;">
+            <!ENTITY c "&b;&b;&b;&b;&b;&b;&b;&b;">
+        ]>
+        <bomb>&c;</bomb>
+        """
+        expectedResult = {'bomb': None}
+        try:
+            parse_attempt = parse(xml, disable_entities=True)
+        except expat.ExpatError:
+            self.assertTrue(True)
+        else:
+            self.assertEqual(parse_attempt, expectedResult)
+
+    def test_disable_entities_false_returns_xmlbomb(self):
+        xml = """
+        <!DOCTYPE xmlbomb [
+            <!ENTITY a "1234567890" >
+            <!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;">
+            <!ENTITY c "&b;&b;&b;&b;&b;&b;&b;&b;">
+        ]>
+        <bomb>&c;</bomb>
+        """
+        bomb = "1234567890" * 64
+        expectedResult = {'bomb': bomb}
+        self.assertEqual(parse(xml, disable_entities=False), expectedResult)
+
+    def test_disable_entities_true_ignores_external_dtd(self):
+        xml = """
+        <!DOCTYPE external [
+            <!ENTITY ee SYSTEM "http://www.python.org/">
+        ]>
+        <root>&ee;</root>
+        """
+        expectedResult = {'root': None}
+        try:
+            parse_attempt = parse(xml, disable_entities=True)
+        except expat.ExpatError:
+            self.assertTrue(True)
+        else:
+            self.assertEqual(parse_attempt, expectedResult)
+
+    def test_disable_entities_true_attempts_external_dtd(self):
+        xml = """
+        <!DOCTYPE external [
+            <!ENTITY ee SYSTEM "http://www.python.org/">
+        ]>
+        <root>&ee;</root>
+        """
+        def raising_external_ref_handler(*args, **kwargs):
+            parser = ParserCreate(*args, **kwargs)
+            parser.ExternalEntityRefHandler = lambda *x: 0
+            try:
+                feature = "http://apache.org/xml/features/disallow-doctype-decl"
+                parser._reader.setFeature(feature, True)
+            except AttributeError:
+                pass
+            return parser
+        expat.ParserCreate = raising_external_ref_handler
+        # Using this try/catch because a TypeError is thrown before 
+        # the ExpatError, and Python 2.6 is confused by that.
+        try:
+            parse(xml, disable_entities=False, expat=expat)
+        except expat.ExpatError:
+            self.assertTrue(True)
+        else:
+            self.assertTrue(False)
+        expat.ParserCreate = ParserCreate
+
