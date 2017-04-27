@@ -102,7 +102,7 @@ class _DictSAXHandler(object):
             attrs['xmlns'] = self.namespace_declarations
             self.namespace_declarations = OrderedDict()
         self.path.append((name, attrs or None))
-        if len(self.path) > self.item_depth:
+        if len(self.path) >= self.item_depth:
             self.stack.append((self.item, self.data))
             if self.xml_attribs:
                 attr_entries = []
