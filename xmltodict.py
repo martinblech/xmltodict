@@ -314,7 +314,6 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     parser.CharacterDataHandler = handler.characters
     parser.buffer_text = True
     if disable_entities:
-        
         try:
             # Attempt to disable DTD in Jython's expat parser (Xerces-J).
             feature = "http://apache.org/xml/features/disallow-doctype-decl"
@@ -325,9 +324,9 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
             parser.DefaultHandler = lambda x: None
             # Expects an integer return; zero means failure -> expat.ExpatError.
             parser.ExternalEntityRefHandler = lambda *x: 1
-    try:
+    if hasattr(xml_input, 'read'):
         parser.ParseFile(xml_input)
-    except (TypeError, AttributeError):
+    else:
         parser.Parse(xml_input, True)
     return handler.item
 
