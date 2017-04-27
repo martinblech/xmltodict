@@ -1,6 +1,22 @@
 CHANGELOG
 =========
 
+v0.11.0
+-------
+
+* Determine fileness by checking for `read` attr
+  * Thanks, @jwodder!
+* Add support for Python 3.6.
+  * Thanks, @cclauss!
+* Release as a universal wheel.
+  * Thanks, @adamchainz!
+* Updated docs examples to use print function.
+  * Thanks, @cdeil!
+* unparse: pass short_empty_elements to XMLGenerator
+  * Thanks, @zhanglei002!
+* Added namespace support when unparsing.
+  * Thanks, @imiric!
+
 v0.10.2
 -------
 
