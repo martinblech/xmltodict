@@ -153,7 +153,7 @@ v0.4.6
 
 * fix try/catch block for pypi (throws AttributeError instead of TypeError)
 * prevent encoding an already encoded string
-* removed unecessary try/catch for xml_input.encode(). check if file or string, EAFP style. (thanks @turicas)
+* removed unnecessary try/catch for xml_input.encode(). check if file or string, EAFP style. (thanks @turicas)
 
 v0.4.5
 ------
