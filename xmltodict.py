@@ -573,6 +573,12 @@ class XMLGeneratorShort(XMLGenerator):
             else:
                 self._write(_unicode(content))
 
+    def _write(self, text):
+        if isinstance(text, str):
+            self._out.write(text)
+        else:
+            self._out.write(text.encode(self._encoding, 'surrogateescape'))
+
 
 def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
             short_empty_elements=False, ordered_mixed_children=False, **kwargs):
