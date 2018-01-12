@@ -6,6 +6,7 @@ try:
 except ImportError:
     import unittest
 import re
+import collections
 from textwrap import dedent
 import os
 from zipfile import ZipFile
@@ -165,6 +166,41 @@ class DictToXMLTestCase(unittest.TestCase):
     def test_non_string_attr(self):
         obj = {'a': {'@attr': 1}}
         self.assertEqual('<a attr="1"></a>', _strip(unparse(obj)))
+
+    def test_short_empty_elements(self):
+        if sys.version_info < (3, 2):
+            return
+        obj = {'a': None}
+        self.assertEqual('<a/>', _strip(unparse(obj, short_empty_elements=True)))
+
+    def test_namespace_support(self):
+        obj = OrderedDict((
+            ('http://defaultns.com/:root', OrderedDict((
+                ('@xmlns', OrderedDict((
+                    ('', 'http://defaultns.com/'),
+                    ('a', 'http://a.com/'),
+                    ('b', 'http://b.com/'),
+                ))),
+                ('http://defaultns.com/:x', OrderedDict((
+                    ('@http://a.com/:attr', 'val'),
+                    ('#text', '1'),
+                ))),
+                ('http://a.com/:y', '2'),
+                ('http://b.com/:z', '3'),
+            ))),
+        ))
+        ns = {
+            'http://defaultns.com/': '',
+            'http://a.com/': 'a',
+            'http://b.com/': 'b',
+        }
+
+        expected_xml = '''<?xml version="1.0" encoding="utf-8"?>
+<root xmlns="http://defaultns.com/" xmlns:a="http://a.com/" \
+xmlns:b="http://b.com/"><x a:attr="val">1</x><a:y>2</a:y><b:z>3</b:z></root>'''
+        xml = unparse(obj, namespaces=ns)
+
+        self.assertEqual(xml, expected_xml)
 
 
 class OrderedMixedChildrenTests(unittest.TestCase):

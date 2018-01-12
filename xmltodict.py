@@ -32,7 +32,7 @@ except NameError:  # pragma no cover
     _unicode = str
 
 __author__ = 'Martin Blech'
-__version__ = '0.10.2'
+__version__ = '0.11.0'
 __license__ = 'MIT'
 
 
@@ -72,6 +72,7 @@ class _DictSAXHandler(object):
         self.strip_whitespace = strip_whitespace
         self.namespace_separator = namespace_separator
         self.namespaces = namespaces
+        self.namespace_declarations = OrderedDict()
         self.force_list = force_list
         self.ordered_mixed_children = ordered_mixed_children
         self.counter = 0
@@ -98,9 +99,15 @@ class _DictSAXHandler(object):
             self.counter += 1
         return ret_attrs
 
+    def startNamespaceDecl(self, prefix, uri):
+        self.namespace_declarations[prefix or ''] = uri
+
     def startElement(self, full_name, attrs):
         name = self._build_name(full_name)
         attrs = self._attrs_to_dict(attrs)
+        if attrs and self.namespace_declarations:
+            attrs['xmlns'] = self.namespace_declarations
+            self.namespace_declarations = OrderedDict()
         self.path.append((name, attrs or None))
         if len(self.path) > self.item_depth:
             self.stack.append((self.item, self.data))
@@ -225,7 +232,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     Streaming example::
 
         >>> def handle(path, item):
-        ...     print 'path:%s item:%s' % (path, item)
+        ...     print('path:%s item:%s' % (path, item))
         ...     return True
         ...
         >>> xmltodict.parse(\"\"\"
@@ -346,12 +353,12 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     except AttributeError:
         # Jython's expat does not support ordered_attributes
         pass
+    parser.StartNamespaceDeclHandler = handler.startNamespaceDecl
     parser.StartElementHandler = handler.startElement
     parser.EndElementHandler = handler.endElement
     parser.CharacterDataHandler = handler.characters
     parser.buffer_text = True
     if disable_entities:
-        
         try:
             # Attempt to disable DTD in Jython's expat parser (Xerces-J).
             feature = "http://apache.org/xml/features/disallow-doctype-decl"
@@ -362,11 +369,26 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
             parser.DefaultHandler = lambda x: None
             # Expects an integer return; zero means failure -> expat.ExpatError.
             parser.ExternalEntityRefHandler = lambda *x: 1
-    try:
+    if hasattr(xml_input, 'read'):
         parser.ParseFile(xml_input)
-    except (TypeError, AttributeError):
+    else:
         parser.Parse(xml_input, True)
     return handler.item
+
+
+def _process_namespace(name, namespaces, ns_sep=':', attr_prefix='@'):
+    if not namespaces:
+        return name
+    try:
+        ns, name = name.rsplit(ns_sep, 1)
+    except ValueError:
+        pass
+    else:
+        ns_res = namespaces.get(ns.strip(attr_prefix))
+        name = '{0}{1}{2}{3}'.format(
+            attr_prefix if ns.startswith(attr_prefix) else '',
+            ns_res, ns_sep, name) if ns_res else name
+    return name
 
 
 def _emit(key, value, content_handler,
@@ -377,8 +399,11 @@ def _emit(key, value, content_handler,
           pretty=False,
           newl='\n',
           indent='\t',
+          namespace_separator=':',
+          namespaces=None,
           full_document=True,
           ordered_mixed_children=False):
+    key = _process_namespace(key, namespaces, namespace_separator, attr_prefix)
     if preprocessor is not None:
         result = preprocessor(key, value)
         if result is None:
@@ -405,6 +430,13 @@ def _emit(key, value, content_handler,
                 cdata = iv
                 continue
             if ik.startswith(attr_prefix):
+                ik = _process_namespace(ik, namespaces, namespace_separator,
+                                        attr_prefix)
+                if ik == '@xmlns' and isinstance(iv, dict):
+                    for k, v in iv.items():
+                        attr = 'xmlns{0}'.format(':{0}'.format(k) if k else '')
+                        attrs[attr] = _unicode(v)
+                    continue
                 if not isinstance(iv, _unicode):
                     iv = _unicode(iv)
                 attrs[ik[len(attr_prefix):]] = iv
@@ -440,7 +472,8 @@ def _emit(key, value, content_handler,
         for child_key, child_value in children:
             _emit(child_key, child_value, content_handler,
                   attr_prefix, cdata_key, depth+1, preprocessor,
-                  pretty, newl, indent,
+                  pretty, newl, indent, namespaces=namespaces,
+                  namespace_separator=namespace_separator,
                   ordered_mixed_children=ordered_mixed_children)
         if cdata is not None:
             content_handler.characters(cdata)
@@ -502,7 +535,7 @@ class XMLGeneratorShort(XMLGenerator):
 
 
 def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
-            ordered_mixed_children=False, short_empty_elements=False, **kwargs):
+            short_empty_elements=False, ordered_mixed_children=False, **kwargs):
     """Emit an XML document for the given `input_dict` (reverse of `parse`).
 
     The resulting XML document is returned as a string, but if `output` (a

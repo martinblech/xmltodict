@@ -2,7 +2,7 @@
 
 `xmltodict` is a Python module that makes working with XML feel like you are working with [JSON](http://docs.python.org/library/json.html), as in this ["spec"](http://www.xml.com/pub/a/2006/05/31/converting-between-xml-and-json.html):
 
-[![Build Status](https://secure.travis-ci.org/martinblech/xmltodict.png)](http://travis-ci.org/martinblech/xmltodict)
+[![Build Status](https://secure.travis-ci.org/martinblech/xmltodict.svg)](http://travis-ci.org/martinblech/xmltodict)
 
 ```python
 >>> print(json.dumps(xmltodict.parse("""
@@ -80,7 +80,7 @@ True
 
 ```python
 >>> def handle_artist(_, artist):
-...     print artist['name']
+...     print(artist['name'])
 ...     return True
 >>> 
 >>> xmltodict.parse(GzipFile('discogs_artists.xml.gz'),
@@ -98,7 +98,7 @@ It can also be used from the command line to pipe objects to a script like this:
 import sys, marshal
 while True:
     _, article = marshal.load(sys.stdin)
-    print article['title']
+    print(article['title'])
 ```
 
 ```sh
@@ -138,7 +138,7 @@ You can also convert in the other direction, using the `unparse()` method:
 ...             'last_updated': '2014-02-16T23:10:12Z',
 ...     }
 ... }
->>> print unparse(mydict, pretty=True)
+>>> print(unparse(mydict, pretty=True))
 <?xml version="1.0" encoding="utf-8"?>
 <response>
 	<status>good</status>
@@ -158,7 +158,7 @@ Text values for nodes can be specified with the `cdata_key` key in the python di
 ...         '#text':'This is a test'
 ...     }
 ... }
->>> print xmltodict.unparse(mydict, pretty=True)
+>>> print(xmltodict.unparse(mydict, pretty=True))
 <?xml version="1.0" encoding="utf-8"?>
 <text stroke="2" color="red">This is a test</text>
 ```

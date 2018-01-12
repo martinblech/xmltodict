@@ -7,6 +7,7 @@ python:
   - "3.3"
   - "3.4"
   - "3.5"
+  - "3.6"
   - "pypy"
 
 env:
@@ -26,6 +27,8 @@ matrix:
     - python: "3.4"
       env: JYTHON=true
     - python: "3.5"
+      env: JYTHON=true
+    - python: "3.6"
       env: JYTHON=true
 
 before_install:
