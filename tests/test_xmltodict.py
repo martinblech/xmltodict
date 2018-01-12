@@ -12,6 +12,7 @@ except ImportError:
 from xml.parsers.expat import ParserCreate
 from xml.parsers import expat
 
+
 def _encode(s):
     try:
         return bytes(s, 'ascii')
@@ -69,15 +70,14 @@ class XMLToDictTestCase(unittest.TestCase):
 
     def test_semi_structured(self):
         self.assertEqual(parse('<a>abc<b/>def</a>'),
-                         {'a': {'b': None, '#text': 'abcdef'}})
+                         {'a': {'#text': 'abc<b/>def'}})
         self.assertEqual(parse('<a>abc<b/>def</a>',
                                cdata_separator='\n'),
-                         {'a': {'b': None, '#text': 'abc\ndef'}})
+                         {'a': {'#text': 'abc<b/>def'}})
 
     def test_nested_semi_structured(self):
         self.assertEqual(parse('<a>abc<b>123<c/>456</b>def</a>'),
-                         {'a': {'#text': 'abcdef', 'b': {
-                             '#text': '123456', 'c': None}}})
+                         {'a': {'#text': 'abc<b>123<c/>456</b>def'}})
 
     def test_skip_whitespace(self):
         xml = """
@@ -381,3 +381,30 @@ class XMLToDictTestCase(unittest.TestCase):
             self.assertTrue(False)
         expat.ParserCreate = ParserCreate
 
+
+class TestSemiStructured(unittest.TestCase):
+
+    def test_basic(self):
+        xml = """<e>some<a>textual</a>content</e>"""
+        expected = {'e': {'#text': 'some<a>textual</a>content'}}
+        observed = parse(xml)
+        self.assertEqual(expected, observed)
+
+    def test_basic_empty(self):
+        xml = """<e>some<a/>content</e>"""
+        expected = {'e': {'#text': 'some<a/>content'}}
+        observed = parse(xml)
+        self.assertEqual(expected, observed)
+
+    def test_complex(self):
+        xml = """<root>\n<e at="val">\nsome<a>textual</a>content</e>\n</root>"""
+        expected = {
+            'root': {
+                'e': {
+                    '@at': 'val',
+                    '#text': 'some<a>textual</a>content'
+                }
+            }
+        }
+        observed = parse(xml)
+        self.assertEqual(expected, observed)

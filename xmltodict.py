@@ -76,6 +76,17 @@ class _DictSAXHandler(object):
         self.force_list = force_list
         self.ordered_mixed_children = ordered_mixed_children
         self.counter = 0
+        self._parser = None
+        self._item_indices = []
+        self._last_item = None
+
+    @property
+    def parser(self):
+        return self._parser
+
+    @parser.setter
+    def parser(self, v):
+        self._parser = v
 
     def _build_name(self, full_name):
         if not self.namespaces:
@@ -108,6 +119,7 @@ class _DictSAXHandler(object):
         if attrs and self.namespace_declarations:
             attrs['xmlns'] = self.namespace_declarations
             self.namespace_declarations = OrderedDict()
+        self._item_indices.append((name, self.parser.CurrentByteIndex))
         self.path.append((name, attrs or None))
         if len(self.path) > self.item_depth:
             self.stack.append((self.item, self.data))
@@ -127,8 +139,17 @@ class _DictSAXHandler(object):
             self.item = attrs or None
             self.data = []
 
+    def _rebuild_text(self, data):
+        start_data = data[0]["data"]
+        start_ctx = data[0]["context"].decode()
+        end_ctx = data[-1]["context"].decode()
+        return [start_data + start_ctx[:-len(end_ctx)]]
+
     def endElement(self, full_name):
         name = self._build_name(full_name)
+        actual_data = [x for x in self.data if not x["data"].isspace()]
+        self.data = [x["data"] for x in self.data]
+
         if len(self.path) == self.item_depth:
             item = self.item
             if item is None:
@@ -139,6 +160,15 @@ class _DictSAXHandler(object):
             if not should_continue:
                 raise ParsingInterrupted()
         if len(self.stack):
+            if self._last_item is not None:
+                if 0 < len(actual_data):
+                    last_first_index = self._last_item[1]
+                    first_index = actual_data[0]["index"]
+                    last_index = actual_data[-1]["index"]
+                    if first_index <= last_first_index < last_index:
+                        self.item.pop(self._last_item[0])
+                        self.data = self._rebuild_text(data=actual_data)
+
             data = (None if not self.data
                     else self.cdata_separator.join(self.data))
             item = self.item
@@ -157,12 +187,18 @@ class _DictSAXHandler(object):
             self.item = None
             self.data = []
         self.path.pop()
+        self._last_item = self._item_indices.pop()
 
     def characters(self, data):
+        data_dict = {
+            "data": data,
+            "index": self.parser.CurrentByteIndex,
+            "context": self.parser.GetInputContext()
+        }
         if not self.data:
-            self.data = [data]
+            self.data = [data_dict]
         else:
-            self.data.append(data)
+            self.data.append(data_dict)
 
     def push_data(self, item, key, data):
         if self.postprocessor is not None:
@@ -353,6 +389,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     except AttributeError:
         # Jython's expat does not support ordered_attributes
         pass
+    handler.parser = parser
     parser.StartNamespaceDeclHandler = handler.startNamespaceDecl
     parser.StartElementHandler = handler.startElement
     parser.EndElementHandler = handler.endElement
@@ -527,11 +564,12 @@ class XMLGeneratorShort(XMLGenerator):
         else:
             self._write(_unicode('</%s>' % name))
 
-    def _write(self, text):
-        if isinstance(text, str):
-            self._out.write(text)
-        else:
-            self._out.write(text.encode(self._encoding, 'xmlcharrefreplace'))
+    def characters(self, content):
+        if content:
+            if isinstance(content, _unicode):
+                self._write(content)
+            else:
+                self._write(_unicode(content))
 
 
 def unparse(input_dict, output=None, encoding='utf-8', full_document=True,

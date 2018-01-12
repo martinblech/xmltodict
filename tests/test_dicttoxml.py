@@ -88,8 +88,7 @@ class DictToXMLTestCase(unittest.TestCase):
 
     def test_semistructured(self):
         xml = '<a>abc<d/>efg</a>'
-        self.assertEqual(_strip(unparse(parse(xml))),
-                         '<a><d></d>abcefg</a>')
+        self.assertEqual(_strip(unparse(parse(xml))), xml)
 
     def test_preprocessor(self):
         obj = {'a': OrderedDict((('b:int', [1, 2]), ('b', 'c')))}
