@@ -260,7 +260,7 @@ class XMLToDictTestCase(unittest.TestCase):
           </server>
         </servers>
         """
-        expectedResult = {
+        expected = {
             'servers': {
                 'server': [
                     {
@@ -270,7 +270,7 @@ class XMLToDictTestCase(unittest.TestCase):
                 ],
             }
         }
-        self.assertEqual(parse(xml, force_list=('server',)), expectedResult)
+        self.assertEqual(parse(xml, force_list=('server',)), expected)
 
     def test_force_list_callable(self):
         xml = """
@@ -286,13 +286,14 @@ class XMLToDictTestCase(unittest.TestCase):
             </skip>
         </config>
         """
+
         def force_list(path, key, value):
             """Only return True for servers/server, but not for skip/server."""
             if key != 'server':
                 return False
             return path and path[-1][0] == 'servers'
 
-        expectedResult = {
+        expected = {
             'config': {
                 'servers': {
                     'server': [
@@ -307,7 +308,8 @@ class XMLToDictTestCase(unittest.TestCase):
                 },
             },
         }
-        self.assertEqual(parse(xml, force_list=force_list, dict_constructor=dict), expectedResult)
+        self.assertEqual(
+            parse(xml, force_list=force_list, dict_constructor=dict), expected)
 
     def test_disable_entities_true_ignores_xmlbomb(self):
         xml = """
@@ -318,13 +320,13 @@ class XMLToDictTestCase(unittest.TestCase):
         ]>
         <bomb>&c;</bomb>
         """
-        expectedResult = {'bomb': None}
+        expected = {'bomb': None}
         try:
             parse_attempt = parse(xml, disable_entities=True)
         except expat.ExpatError:
             self.assertTrue(True)
         else:
-            self.assertEqual(parse_attempt, expectedResult)
+            self.assertEqual(parse_attempt, expected)
 
     def test_disable_entities_false_returns_xmlbomb(self):
         xml = """
@@ -336,8 +338,8 @@ class XMLToDictTestCase(unittest.TestCase):
         <bomb>&c;</bomb>
         """
         bomb = "1234567890" * 64
-        expectedResult = {'bomb': bomb}
-        self.assertEqual(parse(xml, disable_entities=False), expectedResult)
+        expected = {'bomb': bomb}
+        self.assertEqual(parse(xml, disable_entities=False), expected)
 
     def test_disable_entities_true_ignores_external_dtd(self):
         xml = """
@@ -346,13 +348,13 @@ class XMLToDictTestCase(unittest.TestCase):
         ]>
         <root>&ee;</root>
         """
-        expectedResult = {'root': None}
+        expected = {'root': None}
         try:
             parse_attempt = parse(xml, disable_entities=True)
         except expat.ExpatError:
             self.assertTrue(True)
         else:
-            self.assertEqual(parse_attempt, expectedResult)
+            self.assertEqual(parse_attempt, expected)
 
     def test_disable_entities_true_attempts_external_dtd(self):
         xml = """
@@ -361,6 +363,7 @@ class XMLToDictTestCase(unittest.TestCase):
         ]>
         <root>&ee;</root>
         """
+
         def raising_external_ref_handler(*args, **kwargs):
             parser = ParserCreate(*args, **kwargs)
             parser.ExternalEntityRefHandler = lambda *x: 0

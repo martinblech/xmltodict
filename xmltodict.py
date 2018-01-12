@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"Makes working with XML feel like you are working with JSON"
+"""Makes working with XML feel like you are working with JSON"""
 
 try:
     from defusedexpat import pyexpat as expat
@@ -139,7 +139,8 @@ class _DictSAXHandler(object):
             self.item = attrs or None
             self.data = []
 
-    def _rebuild_text(self, data):
+    @staticmethod
+    def _rebuild_text(data):
         start_data = data[0]["data"]
         start_ctx = data[0]["context"].decode()
         end_ctx = data[-1]["context"].decode()
@@ -470,9 +471,10 @@ def _emit(key, value, content_handler,
                 ik = _process_namespace(ik, namespaces, namespace_separator,
                                         attr_prefix)
                 if ik == '@xmlns' and isinstance(iv, dict):
-                    for k, v in iv.items():
-                        attr = 'xmlns{0}'.format(':{0}'.format(k) if k else '')
-                        attrs[attr] = _unicode(v)
+                    for kf, vf in iv.items():
+                        attr = 'xmlns{0}'.format(
+                            ':{0}'.format(kf) if kf else '')
+                        attrs[attr] = _unicode(vf)
                     continue
                 if not isinstance(iv, _unicode):
                     iv = _unicode(iv)
@@ -622,6 +624,7 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
             pass
         return value
 
+
 if __name__ == '__main__':  # pragma: no cover
     import sys
     import marshal
@@ -632,8 +635,8 @@ if __name__ == '__main__':  # pragma: no cover
         stdin = sys.stdin
         stdout = sys.stdout
 
-    (item_depth,) = sys.argv[1:]
-    item_depth = int(item_depth)
+    (item_depth_argv,) = sys.argv[1:]
+    item_depth_argv = int(item_depth_argv)
 
 
     def handle_item(path, item):
@@ -642,10 +645,10 @@ if __name__ == '__main__':  # pragma: no cover
 
     try:
         root = parse(stdin,
-                     item_depth=item_depth,
+                     item_depth=item_depth_argv,
                      item_callback=handle_item,
                      dict_constructor=dict)
-        if item_depth == 0:
+        if item_depth_argv == 0:
             handle_item([], root)
     except KeyboardInterrupt:
         pass
