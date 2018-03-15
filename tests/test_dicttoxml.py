@@ -199,3 +199,13 @@ xmlns:b="http://b.com/"><x a:attr="val">1</x><a:y>2</a:y><b:z>3</b:z></root>'''
         xml = unparse(obj, namespaces=ns)
 
         self.assertEqual(xml, expected_xml)
+
+
+    def test_boolean_unparse(self):
+        expected_xml = '<?xml version="1.0" encoding="utf-8"?>\n<x>true</x>'
+        xml = unparse(dict(x=True))
+        self.assertEqual(xml, expected_xml)
+
+        expected_xml = '<?xml version="1.0" encoding="utf-8"?>\n<x>false</x>'
+        xml = unparse(dict(x=False))
+        self.assertEqual(xml, expected_xml)
