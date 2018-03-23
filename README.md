@@ -175,7 +175,7 @@ $ pip install xmltodict
 
 ### RPM-based distro (Fedora, RHEL, …)
 
-There is an [official Fedora package for xmltodict](https://admin.fedoraproject.org/pkgdb/acls/name/python-xmltodict).
+There is an [official Fedora package for xmltodict](https://apps.fedoraproject.org/packages/python-xmltodict).
 
 ```sh
 $ sudo yum install python-xmltodict

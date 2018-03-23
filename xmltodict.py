@@ -372,6 +372,11 @@ def _emit(key, value, content_handler,
             raise ValueError('document with multiple roots')
         if v is None:
             v = OrderedDict()
+        elif isinstance(v, bool):
+            if v:
+                v = _unicode('true')
+            else:
+                v = _unicode('false')
         elif not isinstance(v, dict):
             v = _unicode(v)
         if isinstance(v, _basestring):
