@@ -1,9 +1,6 @@
 from xmltodict import parse, ParsingInterrupted
+import unittest
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
 try:
     from io import BytesIO as StringIO
 except ImportError:
@@ -11,6 +8,7 @@ except ImportError:
 
 from xml.parsers.expat import ParserCreate
 from xml.parsers import expat
+
 
 def _encode(s):
     try:
@@ -286,6 +284,7 @@ class XMLToDictTestCase(unittest.TestCase):
             </skip>
         </config>
         """
+
         def force_list(path, key, value):
             """Only return True for servers/server, but not for skip/server."""
             if key != 'server':
@@ -361,6 +360,7 @@ class XMLToDictTestCase(unittest.TestCase):
         ]>
         <root>&ee;</root>
         """
+
         def raising_external_ref_handler(*args, **kwargs):
             parser = ParserCreate(*args, **kwargs)
             parser.ExternalEntityRefHandler = lambda *x: 0
@@ -371,7 +371,7 @@ class XMLToDictTestCase(unittest.TestCase):
                 pass
             return parser
         expat.ParserCreate = raising_external_ref_handler
-        # Using this try/catch because a TypeError is thrown before 
+        # Using this try/catch because a TypeError is thrown before
         # the ExpatError, and Python 2.6 is confused by that.
         try:
             parse(xml, disable_entities=False, expat=expat)
@@ -380,4 +380,3 @@ class XMLToDictTestCase(unittest.TestCase):
         else:
             self.assertTrue(False)
         expat.ParserCreate = ParserCreate
-

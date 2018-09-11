@@ -1,12 +1,9 @@
 import sys
-from xmltodict import parse, unparse, OrderedDict
+from xmltodict import parse, unparse
+from collections import OrderedDict
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 import re
-import collections
 from textwrap import dedent
 
 IS_JYTHON = sys.platform.startswith('java')
@@ -51,11 +48,12 @@ class DictToXMLTestCase(unittest.TestCase):
 
     def test_generator(self):
         obj = {'a': {'b': ['1', '2', '3']}}
+
         def lazy_obj():
             return {'a': {'b': (i for i in ('1', '2', '3'))}}
         self.assertEqual(obj, parse(unparse(lazy_obj())))
         self.assertEqual(unparse(lazy_obj()),
-             unparse(parse(unparse(lazy_obj()))))
+                         unparse(parse(unparse(lazy_obj()))))
 
     def test_no_root(self):
         self.assertRaises(ValueError, unparse, {})
@@ -165,11 +163,10 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertEqual('<a attr="1"></a>', _strip(unparse(obj)))
 
     def test_short_empty_elements(self):
-        if sys.version_info < (3, 2):
+        if sys.version_info[0] < 3:
             return
         obj = {'a': None}
         self.assertEqual('<a/>', _strip(unparse(obj, short_empty_elements=True)))
-
 
     def test_namespace_support(self):
         obj = OrderedDict((
@@ -199,7 +196,6 @@ xmlns:b="http://b.com/"><x a:attr="val">1</x><a:y>2</a:y><b:z>3</b:z></root>'''
         xml = unparse(obj, namespaces=ns)
 
         self.assertEqual(xml, expected_xml)
-
 
     def test_boolean_unparse(self):
         expected_xml = '<?xml version="1.0" encoding="utf-8"?>\n<x>true</x>'
