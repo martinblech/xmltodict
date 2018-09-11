@@ -12,6 +12,11 @@ env:
   - JYTHON=false
 
 matrix:
+  include:
+    - python: "3.7"
+      env: JYTHON=false
+      dist: xenial
+      sudo: required
   exclude:
     - python: "2.7"
       env: JYTHON=true
