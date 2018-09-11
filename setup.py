@@ -8,9 +8,15 @@ except ImportError:
 
 import xmltodict
 
+with open('README.md') as f:
+    long_description = f.read()
+
+
 setup(name='xmltodict',
       version=xmltodict.__version__,
       description=xmltodict.__doc__,
+      long_description=long_description,
+      long_description_content_type='text/markdown',
       author=xmltodict.__author__,
       author_email='martinblech@gmail.com',
       url='https://github.com/martinblech/xmltodict',
