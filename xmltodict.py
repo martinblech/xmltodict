@@ -335,7 +335,7 @@ def _process_namespace(name, namespaces, ns_sep=':', attr_prefix='@'):
         pass
     else:
         ns_res = namespaces.get(ns.strip(attr_prefix))
-        name = '{0}{1}{2}{3}'.format(
+        name = '{}{}{}{}'.format(
             attr_prefix if ns.startswith(attr_prefix) else '',
             ns_res, ns_sep, name) if ns_res else name
     return name
@@ -388,7 +388,7 @@ def _emit(key, value, content_handler,
                                         attr_prefix)
                 if ik == '@xmlns' and isinstance(iv, dict):
                     for k, v in iv.items():
-                        attr = 'xmlns{0}'.format(':{0}'.format(k) if k else '')
+                        attr = 'xmlns{}'.format(':{}'.format(k) if k else '')
                         attrs[attr] = _unicode(v)
                     continue
                 if not isinstance(iv, _unicode):
