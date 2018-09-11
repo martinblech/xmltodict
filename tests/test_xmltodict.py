@@ -1,9 +1,6 @@
 from xmltodict import parse, ParsingInterrupted
+import unittest
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
 try:
     from io import BytesIO as StringIO
 except ImportError:
@@ -371,7 +368,7 @@ class XMLToDictTestCase(unittest.TestCase):
                 pass
             return parser
         expat.ParserCreate = raising_external_ref_handler
-        # Using this try/catch because a TypeError is thrown before 
+        # Using this try/catch because a TypeError is thrown before
         # the ExpatError, and Python 2.6 is confused by that.
         try:
             parse(xml, disable_entities=False, expat=expat)

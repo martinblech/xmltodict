@@ -14,13 +14,8 @@ except ImportError:  # pragma no cover
         from StringIO import StringIO
     except ImportError:
         from io import StringIO
-try:  # pragma no cover
-    from collections import OrderedDict
-except ImportError:  # pragma no cover
-    try:
-        from ordereddict import OrderedDict
-    except ImportError:
-        OrderedDict = dict
+
+from collections import OrderedDict
 
 try:  # pragma no cover
     _basestring = basestring

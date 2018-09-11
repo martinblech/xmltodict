@@ -1,10 +1,8 @@
 import sys
-from xmltodict import parse, unparse, OrderedDict
+from xmltodict import parse, unparse
+from collections import OrderedDict
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 import re
 import collections
 from textwrap import dedent
@@ -165,7 +163,7 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertEqual('<a attr="1"></a>', _strip(unparse(obj)))
 
     def test_short_empty_elements(self):
-        if sys.version_info < (3, 2):
+        if sys.version_info[0] < 3:
             return
         obj = {'a': None}
         self.assertEqual('<a/>', _strip(unparse(obj, short_empty_elements=True)))
