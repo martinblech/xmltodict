@@ -9,6 +9,7 @@ except ImportError:
 from xml.parsers.expat import ParserCreate
 from xml.parsers import expat
 
+
 def _encode(s):
     try:
         return bytes(s, 'ascii')
@@ -283,6 +284,7 @@ class XMLToDictTestCase(unittest.TestCase):
             </skip>
         </config>
         """
+
         def force_list(path, key, value):
             """Only return True for servers/server, but not for skip/server."""
             if key != 'server':
@@ -358,6 +360,7 @@ class XMLToDictTestCase(unittest.TestCase):
         ]>
         <root>&ee;</root>
         """
+
         def raising_external_ref_handler(*args, **kwargs):
             parser = ParserCreate(*args, **kwargs)
             parser.ExternalEntityRefHandler = lambda *x: 0
@@ -377,4 +380,3 @@ class XMLToDictTestCase(unittest.TestCase):
         else:
             self.assertTrue(False)
         expat.ParserCreate = ParserCreate
-
