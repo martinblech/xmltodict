@@ -14,13 +14,8 @@ except ImportError:  # pragma no cover
         from StringIO import StringIO
     except ImportError:
         from io import StringIO
-try:  # pragma no cover
-    from collections import OrderedDict
-except ImportError:  # pragma no cover
-    try:
-        from ordereddict import OrderedDict
-    except ImportError:
-        OrderedDict = dict
+
+from collections import OrderedDict
 
 try:  # pragma no cover
     _basestring = basestring
@@ -340,7 +335,7 @@ def _process_namespace(name, namespaces, ns_sep=':', attr_prefix='@'):
         pass
     else:
         ns_res = namespaces.get(ns.strip(attr_prefix))
-        name = '{0}{1}{2}{3}'.format(
+        name = '{}{}{}{}'.format(
             attr_prefix if ns.startswith(attr_prefix) else '',
             ns_res, ns_sep, name) if ns_res else name
     return name
@@ -393,7 +388,7 @@ def _emit(key, value, content_handler,
                                         attr_prefix)
                 if ik == '@xmlns' and isinstance(iv, dict):
                     for k, v in iv.items():
-                        attr = 'xmlns{0}'.format(':{0}'.format(k) if k else '')
+                        attr = 'xmlns{}'.format(':{}'.format(k) if k else '')
                         attrs[attr] = _unicode(v)
                     continue
                 if not isinstance(iv, _unicode):
@@ -462,6 +457,7 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
             pass
         return value
 
+
 if __name__ == '__main__':  # pragma: no cover
     import sys
     import marshal
@@ -474,7 +470,6 @@ if __name__ == '__main__':  # pragma: no cover
 
     (item_depth,) = sys.argv[1:]
     item_depth = int(item_depth)
-
 
     def handle_item(path, item):
         marshal.dump((path, item), stdout)
