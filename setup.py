@@ -16,6 +16,7 @@ setup(name='xmltodict',
       url='https://github.com/martinblech/xmltodict',
       license=xmltodict.__license__,
       platforms=['all'],
+      python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
       classifiers=[
           'Intended Audience :: Developers',
           'License :: OSI Approved :: MIT License',
