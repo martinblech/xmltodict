@@ -13,6 +13,10 @@ env:
 
 matrix:
   include:
+    - python: "3.8-dev"
+      env: JYTHON=false
+      dist: xenial
+      sudo: required
     - python: "3.7"
       env: JYTHON=false
       dist: xenial
