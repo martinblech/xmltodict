@@ -39,6 +39,7 @@ class _DictSAXHandler(object):
     def __init__(self,
                  item_depth=0,
                  item_callback=lambda *args: True,
+                 item_callback_args={},
                  xml_attribs=True,
                  attr_prefix='@',
                  cdata_key='#text',
@@ -57,6 +58,7 @@ class _DictSAXHandler(object):
         self.item_depth = item_depth
         self.xml_attribs = xml_attribs
         self.item_callback = item_callback
+        self.item_callback_args = item_callback_args
         self.attr_prefix = attr_prefix
         self.cdata_key = cdata_key
         self.force_cdata = force_cdata
@@ -123,7 +125,8 @@ class _DictSAXHandler(object):
                 item = (None if not self.data
                         else self.cdata_separator.join(self.data))
 
-            should_continue = self.item_callback(self.path, item)
+            should_continue = self.item_callback(self.path, item,
+                                                 **self.item_callback_args)
             if not should_continue:
                 raise ParsingInterrupted()
         if len(self.stack):

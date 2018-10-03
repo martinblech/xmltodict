@@ -119,6 +119,26 @@ class XMLToDictTestCase(unittest.TestCase):
                           parse, '<a>x</a>',
                           item_depth=1, item_callback=cb)
 
+    def test_streaming(self):
+        keys = ['x', 'y']
+        vals = [1, 2]
+
+        def cb(path, item, **kwargs):
+            self.assertEqual(item, 'c')
+            cb.keys = kwargs.keys()
+            cb.vals = kwargs.values()
+            return True
+
+        cb.keys = None
+        cb.vals = None
+
+        parse('<a><b>c</b></a>',
+              item_depth=2, item_callback=cb,
+              item_callback_args=dict(zip(keys, vals)))
+
+        self.assertEqual(sorted(cb.keys), sorted(keys))
+        self.assertEqual(sorted(cb.vals), sorted(vals))
+
     def test_postprocessor(self):
         def postprocessor(path, key, value):
             try:
