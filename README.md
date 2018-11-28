@@ -196,3 +196,11 @@ There is an [official Debian package for xmltodict](https://tracker.debian.org/p
 ```sh
 $ sudo apt install python-xmltodict
 ```
+
+### FreeBSD
+
+There is an [official FreeBSD port for xmltodict](https://svnweb.freebsd.org/ports/head/devel/py-xmltodict/).
+
+```sh
+$ pkg install py36-xmltodict
+```
