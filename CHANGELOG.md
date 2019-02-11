@@ -1,6 +1,20 @@
 CHANGELOG
 =========
 
+v0.12.0
+-------
+
+* Allow force_commits=True for getting all keys as lists (#204)
+* README.md: fix useless uses of cat (#200)
+* Add FreeBSD install instructions (#199)
+* Fix and simplify travis config (#192)
+* Add support for Python 3.7 (#189)
+* Drop support for EOL Python (#191)
+* Use Markdown long_description on PyPI (#190)
+* correct spelling mistake (#165)
+* correctly unparse booleans (#180)
+* Updates README.md with svg badge
+
 v0.11.0
 -------
 
