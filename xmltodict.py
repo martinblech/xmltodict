@@ -176,6 +176,8 @@ class _DictSAXHandler(object):
     def _should_force_list(self, key, value):
         if not self.force_list:
             return False
+        if isinstance(self.force_list, bool):
+            return self.force_list
         try:
             return key in self.force_list
         except TypeError:
