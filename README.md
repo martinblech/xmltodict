@@ -204,3 +204,15 @@ There is an [official FreeBSD port for xmltodict](https://svnweb.freebsd.org/por
 ```sh
 $ pkg install py36-xmltodict
 ```
+
+### openSUSE/SLE (SLE 15, Leap 15, Tumbleweed)
+
+There is an [official openSUSE package for xmltodict](https://software.opensuse.org/package/python-xmltodict).
+
+```sh
+# Python2
+$ zypper in python2-xmltodict
+
+# Python3
+$ zypper in python3-xmltodict
+```
