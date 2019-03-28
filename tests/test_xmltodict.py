@@ -1,4 +1,5 @@
 from xmltodict import parse, ParsingInterrupted
+import collections
 import unittest
 
 try:
@@ -222,6 +223,35 @@ class XMLToDictTestCase(unittest.TestCase):
                 },
                 'ns_a:y': '2',
                 'http://b.com/:z': '3',
+            },
+        }
+        res = parse(xml, process_namespaces=True, namespaces=namespaces)
+        self.assertEqual(res, d)
+
+    def test_namespace_collapse_all(self):
+        xml = """
+        <root xmlns="http://defaultns.com/"
+              xmlns:a="http://a.com/"
+              xmlns:b="http://b.com/">
+          <x a:attr="val">1</x>
+          <a:y>2</a:y>
+          <b:z>3</b:z>
+        </root>
+        """
+        namespaces = collections.defaultdict(lambda: None)
+        d = {
+            'root': {
+                'x': {
+                    '@xmlns': {
+                        '': 'http://defaultns.com/',
+                        'a': 'http://a.com/',
+                        'b': 'http://b.com/',
+                    },
+                    '@attr': 'val',
+                    '#text': '1',
+                },
+                'y': '2',
+                'z': '3',
             },
         }
         res = parse(xml, process_namespaces=True, namespaces=namespaces)
