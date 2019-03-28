@@ -70,13 +70,16 @@ class _DictSAXHandler(object):
         self.force_list = force_list
 
     def _build_name(self, full_name):
-        if not self.namespaces:
+        if self.namespaces is None:
             return full_name
         i = full_name.rfind(self.namespace_separator)
         if i == -1:
             return full_name
         namespace, name = full_name[:i], full_name[i+1:]
-        short_namespace = self.namespaces.get(namespace, namespace)
+        try:
+            short_namespace = self.namespaces[namespace]
+        except KeyError:
+            short_namespace = namespace
         if not short_namespace:
             return name
         else:
