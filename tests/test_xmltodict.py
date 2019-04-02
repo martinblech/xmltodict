@@ -120,6 +120,17 @@ class XMLToDictTestCase(unittest.TestCase):
                           parse, '<a>x</a>',
                           item_depth=1, item_callback=cb)
 
+    def test_streaming_generator(self):
+        def cb(path, item):
+            cb.count += 1
+            self.assertEqual(path, [('a', {'x': 'y'}), ('b', None)])
+            self.assertEqual(item, str(cb.count))
+            return True
+        cb.count = 0
+        parse((n for n in '<a x="y"><b>1</b><b>2</b><b>3</b></a>'),
+              item_depth=2, item_callback=cb)
+        self.assertEqual(cb.count, 3)
+
     def test_postprocessor(self):
         def postprocessor(path, key, value):
             try:

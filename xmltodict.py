@@ -16,6 +16,7 @@ except ImportError:  # pragma no cover
         from io import StringIO
 
 from collections import OrderedDict
+from inspect import isgenerator
 
 try:  # pragma no cover
     _basestring = basestring
@@ -191,7 +192,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
           namespace_separator=':', disable_entities=True, **kwargs):
     """Parse the given XML input and convert it into a dictionary.
 
-    `xml_input` can either be a `string` or a file-like object.
+    `xml_input` can either be a `string`, a file-like object, or a generator of strings.
 
     If `xml_attribs` is `True`, element attributes are put in the dictionary
     among regular child elements, using `@` as a prefix to avoid collisions. If
@@ -326,6 +327,10 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
             parser.ExternalEntityRefHandler = lambda *x: 1
     if hasattr(xml_input, 'read'):
         parser.ParseFile(xml_input)
+    elif isgenerator(xml_input):
+        for chunk in xml_input:
+            parser.Parse(chunk,False)
+        parser.Parse(b'',True)
     else:
         parser.Parse(xml_input, True)
     return handler.item
