@@ -46,6 +46,14 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertEqual(obj, parse(unparse(obj)))
         self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
 
+    def test_list_expand_iter(self):
+        obj = {'a': {'b': [['1', '2'], ['3',]]}}
+        #self.assertEqual(obj, parse(unparse(obj, expand_iter="item")))
+        exp_xml = dedent('''\
+        <?xml version="1.0" encoding="utf-8"?>
+        <a><b><item>1</item><item>2</item></b><b><item>3</item></b></a>''')
+        self.assertEqual(exp_xml, unparse(obj, expand_iter="item"))
+
     def test_generator(self):
         obj = {'a': {'b': ['1', '2', '3']}}
 

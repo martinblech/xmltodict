@@ -163,6 +163,37 @@ Text values for nodes can be specified with the `cdata_key` key in the python di
 <text stroke="2" color="red">This is a test</text>
 ```
 
+Lists that are specified under a key in a dictionary use the key as a tag for each item. But if a list does have a parent key, for example if a list exists inside another list, it does not have a tag to use and the items are converted to a string as shown in the example below.  To give tags to nested lists, use the `expand_iter` keyword argument to provide a tag as demonstrated below. Note that using `expand_iter` will break roundtripping.
+
+```python
+>>> mydict = {
+...     "line": {
+...         "points": [
+...             [1, 5],
+...             [2, 6],
+...         ]
+...     }
+... }
+>>> print(xmltodict.unparse(mydict, pretty=True))
+<?xml version="1.0" encoding="utf-8"?>
+<line>
+        <points>[1, 5]</points>
+        <points>[2, 6]</points>
+</line>
+>>> print(xmltodict.unparse(mydict, pretty=True, expand_iter="coord"))
+<?xml version="1.0" encoding="utf-8"?>
+<line>
+        <points>
+                <coord>1</coord>
+                <coord>5</coord>
+        </points>
+        <points>
+                <coord>2</coord>
+                <coord>6</coord>
+        </points>
+</line>
+```
+
 ## Ok, how do I get it?
 
 ### Using pypi
