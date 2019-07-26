@@ -50,7 +50,8 @@ class _DictSAXHandler(object):
                  strip_whitespace=True,
                  namespace_separator=':',
                  namespaces=None,
-                 force_list=None):
+                 force_list=None,
+                 comment_key='#comment'):
         self.path = []
         self.stack = []
         self.data = []
@@ -69,6 +70,7 @@ class _DictSAXHandler(object):
         self.namespaces = namespaces
         self.namespace_declarations = OrderedDict()
         self.force_list = force_list
+        self.comment_key = comment_key
 
     def _build_name(self, full_name):
         if self.namespaces is None:
@@ -156,6 +158,11 @@ class _DictSAXHandler(object):
         else:
             self.data.append(data)
 
+    def comments(self, data):
+        if self.strip_whitespace:
+            data = data.strip()
+        self.item = self.push_data(self.item, self.comment_key, data)
+
     def push_data(self, item, key, data):
         if self.postprocessor is not None:
             result = self.postprocessor(self.path, key, data)
@@ -189,7 +196,7 @@ class _DictSAXHandler(object):
 
 
 def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
-          namespace_separator=':', disable_entities=True, **kwargs):
+          namespace_separator=':', disable_entities=True, process_comments=False, **kwargs):
     """Parse the given XML input and convert it into a dictionary.
 
     `xml_input` can either be a `string`, a file-like object, or a generator of strings.
@@ -291,6 +298,36 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         `force_list` can also be a callable that receives `path`, `key` and
         `value`. This is helpful in cases where the logic that decides whether
         a list should be forced is more complex.
+
+
+        If `process_comment` is `True` then comment will be added with comment_key
+        (default=`'#comment'`) to then tag which contains comment
+
+            For example, given this input:
+            <a>
+              <b>
+                <!-- b comment -->
+                <c>
+                    <!-- c comment -->
+                    1
+                </c>
+                <d>2</d>
+              </b>
+            </a>
+
+            If called with process_comment=True, it will produce
+            this dictionary:
+            'a': {
+                'b': {
+                    '#comment': 'b comment',
+                    'c': {
+
+                        '#comment': 'c comment',
+                        '#text': '1',
+                    },
+                    'd': '2',
+                },
+            }
     """
     handler = _DictSAXHandler(namespace_separator=namespace_separator,
                               **kwargs)
@@ -313,6 +350,8 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     parser.StartElementHandler = handler.startElement
     parser.EndElementHandler = handler.endElement
     parser.CharacterDataHandler = handler.characters
+    if process_comments:
+        parser.CommentHandler = handler.comments
     parser.buffer_text = True
     if disable_entities:
         try:

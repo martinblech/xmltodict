@@ -421,3 +421,31 @@ class XMLToDictTestCase(unittest.TestCase):
         else:
             self.assertTrue(False)
         expat.ParserCreate = ParserCreate
+
+    def test_comments(self):
+        xml = """
+        <a>
+          <b>
+            <!-- b comment -->
+            <c>
+                <!-- c comment -->
+                1
+            </c>
+            <d>2</d>
+          </b>
+        </a>
+        """
+        expectedResult = {
+            'a': {
+                'b': {
+                    '#comment': 'b comment',
+                    'c': {
+
+                        '#comment': 'c comment',
+                        '#text': '1',
+                    },
+                    'd': '2',
+                },
+            }
+        }
+        self.assertEqual(parse(xml, process_comments=True), expectedResult)
