@@ -400,7 +400,8 @@ def _emit(key, value, content_handler,
           indent='\t',
           namespace_separator=':',
           namespaces=None,
-          full_document=True):
+          full_document=True,
+          expand_iter=None):
     key = _process_namespace(key, namespaces, namespace_separator, attr_prefix)
     if preprocessor is not None:
         result = preprocessor(key, value)
@@ -422,7 +423,10 @@ def _emit(key, value, content_handler,
             else:
                 v = _unicode('false')
         elif not isinstance(v, dict):
-            v = _unicode(v)
+            if expand_iter and hasattr(v, '__iter__') and not isinstance(v, _basestring):
+                v = OrderedDict(((expand_iter, v),))
+            else:
+                v = _unicode(v)
         if isinstance(v, _basestring):
             v = OrderedDict(((cdata_key, v),))
         cdata = None
@@ -454,7 +458,8 @@ def _emit(key, value, content_handler,
             _emit(child_key, child_value, content_handler,
                   attr_prefix, cdata_key, depth+1, preprocessor,
                   pretty, newl, indent, namespaces=namespaces,
-                  namespace_separator=namespace_separator)
+                  namespace_separator=namespace_separator,
+                  expand_iter=expand_iter)
         if cdata is not None:
             content_handler.characters(cdata)
         if pretty and children:
