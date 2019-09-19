@@ -207,6 +207,34 @@ class XMLToDictTestCase(unittest.TestCase):
         res = parse(xml, process_namespaces=True)
         self.assertEqual(res, d)
 
+    def test_namespace_strip(self):
+        xml = """
+        <root xmlns="http://defaultns.com/"
+              xmlns:a="http://a.com/"
+              xmlns:b="http://b.com/">
+          <x a:attr="val">1</x>
+          <a:y>2</a:y>
+          <b:z>3</b:z>
+        </root>
+        """
+        d = {
+            'root': {
+                'x': {
+                    '@attr': 'val',
+                    '@xmlns': {
+                        '': 'http://defaultns.com/',
+                        'a': 'http://a.com/',
+                        'b': 'http://b.com/',
+                    },
+                    '#text': '1',
+                },
+                'y': '2',
+                'z': '3',
+            },
+        }
+        res = parse(xml, process_namespaces=True, strip_namespaces=True)
+        self.assertDictEqual(res, d)
+
     def test_namespace_collapse(self):
         xml = """
         <root xmlns="http://defaultns.com/"
@@ -237,6 +265,9 @@ class XMLToDictTestCase(unittest.TestCase):
             },
         }
         res = parse(xml, process_namespaces=True, namespaces=namespaces)
+        self.assertTrue('root' in res)
+        self.assertTrue('x' in res['root'])
+        self.assertTrue('@xmlns' in res['root']['x'])
         self.assertEqual(res, d)
 
     def test_namespace_collapse_all(self):

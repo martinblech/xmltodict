@@ -51,7 +51,9 @@ class _DictSAXHandler(object):
                  namespace_separator=':',
                  namespaces=None,
                  force_list=None,
-                 comment_key='#comment'):
+                 comment_key='#comment',
+                 strip_namespaces=False
+                 ):
         self.path = []
         self.stack = []
         self.data = []
@@ -71,14 +73,17 @@ class _DictSAXHandler(object):
         self.namespace_declarations = OrderedDict()
         self.force_list = force_list
         self.comment_key = comment_key
+        self.strip_namespaces = strip_namespaces
 
     def _build_name(self, full_name):
-        if self.namespaces is None:
+        if self.namespaces is None and not self.strip_namespaces:
             return full_name
         i = full_name.rfind(self.namespace_separator)
         if i == -1:
             return full_name
         namespace, name = full_name[:i], full_name[i+1:]
+        if self.strip_namespaces:
+            return name
         try:
             short_namespace = self.namespaces[namespace]
         except KeyError:
