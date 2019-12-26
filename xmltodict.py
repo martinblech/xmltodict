@@ -268,7 +268,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     force_list argument is a tuple of keys. If the key for a given level
     of hierarchy is in the force_list argument, that level of hierarchy
     will have a list as a child (even if there is only one sub-element).
-    The index_keys operation takes precendence over this. This is applied
+    The index_keys operation takes precedence over this. This is applied
     after any user-supplied postprocessor has already run.
 
         For example, given this input:
