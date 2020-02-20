@@ -107,7 +107,7 @@ class _DictSAXHandler(object):
             attrs['xmlns'] = self.namespace_declarations
             self.namespace_declarations = self.dict_constructor()
         self.path.append((name, attrs or None))
-        if len(self.path) > self.item_depth:
+        if len(self.path) >= self.item_depth:
             self.stack.append((self.item, self.data))
             if self.xml_attribs:
                 attr_entries = []
@@ -372,8 +372,8 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         parser.ParseFile(xml_input)
     elif isgenerator(xml_input):
         for chunk in xml_input:
-            parser.Parse(chunk,False)
-        parser.Parse(b'',True)
+            parser.Parse(chunk, False)
+        parser.Parse(b'', True)
     else:
         parser.Parse(xml_input, True)
     return handler.item
