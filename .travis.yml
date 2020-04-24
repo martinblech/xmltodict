@@ -5,13 +5,15 @@ python:
   - "3.4"
   - "3.5"
   - "3.6"
+  - "3.7"
   - "pypy"
 
-matrix:
+script: nosetests -vv --with-coverage --cover-package=xmltodict
+
+jobs:
   include:
-    - python: "3.7"
-      dist: xenial
-      sudo: required
+    - python: "3.8"
+      dist: bionic
     - name: "Jython"
       python: "pypy"
       env: JYTHON_VERSION="2.7.0"
@@ -22,5 +24,3 @@ matrix:
         - export PATH="$HOME/jython:$PATH"
         - $HOME/jython/bin/easy_install nose
       script: $HOME/jython/bin/nosetests
-
-script: nosetests --with-coverage --cover-package=xmltodict
