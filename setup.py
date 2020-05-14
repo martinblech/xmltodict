@@ -8,8 +8,8 @@ except ImportError:
 
 import xmltodict
 
-with open('README.md') as f:
-    long_description = f.read()
+with open('README.md', 'rb') as f:
+    long_description = f.read().decode('utf-8')
 
 
 setup(name='xmltodict',
