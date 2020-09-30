@@ -246,4 +246,23 @@ $ zypper in python2-xmltodict
 
 # Python3
 $ zypper in python3-xmltodict
+//////////////////////////////////        my changes started       ////////////////////////////////////////////////////////////////
+### Debian-based distro (Debian, Ubuntu, …)
+
+There is an [official Debian package for xmltodict](https://tracker.debian.org/pkg/python-xmltodict).
+
+```sh
+$ sudo apt install python-xmltodict
 ```
+
+### FreeBSD
+
+There is an [official FreeBSD port for xmltodict](https://svnweb.freebsd.org/ports/head/devel/py-xmltodict/).
+
+```sh
+$ pkg install py36-xmltodict
+```////////////////////////////////       my changes completed     /////////////////////////////////////////////////////////////
+```
+hello sir 
+very better code in python and little bit changes in python 3.6 version .all ok code weldone .
+please give me best ratting HACKTOBERFEST CHALENGE CONONTINUED ......................................
