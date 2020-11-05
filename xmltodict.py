@@ -196,7 +196,8 @@ class _DictSAXHandler(object):
 
 
 def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
-          namespace_separator=':', disable_entities=True, process_comments=False, **kwargs):
+          namespace_separator=':', disable_entities=True, process_comments=False,
+          convert_values=False, **kwargs):
     """Parse the given XML input and convert it into a dictionary.
 
     `xml_input` can either be a `string`, a file-like object, or a generator of strings.
@@ -396,7 +397,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         parser.Parse(b'',True)
     else:
         parser.Parse(xml_input, True)
-    if kwargs.get('convert_values', False):
+    if convert_values:
         return _convert_values(handler.item)
     return handler.item
 
@@ -456,8 +457,8 @@ def _from_str(string):
     return val
 
 
-def _split_str(string, beg_delims, end_delims):
-    string = string[1:-1]
+def _split_str(in_string, beg_delims, end_delims):
+    string = in_string[1:-1]
     val = []
     n_beg = 0
     n_end = 0
@@ -477,7 +478,7 @@ def _split_str(string, beg_delims, end_delims):
         else:
             elem_str += char
     if elem_str == string:
-        return string
+        return in_string
     val.append(elem_str.strip())
     return val
 
