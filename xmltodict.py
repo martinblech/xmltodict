@@ -411,8 +411,9 @@ def _convert_values(dictionary):
     if isinstance(dictionary, str):
         return _from_str(dictionary)
 
-    if isinstance(dictionary, unicode):
-        s_val  = dictionary.encode('ascii', 'ignore')
+    # Convert unicode, but leave non-ascii strings as they are
+    if isinstance(dictionary, _unicode):
+        s_val = dictionary.encode('ascii', 'ignore')
         if len(s_val) == len(dictionary):
             return _from_str(s_val)
         return dictionary
