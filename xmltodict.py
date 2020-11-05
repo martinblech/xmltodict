@@ -336,7 +336,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
             For example, given this input:
             <a>
                 <b> 1.23 </b>
-                <c> alpha <c>
+                <c> alpha </c>
                 <d>
                     <e> [2, abc] </e>
                     <f> True </f>
