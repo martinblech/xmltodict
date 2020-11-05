@@ -414,7 +414,7 @@ def _convert_values(dictionary):
     if isinstance(dictionary, unicode):
         s_val  = dictionary.encode('ascii', 'ignore')
         if len(s_val) == len(dictionary):
-            return from_str(s_val)
+            return _from_str(s_val)
         return dictionary
 
     # Convert Nones
