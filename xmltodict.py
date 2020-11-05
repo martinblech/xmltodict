@@ -28,7 +28,7 @@ except NameError:  # pragma no cover
     _unicode = str
 
 __author__ = 'Martin Blech'
-__version__ = '0.12.0'
+__version__ = '0.13.0'
 __license__ = 'MIT'
 
 
@@ -328,6 +328,30 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
                     'd': '2',
                 },
             }
+
+        If `convert_values` is `True` then the values within each field are
+        converted from strings to base Python classes.
+
+            For example, given this input:
+            <a>
+                <b> 1.23 </b>
+                <c> alpha <c>
+                <d>
+                    <e> [2, abc] </e>
+                    <f> True </f>
+                </d>
+                <g> (NH4)3PO4, (i.e., amonium phosphate) </g>
+            </a>
+
+            If called with convert_values=True, it will produce
+            this dictionary:
+            {'a': {
+                'b': 1.23,
+                'c': 'alpha',
+                'd': {'e': [2, 'abc'], 'f': True},
+                'g': '(NH4)3PO4, (i.e., amonium phosphate)',
+                },
+            }
     """
     handler = _DictSAXHandler(namespace_separator=namespace_separator,
                               **kwargs)
@@ -372,7 +396,90 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         parser.Parse(b'',True)
     else:
         parser.Parse(xml_input, True)
+    if kwargs.get('convert_values', False):
+        return _convert_values(handler.item)
     return handler.item
+
+
+def _convert_values(dictionary):
+    # Convert lists
+    if isinstance(dictionary, list):
+        return [_convert_values(d) for d in dictionary]
+
+    # Convert strings
+    if isinstance(dictionary, str):
+        return _from_str(dictionary)
+
+    # Convert Nones
+    if dictionary is None:
+        return {}
+
+    # Convert Dictionaries
+    new_dict = OrderedDict()
+    for key, val in dictionary.items():
+        new_dict[key] = _convert_values(val)
+    return new_dict
+
+
+def _from_str(string):
+    beg_delims = ('(', '[', '{')
+    end_delims = (')', ']', '}')
+    types = (tuple, list, set)
+
+    string = string.strip()
+    has_delims = False
+    list_type = list
+    for beg, end, d_type in zip(beg_delims, end_delims, types):
+        has_beg = string.startswith(beg)
+        has_end = string.endswith(end)
+        if has_beg and has_end:
+            has_delims = True
+            list_type = d_type
+    if has_delims:
+        parts = _split_str(string, beg_delims, end_delims)
+        if isinstance(parts, list):
+            return list_type([_from_str(part) for part in parts])
+        return parts
+
+    try:
+        val = int(string)
+    except ValueError:
+        try:
+            val = float(string)
+        except ValueError:
+            if string.lower() in ('true', 'yes'):
+                val = True
+            elif string.lower() in ('false', 'no'):
+                val = False
+            else:
+                val = str(string)
+    return val
+
+
+def _split_str(string, beg_delims, end_delims):
+    string = string[1:-1]
+    val = []
+    n_beg = 0
+    n_end = 0
+    prev_delim = None
+    elem_str = ''
+    for char in string:
+        if char in beg_delims:
+            n_beg += 1
+            prev_delim = char
+        elif char in end_delims:
+            n_end += 1
+            prev_delim = char
+
+        if (char == ',') and n_beg == n_end and (prev_delim not in beg_delims):
+            val.append(elem_str.strip())
+            elem_str = ''
+        else:
+            elem_str += char
+    if elem_str == string:
+        return string
+    val.append(elem_str.strip())
+    return val
 
 
 def _process_namespace(name, namespaces, ns_sep=':', attr_prefix='@'):

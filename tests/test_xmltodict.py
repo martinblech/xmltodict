@@ -449,3 +449,25 @@ class XMLToDictTestCase(unittest.TestCase):
             }
         }
         self.assertEqual(parse(xml, process_comments=True), expectedResult)
+
+    def test_convert_values(self):
+        xml = """
+        <a>
+            <b> 1.23 </b>
+            <c> alpha <c>
+            <d>
+                <e> [2, abc] </e>
+                <f> True </f>
+            </d>
+            <g> (NH4)3PO4, (i.e., amonium phosphate) </g>
+        </a>
+        """
+        expectedResult = {
+            'a': {
+                'b': 1.23,
+                'c': 'alpha',
+                'd': {'e': [2, 'abc'], 'f': True},
+                'g': '(NH4)3PO4, (i.e., amonium phosphate)',
+                },
+        }
+        self.assertEqual(parse(xml, convert_values=True), expectedResult)
