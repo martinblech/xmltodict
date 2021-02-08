@@ -141,7 +141,7 @@ class _DictSAXHandler(object):
                     else self.cdata_separator.join(self.data))
             item = self.item
             self.item, self.data = self.stack.pop()
-            if self.strip_whitespace and data:
+            if self.strip_whitespace and data and item:
                 data = data.strip() or None
             if data and self.force_cdata and item is None:
                 item = self.dict_constructor()
