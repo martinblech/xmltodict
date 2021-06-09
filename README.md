@@ -204,6 +204,17 @@ You just need to
 $ pip install xmltodict
 ```
 
+### Using conda
+
+For installing `xmltodict` using Anaconda/Miniconda (*conda*) from the 
+[conda-forge channel][#xmltodict-conda] all you need to do is:
+
+[#xmltodict-conda]: https://anaconda.org/conda-forge/xmltodict
+
+```sh
+$ conda install -c conda-forge xmltodict
+```
+
 ### RPM-based distro (Fedora, RHEL, …)
 
 There is an [official Fedora package for xmltodict](https://apps.fedoraproject.org/packages/python-xmltodict).
