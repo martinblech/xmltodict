@@ -132,7 +132,7 @@ class _DictSAXHandler(object):
             should_continue = self.item_callback(self.path, item)
             if not should_continue:
                 raise ParsingInterrupted()
-        if len(self.stack):
+        if self.stack:
             data = (None if not self.data
                     else self.cdata_separator.join(self.data))
             item = self.item
