@@ -199,7 +199,7 @@ v0.4.2
 ------
 
 * Merge pull request #11 from ralphbean/master
-* Include REAMDE, LICENSE, and tests in the distributed tarball.
+* Include README, LICENSE, and tests in the distributed tarball.
 
 v0.4.1
 ------
