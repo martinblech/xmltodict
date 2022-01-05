@@ -213,3 +213,51 @@ xmlns:b="http://b.com/"><x a:attr="val">1</x><a:y>2</a:y><b:z>3</b:z></root>'''
         expected_xml = '<?xml version="1.0" encoding="utf-8"?>\n<x>false</x>'
         xml = unparse(dict(x=False))
         self.assertEqual(xml, expected_xml)
+
+    def test_text_part(self):
+        obj = OrderedDict((
+            ('a', OrderedDict((
+                ('b', 'text'),
+                ('#text', 'end'),
+            ))),
+        ))
+        expected_xml = '<?xml version="1.0" encoding="utf-8"?>\n<a><b>text</b>end</a>'
+        xml = unparse(obj)
+        self.assertEqual(xml, expected_xml)
+
+    def test_comment_part(self):
+        obj = OrderedDict((
+            ('a', OrderedDict((
+                ('b', 'text'),
+                ('#comment', 'remark'),
+            ))),
+        ))
+        # we expect comments to be ignored in the output
+        expected_xml = '<?xml version="1.0" encoding="utf-8"?>\n<a><b>text</b></a>'
+        xml = unparse(obj)
+        self.assertEqual(xml, expected_xml)
+
+    def test_mixed_content(self):
+        obj = OrderedDict((
+            ('a', OrderedDict((
+                ('#text', 'before'),
+                ('b', 'text'),
+                ('#text1', 'after'),
+            ))),
+        ))
+        expected_xml = '<?xml version="1.0" encoding="utf-8"?>\n<a>before<b>text</b>after</a>'
+        xml = unparse(obj)
+        self.assertEqual(xml, expected_xml)
+
+    def test_multiple_comments(self):
+        obj = OrderedDict((
+            ('a', OrderedDict((
+                ('#comment', '1st'),
+                ('b', 'text'),
+                ('#comment1', '2nd'),
+            ))),
+        ))
+        # we expect comments to be ignored in the output
+        expected_xml = '<?xml version="1.0" encoding="utf-8"?>\n<a><b>text</b></a>'
+        xml = unparse(obj)
+        self.assertEqual(xml, expected_xml)

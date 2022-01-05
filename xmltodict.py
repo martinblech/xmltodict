@@ -51,7 +51,8 @@ class _DictSAXHandler(object):
                  namespace_separator=':',
                  namespaces=None,
                  force_list=None,
-                 comment_key='#comment'):
+                 comment_key='#comment',
+                 mixed_content=False):
         self.path = []
         self.stack = []
         self.data = []
@@ -71,6 +72,7 @@ class _DictSAXHandler(object):
         self.namespace_declarations = OrderedDict()
         self.force_list = force_list
         self.comment_key = comment_key
+        self.mixed_content = mixed_content
 
     def _build_name(self, full_name):
         if self.namespaces is None:
@@ -97,6 +99,20 @@ class _DictSAXHandler(object):
         self.namespace_declarations[prefix or ''] = uri
 
     def startElement(self, full_name, attrs):
+        # if a new element starts in mixed_content modus, we should chek if there is ongoing data
+        if self.mixed_content and len(self.data):  # a new element starts within the content of another --> mixed content model
+            # we should close up the previous
+            data = self.cdata_separator.join(self.data)
+            if self.strip_whitespace:
+                data = data.strip()
+            if len(data):  # doesn't make sense to push empty string through
+                item = self.item
+                if item is None:
+                    item = self.dict_constructor()
+                print(f"pushing cdata {data}")
+                self.item = self.push_data(item, self.cdata_key, data)
+            self.data=[]
+
         name = self._build_name(full_name)
         attrs = self._attrs_to_dict(attrs)
         if attrs and self.namespace_declarations:
@@ -152,6 +168,7 @@ class _DictSAXHandler(object):
             self.data = []
         self.path.pop()
 
+
     def characters(self, data):
         if not self.data:
             self.data = [data]
@@ -172,6 +189,11 @@ class _DictSAXHandler(object):
         if item is None:
             item = self.dict_constructor()
         try:
+            # alter the key for split comments and cdata (supporting mixed content)
+            if key == self.cdata_key or key == self.comment_key:
+                prevkeys = [k for k in item.keys() if k.startswith(key)]
+                key = key if len(prevkeys) == 0 else key + str(len(prevkeys))
+
             value = item[key]
             if isinstance(value, list):
                 value.append(data)
@@ -401,7 +423,19 @@ def _emit(key, value, content_handler,
           namespace_separator=':',
           namespaces=None,
           full_document=True,
-          expand_iter=None):
+          expand_iter=None,
+          comment_key='#comment',
+          first=False,
+    ):
+    # handle cdata as a special kind of child
+    if key.startswith(cdata_key):
+        content_handler.characters(value)
+        return
+    # else
+    if pretty:
+        if first and depth>0:
+            content_handler.ignorableWhitespace(newl)
+
     key = _process_namespace(key, namespaces, namespace_separator, attr_prefix)
     if preprocessor is not None:
         result = preprocessor(key, value)
@@ -429,13 +463,12 @@ def _emit(key, value, content_handler,
                 v = _unicode(v)
         if isinstance(v, _basestring):
             v = OrderedDict(((cdata_key, v),))
-        cdata = None
         attrs = OrderedDict()
         children = []
         for ik, iv in v.items():
-            if ik == cdata_key:
-                cdata = iv
-                continue
+            if ik.startswith(comment_key):
+                # content_handler.comments(iv)  # standard XMLGenerator does not handle lexical events
+                continue # but at least we should avoid emitting these
             if ik.startswith(attr_prefix):
                 ik = _process_namespace(ik, namespaces, namespace_separator,
                                         attr_prefix)
@@ -452,18 +485,17 @@ def _emit(key, value, content_handler,
         if pretty:
             content_handler.ignorableWhitespace(depth * indent)
         content_handler.startElement(key, AttributesImpl(attrs))
-        if pretty and children:
-            content_handler.ignorableWhitespace(newl)
+        first = True
         for child_key, child_value in children:
             _emit(child_key, child_value, content_handler,
                   attr_prefix, cdata_key, depth+1, preprocessor,
                   pretty, newl, indent, namespaces=namespaces,
                   namespace_separator=namespace_separator,
-                  expand_iter=expand_iter)
-        if cdata is not None:
-            content_handler.characters(cdata)
+                  expand_iter=expand_iter, comment_key=comment_key, first=first)
+            first = False
         if pretty and children:
-            content_handler.ignorableWhitespace(depth * indent)
+            if not (len(children)==1 and children[0][0] == cdata_key):
+                content_handler.ignorableWhitespace(depth * indent)
         content_handler.endElement(key)
         if pretty and depth:
             content_handler.ignorableWhitespace(newl)

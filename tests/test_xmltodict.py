@@ -449,3 +449,43 @@ class XMLToDictTestCase(unittest.TestCase):
             }
         }
         self.assertEqual(parse(xml, process_comments=True), expectedResult)
+
+    def test_multiple_comments(self):
+        xml = """
+        <a>
+          <b>
+            <!-- 1st comment -->
+            <c>1</c>
+            <!-- 2nd comment -->
+            <d>2</d>
+          </b>
+        </a>
+        """
+        expectedResult = {
+            'a': {
+                'b': {
+                    '#comment': '1st comment',
+                    'c': '1',
+                    '#comment1': '2nd comment',
+                    'd': '2',
+                },
+            }
+        }
+        import json
+        print(json.dumps(parse(xml, process_comments=True)))
+        self.assertEqual(parse(xml, process_comments=True), expectedResult)
+
+    def test_mixed_content(self):
+        xml = """
+        <a>prefix text<b>nested element text</b>suffix text</a>
+        """
+        expectedResult = {
+            'a': {
+                '#text': 'prefix text',
+                'b': 'nested element text',
+                '#text1': 'suffix text',
+            }
+        }
+        import json
+        print(json.dumps(parse(xml, mixed_content=True)))
+        self.assertEqual(parse(xml, mixed_content=True), expectedResult)
