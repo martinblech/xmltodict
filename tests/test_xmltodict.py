@@ -477,13 +477,13 @@ class XMLToDictTestCase(unittest.TestCase):
 
     def test_mixed_content(self):
         xml = """
-        <a>prefix text<b>nested element text</b>suffix text</a>
+        <a>prefix text <b>nested element text</b> suffix text</a>
         """
         expectedResult = {
             'a': {
-                '#text': 'prefix text',
+                '#text': 'prefix text ',
                 'b': 'nested element text',
-                '#text1': 'suffix text',
+                '#text1': ' suffix text',
             }
         }
         import json

@@ -102,9 +102,7 @@ class _DictSAXHandler(object):
         # if a new element starts in mixed_content modus, we should chek if there is ongoing data
         if self.mixed_content and len(self.data):  # a new element starts within the content of another --> mixed content model
             # we should close up the previous
-            data = self.cdata_separator.join(self.data)
-            if self.strip_whitespace:
-                data = data.strip()
+            data = self.cdata_separator.join(self.data) # note: never strip spaces when dealing with mixed_content
             if len(data):  # doesn't make sense to push empty string through
                 item = self.item
                 if item is None:
@@ -152,12 +150,16 @@ class _DictSAXHandler(object):
                     else self.cdata_separator.join(self.data))
             item = self.item
             self.item, self.data = self.stack.pop()
+            if self.mixed_content:
+                unstripped_data = data or None
             if self.strip_whitespace and data:
                 data = data.strip() or None
             if data and self.force_cdata and item is None:
                 item = self.dict_constructor()
             if item is not None:
-                if data:
+                if self.mixed_content and unstripped_data:
+                    self.push_data(item, self.cdata_key, unstripped_data)
+                elif data:
                     self.push_data(item, self.cdata_key, data)
                 self.item = self.push_data(self.item, name, item)
             else:
