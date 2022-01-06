@@ -109,7 +109,6 @@ class _DictSAXHandler(object):
                 item = self.item
                 if item is None:
                     item = self.dict_constructor()
-                print(f"pushing cdata {data}")
                 self.item = self.push_data(item, self.cdata_key, data)
             self.data=[]
 
