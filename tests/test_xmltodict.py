@@ -190,18 +190,18 @@ class XMLToDictTestCase(unittest.TestCase):
         </root>
         """
         d = {
-            'http://defaultns.com/:root': {
-                'http://defaultns.com/:x': {
+            'http://defaultns.com/|root': {
+                'http://defaultns.com/|x': {
                     '@xmlns': {
                         '': 'http://defaultns.com/',
                         'a': 'http://a.com/',
                         'b': 'http://b.com/',
                     },
-                    '@http://a.com/:attr': 'val',
+                    '@http://a.com/|attr': 'val',
                     '#text': '1',
                 },
-                'http://a.com/:y': '2',
-                'http://b.com/:z': '3',
+                'http://a.com/|y': '2',
+                'http://b.com/|z': '3',
             }
         }
         res = parse(xml, process_namespaces=True)
@@ -229,11 +229,11 @@ class XMLToDictTestCase(unittest.TestCase):
                         'a': 'http://a.com/',
                         'b': 'http://b.com/',
                     },
-                    '@ns_a:attr': 'val',
+                    '@ns_a|attr': 'val',
                     '#text': '1',
                 },
-                'ns_a:y': '2',
-                'http://b.com/:z': '3',
+                'ns_a|y': '2',
+                'http://b.com/|z': '3',
             },
         }
         res = parse(xml, process_namespaces=True, namespaces=namespaces)

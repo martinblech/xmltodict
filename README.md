@@ -48,10 +48,10 @@ By default, `xmltodict` does no XML namespace processing (it just treats namespa
 ... </root>
 ... """
 >>> xmltodict.parse(xml, process_namespaces=True) == {
-...     'http://defaultns.com/:root': {
-...         'http://defaultns.com/:x': '1',
-...         'http://a.com/:y': '2',
-...         'http://b.com/:z': '3',
+...     'http://defaultns.com/|root': {
+...         'http://defaultns.com/|x': '1',
+...         'http://a.com/|y': '2',
+...         'http://b.com/|z': '3',
 ...     }
 ... }
 True
@@ -67,8 +67,8 @@ It also lets you collapse certain namespaces to shorthand prefixes, or skip them
 >>> xmltodict.parse(xml, process_namespaces=True, namespaces=namespaces) == {
 ...     'root': {
 ...         'x': '1',
-...         'ns_a:y': '2',
-...         'http://b.com/:z': '3',
+...         'ns_a|y': '2',
+...         'http://b.com/|z': '3',
 ...     },
 ... }
 True

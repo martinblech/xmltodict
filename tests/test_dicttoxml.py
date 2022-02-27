@@ -178,18 +178,18 @@ class DictToXMLTestCase(unittest.TestCase):
 
     def test_namespace_support(self):
         obj = OrderedDict((
-            ('http://defaultns.com/:root', OrderedDict((
+            ('http://defaultns.com/|root', OrderedDict((
                 ('@xmlns', OrderedDict((
                     ('', 'http://defaultns.com/'),
                     ('a', 'http://a.com/'),
                     ('b', 'http://b.com/'),
                 ))),
-                ('http://defaultns.com/:x', OrderedDict((
-                    ('@http://a.com/:attr', 'val'),
+                ('http://defaultns.com/|x', OrderedDict((
+                    ('@http://a.com/|attr', 'val'),
                     ('#text', '1'),
                 ))),
-                ('http://a.com/:y', '2'),
-                ('http://b.com/:z', '3'),
+                ('http://a.com/|y', '2'),
+                ('http://b.com/|z', '3'),
             ))),
         ))
         ns = {
