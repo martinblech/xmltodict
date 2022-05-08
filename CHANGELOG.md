@@ -1,6 +1,32 @@
 CHANGELOG
 =========
 
+v0.13.0
+-------
+
+* Add install info to readme for openSUSE. (#205)
+  * Thanks, @smarlowucf!
+* Support defaultdict for namespace mapping (#211)
+  * Thanks, @nathanalderson!
+* parse(generator) is now possible (#212)
+  * Thanks, @xandey!
+* Processing comments on parsing from xml to dict (connected to #109) (#221)
+  * Thanks, @svetazol!
+* Add expand_iter kw to unparse to expand iterables (#213)
+  * Thanks, @claweyenuk!
+* Fixed some typos
+  * Thanks, @timgates42 and @kianmeng!
+* Add support for python3.8
+  * Thanks, @t0b3!
+* Drop Jython/Python 2 and add Python 3.9/3.10.
+* Drop OrderedDict in Python >= 3.7
+* Do not use len() to determine if a sequence is empty
+  * Thanks, @DimitriPapadopoulos!
+* Add more namespace attribute tests
+  * Thanks, @leogregianin!
+* Fix encoding issue in setup.py
+  * Thanks, @rjarry!
+
 v0.12.0
 -------
 
