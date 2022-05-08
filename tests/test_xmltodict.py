@@ -457,3 +457,21 @@ class XMLToDictTestCase(unittest.TestCase):
             }
         }
         self.assertEqual(parse(xml, process_comments=True), expectedResult)
+
+    def test_streaming_attrs(self):
+        xml = """
+        <a>
+            <b attr1="value">
+                <c>cdata</c>
+            </b>
+        </a>
+        """
+        def handler(path, item):
+            expected = {
+                '@attr1': 'value',
+                'c': 'cdata'
+            }
+            self.assertEqual(expected, item)
+            return True
+
+        parse(xml, item_depth=2, item_callback=handler)
