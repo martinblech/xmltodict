@@ -1,26 +1,15 @@
 language: python
 
 python:
-  - "2.7"
   - "3.4"
   - "3.5"
   - "3.6"
   - "3.7"
+  - "3.8"
+  - "3.9"
+  - "3.10-dev"
   - "pypy"
 
-script: nosetests -vv --with-coverage --cover-package=xmltodict
+install: pip install nose2
 
-jobs:
-  include:
-    - python: "3.8"
-      dist: bionic
-    - name: "Jython"
-      python: "pypy"
-      env: JYTHON_VERSION="2.7.0"
-      before_install:
-        - export JYTHON_URL="http://search.maven.org/remotecontent?filepath=org/python/jython-installer/${JYTHON_VERSION}/jython-installer-${JYTHON_VERSION}.jar"
-        - wget $JYTHON_URL -O jython_installer.jar
-        - java -jar jython_installer.jar -s -d $HOME/jython
-        - export PATH="$HOME/jython:$PATH"
-        - $HOME/jython/bin/easy_install nose
-      script: $HOME/jython/bin/nosetests
+script: nose2 -vv --coverage=xmltodict.py
