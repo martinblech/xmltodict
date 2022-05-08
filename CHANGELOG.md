@@ -1,6 +1,10 @@
 CHANGELOG
 =========
 
+Unreleased
+----------
+* Allow convert_values=True for converting dictionary values from strings
+
 v0.12.0
 -------
 
