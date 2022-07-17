@@ -409,9 +409,7 @@ def _emit(key, value, content_handler,
         if result is None:
             return
         key, value = result
-    if (not hasattr(value, '__iter__')
-            or isinstance(value, _basestring)
-            or isinstance(value, dict)):
+    if not hasattr(value, '__iter__') or isinstance(value, (_basestring, dict)):
         value = [value]
     for index, v in enumerate(value):
         if full_document and depth == 0 and index > 0:
