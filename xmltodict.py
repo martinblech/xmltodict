@@ -22,14 +22,6 @@ if tuple(map(int, platform.python_version_tuple()[:2])) < (3, 7):
 
 from inspect import isgenerator
 
-try:  # pragma no cover
-    _basestring = basestring
-except NameError:  # pragma no cover
-    _basestring = str
-try:  # pragma no cover
-    _unicode = unicode
-except NameError:  # pragma no cover
-    _unicode = str
 
 __author__ = 'Martin Blech'
 __version__ = '0.13.0'
@@ -335,7 +327,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     """
     handler = _DictSAXHandler(namespace_separator=namespace_separator,
                               **kwargs)
-    if isinstance(xml_input, _unicode):
+    if isinstance(xml_input, str):
         if not encoding:
             encoding = 'utf-8'
         xml_input = xml_input.encode(encoding)
@@ -413,7 +405,7 @@ def _emit(key, value, content_handler,
             return
         key, value = result
     if (not hasattr(value, '__iter__')
-            or isinstance(value, _basestring)
+            or isinstance(value, str)
             or isinstance(value, dict)):
         value = [value]
     for index, v in enumerate(value):
@@ -427,11 +419,11 @@ def _emit(key, value, content_handler,
             else:
                 v = _unicode('false')
         elif not isinstance(v, dict):
-            if expand_iter and hasattr(v, '__iter__') and not isinstance(v, _basestring):
+            if expand_iter and hasattr(v, '__iter__') and not isinstance(v, str):
                 v = _dict(((expand_iter, v),))
             else:
-                v = _unicode(v)
-        if isinstance(v, _basestring):
+                v = str(v)
+        if isinstance(v, str):
             v = _dict(((cdata_key, v),))
         cdata = None
         attrs = _dict()
@@ -446,12 +438,12 @@ def _emit(key, value, content_handler,
                 if ik == '@xmlns' and isinstance(iv, dict):
                     for k, v in iv.items():
                         attr = 'xmlns{}'.format(':{}'.format(k) if k else '')
-                        attrs[attr] = _unicode(v)
+                        attrs[attr] = str(v)
                     continue
                 if isinstance(iv, bool):
                     iv = "true" if iv else "false"
-                if not isinstance(iv, _unicode):
-                    iv = _unicode(iv)
+                if not isinstance(iv, str):
+                    iv = str(iv)
                 attrs[ik[len(attr_prefix):]] = iv
                 continue
             children.append((ik, iv))
