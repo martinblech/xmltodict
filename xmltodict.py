@@ -448,6 +448,8 @@ def _emit(key, value, content_handler,
                         attr = 'xmlns{}'.format(':{}'.format(k) if k else '')
                         attrs[attr] = _unicode(v)
                     continue
+                if isinstance(iv, bool):
+                    iv = "true" if iv else "false"
                 if not isinstance(iv, _unicode):
                     iv = _unicode(iv)
                 attrs[ik[len(attr_prefix):]] = iv
