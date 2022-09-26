@@ -449,7 +449,7 @@ def _emit(key, value, content_handler,
                         attrs[attr] = _unicode(v)
                     continue
                 if isinstance(iv, bool):
-                    iv = "true" if iv else "false"
+                    iv = _unicode("true") if iv else _unicode("false")
                 if not isinstance(iv, _unicode):
                     iv = _unicode(iv)
                 attrs[ik[len(attr_prefix):]] = iv
