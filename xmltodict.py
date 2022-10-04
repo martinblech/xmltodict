@@ -8,7 +8,14 @@ except ImportError:
 from xml.sax.saxutils import XMLGenerator
 from xml.sax.xmlreader import AttributesImpl
 from io import StringIO
+
+_dict = dict
+import platform
+if tuple(map(int, platform.python_version_tuple()[:2])) < (3, 7):
+    from collections import OrderedDict as _dict
+
 from inspect import isgenerator
+
 
 
 __author__ = 'Martin Blech'
@@ -30,7 +37,7 @@ class _DictSAXHandler(object):
                  force_cdata=False,
                  cdata_separator='',
                  postprocessor=None,
-                 dict_constructor=dict,
+                 dict_constructor=_dict,
                  strip_whitespace=True,
                  namespace_separator=':',
                  namespaces=None,
@@ -400,18 +407,18 @@ def _emit(key, value, content_handler,
         if full_document and depth == 0 and index > 0:
             raise ValueError('document with multiple roots')
         if v is None:
-            v = dict()
+            v = _dict()
         elif isinstance(v, bool):
             v = 'true' if v else 'false'
         elif not isinstance(v, dict):
             if expand_iter and hasattr(v, '__iter__') and not isinstance(v, str):
-                v = dict(((expand_iter, v),))
+                v = _dict(((expand_iter, v),))
             else:
                 v = str(v)
         if isinstance(v, str):
-            v = dict(((cdata_key, v),))
+            v = _dict(((cdata_key, v),))
         cdata = None
-        attrs = dict()
+        attrs = _dict()
         children = []
         for ik, iv in v.items():
             if ik == cdata_key:
