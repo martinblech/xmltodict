@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"Makes working with XML feel like you are working with JSON"
+"""Makes working with XML feel like you are working with JSON"""
 
 try:
     from defusedexpat import pyexpat as expat
@@ -414,10 +414,7 @@ def _emit(key, value, content_handler,
         if v is None:
             v = _dict()
         elif isinstance(v, bool):
-            if v:
-                v = _unicode('true')
-            else:
-                v = _unicode('false')
+            v = 'true' if v else 'false'
         elif not isinstance(v, dict):
             if expand_iter and hasattr(v, '__iter__') and not isinstance(v, str):
                 v = _dict(((expand_iter, v),))
