@@ -110,7 +110,7 @@ def archive_context(filename):
         try:
             with ContextualZipFile(filename) as archive:
                 archive.extractall()
-        except zipfile.BadZipfile as err:
+        except zipfile.BadZipFile as err:
             if not err.args:
                 err.args = ('', )
             err.args = err.args + (
