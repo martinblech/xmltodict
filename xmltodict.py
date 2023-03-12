@@ -476,7 +476,7 @@ def _emit(key, value, content_handler,
 
 
 def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
-            short_empty_elements=False,
+            short_empty_elements=False, content_handler_cls=None,
             **kwargs):
     """Emit an XML document for the given `input_dict` (reverse of `parse`).
 
@@ -498,10 +498,12 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
     if output is None:
         output = StringIO()
         must_return = True
+    if content_handler_cls is None:
+        content_handler_cls = XMLGenerator
     if short_empty_elements:
-        content_handler = XMLGenerator(output, encoding, True)
+        content_handler = content_handler_cls(output, encoding, True)
     else:
-        content_handler = XMLGenerator(output, encoding)
+        content_handler = content_handler_cls(output, encoding)
     if full_document:
         content_handler.startDocument()
     for key, value in input_dict.items():
