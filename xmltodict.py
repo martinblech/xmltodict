@@ -175,17 +175,17 @@ class _DictSAXHandler(object):
             key, data = result
         if item is None:
             item = self.dict_constructor()
-        try:
-            value = item[key]
-            if isinstance(value, list):
-                value.append(data)
-            else:
-                item[key] = [value, data]
-        except KeyError:
+        not_present = object() # guaranteed to not be in <item>
+        value = item.get(key, not_present)
+        if value is not_present:
             if self._should_force_list(key, data):
                 item[key] = [data]
             else:
                 item[key] = data
+        elif isinstance(value, list):
+            value.append(data)
+        else:
+            item[key] = [value, data]
         return item
 
     def _should_force_list(self, key, value):
