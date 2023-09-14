@@ -40,7 +40,7 @@ class ParsingInterrupted(Exception):
     pass
 
 
-class _DictSAXHandler(object):
+class _DictSAXHandler:
     def __init__(self,
                  item_depth=0,
                  item_callback=lambda *args: True,
