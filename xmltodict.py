@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 "Makes working with XML feel like you are working with JSON"
 
-try:
-    from defusedexpat import pyexpat as expat
-except ImportError:
-    from xml.parsers import expat
+from xml.parsers import expat
 from xml.sax.saxutils import XMLGenerator
 from xml.sax.xmlreader import AttributesImpl
 try:  # pragma no cover
@@ -40,7 +37,7 @@ class ParsingInterrupted(Exception):
     pass
 
 
-class _DictSAXHandler(object):
+class _DictSAXHandler:
     def __init__(self,
                  item_depth=0,
                  item_callback=lambda *args: True,
