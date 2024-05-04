@@ -4,13 +4,8 @@
 from xml.parsers import expat
 from xml.sax.saxutils import XMLGenerator
 from xml.sax.xmlreader import AttributesImpl
-try:  # pragma no cover
-    from cStringIO import StringIO
-except ImportError:  # pragma no cover
-    try:
-        from StringIO import StringIO
-    except ImportError:
-        from io import StringIO
+from io import StringIO
+
 
 _dict = dict
 import platform
