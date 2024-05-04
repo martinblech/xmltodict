@@ -448,7 +448,7 @@ def _emit(key, value, content_handler,
                 attrs[ik[len(attr_prefix):]] = iv
                 continue
             children.append((ik, iv))
-        if type(indent) is int:
+        if isinstance(indent, int):
             indent = ' ' * indent
         if pretty:
             content_handler.ignorableWhitespace(depth * indent)
