@@ -52,6 +52,7 @@ class _DictSAXHandler:
                  namespace_separator=':',
                  namespaces=None,
                  force_list=None,
+                 force_seperate_dict=None,
                  comment_key='#comment'):
         self.path = []
         self.stack = []
@@ -71,6 +72,7 @@ class _DictSAXHandler:
         self.namespaces = namespaces
         self.namespace_declarations = dict_constructor()
         self.force_list = force_list
+        self.force_seperate_dict = force_seperate_dict
         self.comment_key = comment_key
 
     def _build_name(self, full_name):
@@ -170,30 +172,47 @@ class _DictSAXHandler:
             if result is None:
                 return item
             key, data = result
+
         if item is None:
-            item = self.dict_constructor()
-        try:
-            value = item[key]
-            if isinstance(value, list):
-                value.append(data)
+            if self._should_force_seperate_dict(key, data):
+                item = []
             else:
-                item[key] = [value, data]
-        except KeyError:
-            if self._should_force_list(key, data):
-                item[key] = [data]
-            else:
-                item[key] = data
+                item = self.dict_constructor()
+        elif isinstance(item, dict) and self._should_force_seperate_dict(key, data):
+            item = [{k: v} for k, v in item.items()]
+
+        if isinstance(item, list):
+            item.append({key: data})
+        else:
+            try:
+                value = item[key]
+                if isinstance(value, list):
+                    value.append(data)
+                else:
+                    item[key] = [value, data]
+            except KeyError:
+                if self._should_force_list(key, data):
+                    item[key] = [data]
+                else:
+                    item[key] = data
         return item
 
-    def _should_force_list(self, key, value):
-        if not self.force_list:
+    @staticmethod
+    def _is_true_or_returns_true(handler, boolean_or_callable, key, value):
+        if not boolean_or_callable:
             return False
-        if isinstance(self.force_list, bool):
-            return self.force_list
+        if isinstance(boolean_or_callable, bool):
+            return boolean_or_callable
         try:
-            return key in self.force_list
+            return key in boolean_or_callable
         except TypeError:
-            return self.force_list(self.path[:-1], key, value)
+            return boolean_or_callable(handler.path[:-1], key, value)
+
+    def _should_force_seperate_dict(self, key, value):
+        return self._is_true_or_returns_true(self, self.force_seperate_dict, key, value)
+
+    def _should_force_list(self, key, value):
+        return self._is_true_or_returns_true(self, self.force_list, key, value)
 
 
 def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
