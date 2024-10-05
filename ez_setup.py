@@ -245,8 +245,7 @@ def download_file_powershell(url, target):
     ps_cmd = (
         "[System.Net.WebRequest]::DefaultWebProxy.Credentials = "
         "[System.Net.CredentialCache]::DefaultCredentials; "
-        '(new-object System.Net.WebClient).DownloadFile("%(url)s", "%(target)s")'
-        % locals()
+        '(new-object System.Net.WebClient).DownloadFile("{url}", "{target}")'.format(**locals())
     )
     cmd = [
         'powershell',
@@ -346,7 +345,7 @@ def download_setuptools(
     """
     # making sure we use the absolute path
     to_dir = os.path.abspath(to_dir)
-    zip_name = "setuptools-%s.zip" % version
+    zip_name = "setuptools-{}.zip".format(version)
     url = download_base + zip_name
     saveto = os.path.join(to_dir, zip_name)
     if not os.path.exists(saveto):  # Avoid repeated downloads
