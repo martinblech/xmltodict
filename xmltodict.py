@@ -440,7 +440,7 @@ def _emit(key, value, content_handler,
                                         attr_prefix)
                 if ik == '@xmlns' and isinstance(iv, dict):
                     for k, v in iv.items():
-                        attr = 'xmlns{}'.format(':{}'.format(k) if k else '')
+                        attr = 'xmlns{}'.format(f':{k}' if k else '')
                         attrs[attr] = _unicode(v)
                     continue
                 if not isinstance(iv, _unicode):
