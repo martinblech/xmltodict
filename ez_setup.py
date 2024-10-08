@@ -388,8 +388,7 @@ def _parse_args():
         help="Directory to save (and re-use) package",
         default=DEFAULT_SAVE_DIR,
     )
-    options, args = parser.parse_args()
-    # positional arguments are ignored
+    options, _ = parser.parse_args()
     return options
 
 
