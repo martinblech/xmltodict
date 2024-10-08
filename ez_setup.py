@@ -132,7 +132,7 @@ def archive_context(filename):
 def _do_download(version, download_base, to_dir, download_delay):
     """Download Setuptools."""
     py_desig = f'py{sys.version_info[0]}.{sys.version_info[1]}'
-    tp = 'setuptools-{version}-{py_desig}.egg'
+    tp = f'setuptools-{version}-{py_desig}.egg'
     egg = os.path.join(to_dir, tp.format(**locals()))
     if not os.path.exists(egg):
         archive = download_setuptools(version, download_base,
@@ -193,7 +193,7 @@ def _conflict_bail(VC_err, version):
     Setuptools was imported prior to invocation, so it is
     unsafe to unload it. Bail out.
     """
-    conflict_tmpl = textwrap.dedent("""
+    conflict_tmpl = textwrap.dedent(f"""
         The required version of setuptools (>={version}) is not available,
         and can't be installed while this script is running. Please
         install a more recent version first, using
