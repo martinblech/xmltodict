@@ -63,11 +63,14 @@ class DictToXMLTestCase(unittest.TestCase):
         assert unparse(lazy_obj()) == unparse(parse(unparse(lazy_obj())))
 
     def test_no_root(self):
-        self.assertRaises(ValueError, unparse, {})
+        with pytest.raises(ValueError):
+              unparse({})
 
     def test_multiple_roots(self):
-        self.assertRaises(ValueError, unparse, {'a': '1', 'b': '2'})
-        self.assertRaises(ValueError, unparse, {'a': ['1', '2', '3']})
+        with pytest.raises(ValueError):
+            unparse({'a': '1', 'b': '2'})
+        with pytest.raises(ValueError):
+            unparse({'a': ['1', '2', '3']})
 
     def test_no_root_nofulldoc(self):
         assert unparse({}, full_document=False) == ''

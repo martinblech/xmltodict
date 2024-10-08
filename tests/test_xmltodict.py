@@ -92,9 +92,9 @@ class XMLToDictTestCase(unittest.TestCase):
 
     def test_streaming_interrupt(self):
         cb = lambda path, item: False
-        self.assertRaises(ParsingInterrupted,
-                          parse, '<a>x</a>',
-                          item_depth=1, item_callback=cb)
+
+        with pytest.raises(ParsingInterrupted):
+            parse('<a>x</a>', item_depth=1, item_callback=cb)
 
     def test_streaming_generator(self):
         def cb(path, item):
