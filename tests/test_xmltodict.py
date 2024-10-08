@@ -168,14 +168,14 @@ class XMLToDictTestCase(unittest.TestCase):
         except NameError:
             value = chr(39321)
         self.assertEqual({'a': value},
-                         parse('<a>%s</a>' % value))
+                         parse(f'<a>{value}</a>'))
 
     def test_encoded_string(self):
         try:
             value = unichr(39321)
         except NameError:
             value = chr(39321)
-        xml = '<a>%s</a>' % value
+        xml = f'<a>{value}</a>'
         self.assertEqual(parse(xml),
                          parse(xml.encode('utf-8')))
 
