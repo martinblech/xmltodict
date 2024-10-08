@@ -14,7 +14,7 @@ v0.14.0
   * Thanks, @hanno!
 * Replace deprecated BadZipfile with BadZipFile.
   * Thanks, @hugovk!
-* Support indent using interger format, enable `python -m unittest tests/*.py`.
+* Support indent using integer format, enable `python -m unittest tests/*.py`.
   * Thanks, @hiiwave!
 * Ensure significant whitespace is not trimmed
   * Thanks, @trey.franklin!

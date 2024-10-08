@@ -385,7 +385,7 @@ def _parse_args():
     )
     parser.add_option(
         '--to-dir',
-        help="Directory to save (and re-use) package",
+        help="Directory to save (and reuse) package",
         default=DEFAULT_SAVE_DIR,
     )
     options, args = parser.parse_args()
