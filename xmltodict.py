@@ -6,7 +6,6 @@ from xml.sax.saxutils import XMLGenerator
 from xml.sax.xmlreader import AttributesImpl
 from io import StringIO
 
-
 _dict = dict
 import platform
 if tuple(map(int, platform.python_version_tuple()[:2])) < (3, 7):
