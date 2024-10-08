@@ -1,6 +1,30 @@
 CHANGELOG
 =========
 
+v0.14.0
+-------
+
+* Drop old Python 2 support leftover code and apply several RUFF code health fixes.
+  * Thanks, @DimitriPapadopoulos!
+* Add Python 3.11, 3.12 and 3.13 support and tests.
+  * Thanks, @angvp!
+* Tests in gh-action.
+  * Thanks, @almaz.kun!
+* Remove defusedexpat import.
+  * Thanks, @hanno!
+* Replace deprecated BadZipfile with BadZipFile.
+  * Thanks, @hugovk!
+* Support indent using interger format, enable `python -m unittest tests/*.py`.
+  * Thanks, @hiiwave!
+* Ensure significant whitespace is not trimmed
+  * Thanks, @trey.franklin!
+* added conda installation command
+  * Thanks, @sugatoray!
+* fix attributes not appearing in streaming mode
+  * Thanks, @timnguyen001! 
+* Fix Travis CI status badge URL
+* Update push_release.sh to use twine.
+
 v0.13.0
 -------
 
