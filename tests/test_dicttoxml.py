@@ -18,33 +18,33 @@ def _strip(fullxml):
 class DictToXMLTestCase(unittest.TestCase):
     def test_root(self):
         obj = {'a': None}
-        self.assertEqual(obj, parse(unparse(obj)))
-        self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
+        assert obj == parse(unparse(obj))
+        assert unparse(obj) == unparse(parse(unparse(obj)))
 
     def test_simple_cdata(self):
         obj = {'a': 'b'}
-        self.assertEqual(obj, parse(unparse(obj)))
-        self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
+        assert obj == parse(unparse(obj))
+        assert unparse(obj) == unparse(parse(unparse(obj)))
 
     def test_cdata(self):
         obj = {'a': {'#text': 'y'}}
-        self.assertEqual(obj, parse(unparse(obj), force_cdata=True))
-        self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
+        assert obj == parse(unparse(obj), force_cdata=True)
+        assert unparse(obj) == unparse(parse(unparse(obj)))
 
     def test_attrib(self):
         obj = {'a': {'@href': 'x'}}
-        self.assertEqual(obj, parse(unparse(obj)))
-        self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
+        assert obj == parse(unparse(obj))
+        assert unparse(obj) == unparse(parse(unparse(obj)))
 
     def test_attrib_and_cdata(self):
         obj = {'a': {'@href': 'x', '#text': 'y'}}
-        self.assertEqual(obj, parse(unparse(obj)))
-        self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
+        assert obj == parse(unparse(obj))
+        assert unparse(obj) == unparse(parse(unparse(obj)))
 
     def test_list(self):
         obj = {'a': {'b': ['1', '2', '3']}}
-        self.assertEqual(obj, parse(unparse(obj)))
-        self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
+        assert obj == parse(unparse(obj))
+        assert unparse(obj) == unparse(parse(unparse(obj)))
 
     def test_list_expand_iter(self):
         obj = {'a': {'b': [['1', '2'], ['3',]]}}
@@ -52,16 +52,15 @@ class DictToXMLTestCase(unittest.TestCase):
         exp_xml = dedent('''\
         <?xml version="1.0" encoding="utf-8"?>
         <a><b><item>1</item><item>2</item></b><b><item>3</item></b></a>''')
-        self.assertEqual(exp_xml, unparse(obj, expand_iter="item"))
+        assert exp_xml == unparse(obj, expand_iter='item')
 
     def test_generator(self):
         obj = {'a': {'b': ['1', '2', '3']}}
 
         def lazy_obj():
             return {'a': {'b': (i for i in ('1', '2', '3'))}}
-        self.assertEqual(obj, parse(unparse(lazy_obj())))
-        self.assertEqual(unparse(lazy_obj()),
-                         unparse(parse(unparse(lazy_obj()))))
+        assert obj == parse(unparse(lazy_obj()))
+        assert unparse(lazy_obj()) == unparse(parse(unparse(lazy_obj())))
 
     def test_no_root(self):
         self.assertRaises(ValueError, unparse, {})
@@ -71,28 +70,27 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertRaises(ValueError, unparse, {'a': ['1', '2', '3']})
 
     def test_no_root_nofulldoc(self):
-        self.assertEqual(unparse({}, full_document=False), '')
+        assert unparse({}, full_document=False) == ''
 
     def test_multiple_roots_nofulldoc(self):
         obj = OrderedDict((('a', 1), ('b', 2)))
         xml = unparse(obj, full_document=False)
-        self.assertEqual(xml, '<a>1</a><b>2</b>')
+        assert xml == '<a>1</a><b>2</b>'
         obj = {'a': [1, 2]}
         xml = unparse(obj, full_document=False)
-        self.assertEqual(xml, '<a>1</a><a>2</a>')
+        assert xml == '<a>1</a><a>2</a>'
 
     def test_nested(self):
         obj = {'a': {'b': '1', 'c': '2'}}
-        self.assertEqual(obj, parse(unparse(obj)))
-        self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
+        assert obj == parse(unparse(obj))
+        assert unparse(obj) == unparse(parse(unparse(obj)))
         obj = {'a': {'b': {'c': {'@a': 'x', '#text': 'y'}}}}
-        self.assertEqual(obj, parse(unparse(obj)))
-        self.assertEqual(unparse(obj), unparse(parse(unparse(obj))))
+        assert obj == parse(unparse(obj))
+        assert unparse(obj) == unparse(parse(unparse(obj)))
 
     def test_semistructured(self):
         xml = '<a>abc<d/>efg</a>'
-        self.assertEqual(_strip(unparse(parse(xml))),
-                         '<a><d></d>abcefg</a>')
+        assert _strip(unparse(parse(xml))) == '<a><d></d>abcefg</a>'
 
     def test_preprocessor(self):
         obj = {'a': OrderedDict((('b:int', [1, 2]), ('b', 'c')))}
@@ -104,8 +102,7 @@ class DictToXMLTestCase(unittest.TestCase):
                 pass
             return key, value
 
-        self.assertEqual(_strip(unparse(obj, preprocessor=p)),
-                         '<a><b>1</b><b>2</b><b>c</b></a>')
+        assert _strip(unparse(obj, preprocessor=p)) == '<a><b>1</b><b>2</b><b>c</b></a>'
 
     def test_preprocessor_skipkey(self):
         obj = {'a': {'b': 1, 'c': 2}}
@@ -115,14 +112,13 @@ class DictToXMLTestCase(unittest.TestCase):
                 return None
             return key, value
 
-        self.assertEqual(_strip(unparse(obj, preprocessor=p)),
-                         '<a><c>2</c></a>')
+        assert _strip(unparse(obj, preprocessor=p)) == '<a><c>2</c></a>'
 
     if not IS_JYTHON:
         # Jython's SAX does not preserve attribute order
         def test_attr_order_roundtrip(self):
             xml = '<root a="1" b="2" c="3"></root>'
-            self.assertEqual(xml, _strip(unparse(parse(xml))))
+            assert xml == _strip(unparse(parse(xml)))
 
     def test_pretty_print(self):
         obj = {'a': OrderedDict((
@@ -141,8 +137,7 @@ class DictToXMLTestCase(unittest.TestCase):
         ....<b>3</b>
         ....<x>y</x>
         </a>''')
-        self.assertEqual(xml, unparse(obj, pretty=True,
-                                      newl=newl, indent=indent))
+        assert xml == unparse(obj, pretty=True, newl=newl, indent=indent)
 
     def test_pretty_print_with_int_indent(self):
         obj = {'a': OrderedDict((
@@ -161,8 +156,7 @@ class DictToXMLTestCase(unittest.TestCase):
           <b>3</b>
           <x>y</x>
         </a>''')
-        self.assertEqual(xml, unparse(obj, pretty=True,
-                                      newl=newl, indent=indent))
+        assert xml == unparse(obj, pretty=True, newl=newl, indent=indent)
 
     def test_encoding(self):
         try:
@@ -172,27 +166,26 @@ class DictToXMLTestCase(unittest.TestCase):
         obj = {'a': value}
         utf8doc = unparse(obj, encoding='utf-8')
         latin1doc = unparse(obj, encoding='iso-8859-1')
-        self.assertEqual(parse(utf8doc), parse(latin1doc))
-        self.assertEqual(parse(utf8doc), obj)
+        assert parse(utf8doc) == parse(latin1doc)
+        assert parse(utf8doc) == obj
 
     def test_fulldoc(self):
         xml_declaration_re = re.compile(
             '^' + re.escape('<?xml version="1.0" encoding="utf-8"?>'))
-        self.assertTrue(xml_declaration_re.match(unparse({'a': 1})))
-        self.assertFalse(
-            xml_declaration_re.match(unparse({'a': 1}, full_document=False)))
+        assert xml_declaration_re.match(unparse({'a': 1}))
+        assert not xml_declaration_re.match(unparse({'a': 1}, full_document=False))
 
     def test_non_string_value(self):
         obj = {'a': 1}
-        self.assertEqual('<a>1</a>', _strip(unparse(obj)))
+        assert '<a>1</a>' == _strip(unparse(obj))
 
     def test_non_string_attr(self):
         obj = {'a': {'@attr': 1}}
-        self.assertEqual('<a attr="1"></a>', _strip(unparse(obj)))
+        assert '<a attr="1"></a>' == _strip(unparse(obj))
 
     def test_short_empty_elements(self):
         obj = {'a': None}
-        self.assertEqual('<a/>', _strip(unparse(obj, short_empty_elements=True)))
+        assert '<a/>' == _strip(unparse(obj, short_empty_elements=True))
 
     def test_namespace_support(self):
         obj = OrderedDict((
@@ -221,13 +214,13 @@ class DictToXMLTestCase(unittest.TestCase):
 xmlns:b="http://b.com/"><x a:attr="val">1</x><a:y>2</a:y><b:z>3</b:z></root>'''
         xml = unparse(obj, namespaces=ns)
 
-        self.assertEqual(xml, expected_xml)
+        assert xml == expected_xml
 
     def test_boolean_unparse(self):
         expected_xml = '<?xml version="1.0" encoding="utf-8"?>\n<x>true</x>'
         xml = unparse(dict(x=True))
-        self.assertEqual(xml, expected_xml)
+        assert xml == expected_xml
 
         expected_xml = '<?xml version="1.0" encoding="utf-8"?>\n<x>false</x>'
         xml = unparse(dict(x=False))
-        self.assertEqual(xml, expected_xml)
+        assert xml == expected_xml
