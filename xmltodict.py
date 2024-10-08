@@ -52,6 +52,7 @@ class _DictSAXHandler:
                  namespace_separator=':',
                  namespaces=None,
                  force_list=None,
+                 force_seperate_dict=None,
                  comment_key='#comment'):
         self.path = []
         self.stack = []
@@ -71,6 +72,7 @@ class _DictSAXHandler:
         self.namespaces = namespaces
         self.namespace_declarations = dict_constructor()
         self.force_list = force_list
+        self.force_seperate_dict = force_seperate_dict
         self.comment_key = comment_key
 
     def _build_name(self, full_name):
@@ -170,30 +172,47 @@ class _DictSAXHandler:
             if result is None:
                 return item
             key, data = result
+
         if item is None:
-            item = self.dict_constructor()
-        try:
-            value = item[key]
-            if isinstance(value, list):
-                value.append(data)
+            if self._should_force_seperate_dict(key, data):
+                item = []
             else:
-                item[key] = [value, data]
-        except KeyError:
-            if self._should_force_list(key, data):
-                item[key] = [data]
-            else:
-                item[key] = data
+                item = self.dict_constructor()
+        elif isinstance(item, dict) and self._should_force_seperate_dict(key, data):
+            item = [{k: v} for k, v in item.items()]
+
+        if isinstance(item, list):
+            item.append({key: data})
+        else:
+            try:
+                value = item[key]
+                if isinstance(value, list):
+                    value.append(data)
+                else:
+                    item[key] = [value, data]
+            except KeyError:
+                if self._should_force_list(key, data):
+                    item[key] = [data]
+                else:
+                    item[key] = data
         return item
 
-    def _should_force_list(self, key, value):
-        if not self.force_list:
+    @staticmethod
+    def _is_true_or_returns_true(handler, boolean_or_callable, key, value):
+        if not boolean_or_callable:
             return False
-        if isinstance(self.force_list, bool):
-            return self.force_list
+        if isinstance(boolean_or_callable, bool):
+            return boolean_or_callable
         try:
-            return key in self.force_list
+            return key in boolean_or_callable
         except TypeError:
-            return self.force_list(self.path[:-1], key, value)
+            return boolean_or_callable(handler.path[:-1], key, value)
+
+    def _should_force_seperate_dict(self, key, value):
+        return self._is_true_or_returns_true(self, self.force_seperate_dict, key, value)
+
+    def _should_force_list(self, key, value):
+        return self._is_true_or_returns_true(self, self.force_list, key, value)
 
 
 def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
@@ -409,29 +428,45 @@ def _emit(key, value, content_handler,
         if result is None:
             return
         key, value = result
-    if not hasattr(value, '__iter__') or isinstance(value, (_basestring, dict)):
-        value = [value]
+
+    are_all_children_single_dict = False
+    if isinstance(value, (_basestring, dict)):
+        value = [value] # single child or single dict, both can be hold in single parent
+    elif hasattr(value, '__iter__'): # multiple childs, check if they can have single parent
+        value = [*value] # build a list in case the value is a generator which can only iterate once
+        if all(isinstance(listitem, dict) and len(listitem) == 1 for listitem in value):
+            are_all_children_single_dict = True
+            value = [value] # all are dicts with single key, can use single parent
+        else:
+            pass # other iter types CANNOT be hold in single parent node
+    else:
+        value = [value] # single child
+
     for index, v in enumerate(value):
         if full_document and depth == 0 and index > 0:
             raise ValueError('document with multiple roots')
+
         if v is None:
-            v = _dict()
+            list_key_values = []
+        elif are_all_children_single_dict:
+            list_key_values = [next(iter(item.items())) for item in v]
         elif isinstance(v, bool):
             if v:
-                v = _unicode('true')
+                list_key_values = [(cdata_key, _unicode('true'))]
             else:
-                v = _unicode('false')
-        elif not isinstance(v, dict):
+                list_key_values = [(cdata_key, _unicode('false'))]
+        elif not isinstance(v, dict) :
             if expand_iter and hasattr(v, '__iter__') and not isinstance(v, _basestring):
-                v = _dict(((expand_iter, v),))
+                list_key_values = [(expand_iter, v)]
             else:
-                v = _unicode(v)
-        if isinstance(v, _basestring):
-            v = _dict(((cdata_key, v),))
+                list_key_values = [(cdata_key, _unicode(v))]
+        else:
+            list_key_values = v.items()
+
         cdata = None
         attrs = _dict()
         children = []
-        for ik, iv in v.items():
+        for ik, iv in list_key_values:
             if ik == cdata_key:
                 cdata = iv
                 continue
