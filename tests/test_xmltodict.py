@@ -393,9 +393,9 @@ class XMLToDictTestCase(unittest.TestCase):
         try:
             parse(xml, disable_entities=False, expat=expat)
         except expat.ExpatError:
-            assert True
+            pass
         else:
-            assert False
+            pytest.fail()
         expat.ParserCreate = ParserCreate
 
     def test_comments(self):
