@@ -1,6 +1,12 @@
 CHANGELOG
 =========
 
+v0.14.1
+-------
+* Drop support for Python older than 3.6
+* Additional ruff/Pyflakes/codespell fixes.
+  * Thanks @DimitriPapadopoulos!
+
 v0.14.0
 -------
 

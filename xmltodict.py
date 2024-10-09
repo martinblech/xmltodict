@@ -14,7 +14,7 @@ if tuple(map(int, platform.python_version_tuple()[:2])) < (3, 7):
 from inspect import isgenerator
 
 __author__ = 'Martin Blech'
-__version__ = '0.14.0'
+__version__ = '0.14.1'
 __license__ = 'MIT'
 
 
