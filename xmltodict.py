@@ -34,6 +34,7 @@ class _DictSAXHandler:
                  postprocessor=None,
                  dict_constructor=_dict,
                  strip_whitespace=True,
+                 strip_whitespace_content=False,
                  namespace_separator=':',
                  namespaces=None,
                  force_list=None,
@@ -52,6 +53,7 @@ class _DictSAXHandler:
         self.postprocessor = postprocessor
         self.dict_constructor = dict_constructor
         self.strip_whitespace = strip_whitespace
+        self.strip_whitespace_content = strip_whitespace_content
         self.namespace_separator = namespace_separator
         self.namespaces = namespaces
         self.namespace_declarations = dict_constructor()
@@ -125,6 +127,8 @@ class _DictSAXHandler:
             self.item, self.data = self.stack.pop()
             if self.strip_whitespace and data and item:
                 data = data.strip() or None
+            if self.strip_whitespace_content and data:
+                data = data.strip()
             if data and self.force_cdata and item is None:
                 item = self.dict_constructor()
             if item is not None:

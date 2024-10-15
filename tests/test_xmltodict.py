@@ -96,6 +96,64 @@ class XMLToDictTestCase(unittest.TestCase):
             {'root': {'emptya': "           ",
                       'emptyb': {'@attr': 'attrvalue'},
                       'value': 'hello'}})
+        
+    def test_skip_whitespace_with_text(self):
+        xml = """
+        <root>
+
+
+          <emptya>      abc     </emptya>
+          <emptyb attr="attrvalue">
+
+
+          </emptyb>
+          <value>hello</value>
+        </root>
+        """
+        self.assertEqual(
+            parse(xml),
+            {'root': {'emptya': "      abc     ",
+                      'emptyb': {'@attr': 'attrvalue'},
+                      'value': 'hello'}})
+
+        
+    def test_skip_whitespace_content(self):
+        xml = """
+        <root>
+
+
+          <emptya>           </emptya>
+          <emptyb attr="attrvalue">
+
+
+          </emptyb>
+          <value>hello</value>
+        </root>
+        """
+        self.assertEqual(
+            parse(xml, strip_whitespace_content=True),
+            {'root': {'emptya': "",
+                      'emptyb': {'@attr': 'attrvalue'},
+                      'value': 'hello'}})
+        
+    def test_skip_whitespace_content_with_text(self):
+        xml = """
+        <root>
+
+
+          <emptya>     abc     </emptya>
+          <emptyb attr="attrvalue">
+
+
+          </emptyb>
+          <value>hello</value>
+        </root>
+        """
+        self.assertEqual(
+            parse(xml, strip_whitespace_content=True),
+            {'root': {'emptya': "abc",
+                      'emptyb': {'@attr': 'attrvalue'},
+                      'value': 'hello'}})
 
     def test_keep_whitespace(self):
         xml = "<root> </root>"
