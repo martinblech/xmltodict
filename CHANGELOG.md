@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+v0.14.2
+-------
+* Revert "Ensure significant whitespace is not trimmed"
+  * This changed was backwards incompatible and caused downstream issues.
+
 v0.14.1
 -------
 * Drop support for Python older than 3.6
