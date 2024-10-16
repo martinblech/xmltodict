@@ -93,13 +93,13 @@ class XMLToDictTestCase(unittest.TestCase):
         """
         self.assertEqual(
             parse(xml),
-            {'root': {'emptya': "           ",
+            {'root': {'emptya': None,
                       'emptyb': {'@attr': 'attrvalue'},
                       'value': 'hello'}})
 
     def test_keep_whitespace(self):
         xml = "<root> </root>"
-        self.assertEqual(parse(xml), dict(root=' '))
+        self.assertEqual(parse(xml), dict(root=None))
         self.assertEqual(parse(xml, strip_whitespace=False),
                          dict(root=' '))
 
