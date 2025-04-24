@@ -14,7 +14,7 @@ if tuple(map(int, platform.python_version_tuple()[:2])) < (3, 7):
 from inspect import isgenerator
 
 __author__ = 'Martin Blech'
-__version__ = "0.14.2"
+__version__ = "0.14.3"
 __license__ = 'MIT'
 
 
@@ -109,15 +109,18 @@ class _DictSAXHandler:
 
     def endElement(self, full_name):
         name = self._build_name(full_name)
+        save_callback = False
+
         if len(self.path) == self.item_depth:
             item = self.item
             if item is None:
                 item = (None if not self.data
                         else self.cdata_separator.join(self.data))
 
-            should_continue = self.item_callback(self.path, item)
-            if not should_continue:
-                raise ParsingInterrupted
+            save_callback = self.item_callback(self.path, item)
+            if not save_callback:
+                raise ParsingInterrupted()
+
         if self.stack:
             data = (None if not self.data
                     else self.cdata_separator.join(self.data))
@@ -127,12 +130,14 @@ class _DictSAXHandler:
                 data = data.strip() or None
             if data and self.force_cdata and item is None:
                 item = self.dict_constructor()
-            if item is not None:
-                if data:
-                    self.push_data(item, self.cdata_key, data)
-                self.item = self.push_data(self.item, name, item)
-            else:
-                self.item = self.push_data(self.item, name, data)
+
+            if self.item_depth == 0 or (len(self.path) == self.item_depth+1):
+                if item is not None:
+                    if data:
+                        self.push_data(item, self.cdata_key, data)
+                    self.item = self.push_data(self.item, name, item)
+                else:
+                    self.item = self.push_data(self.item, name, data)
         else:
             self.item = None
             self.data = []
