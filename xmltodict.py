@@ -14,7 +14,7 @@ if tuple(map(int, platform.python_version_tuple()[:2])) < (3, 7):
 from inspect import isgenerator
 
 __author__ = 'Martin Blech'
-__version__ = "0.14.3"
+__version__ = "0.14.2"
 __license__ = 'MIT'
 
 
@@ -109,7 +109,6 @@ class _DictSAXHandler:
 
     def endElement(self, full_name):
         name = self._build_name(full_name)
-        save_callback = False
 
         if len(self.path) == self.item_depth:
             item = self.item
@@ -117,8 +116,8 @@ class _DictSAXHandler:
                 item = (None if not self.data
                         else self.cdata_separator.join(self.data))
 
-            save_callback = self.item_callback(self.path, item)
-            if not save_callback:
+            should_continue = self.item_callback(self.path, item)
+            if not should_continue:
                 raise ParsingInterrupted()
 
         if self.stack:
