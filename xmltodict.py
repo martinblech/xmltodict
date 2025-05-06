@@ -109,7 +109,6 @@ class _DictSAXHandler:
 
     def endElement(self, full_name):
         name = self._build_name(full_name)
-
         if len(self.path) == self.item_depth:
             item = self.item
             if item is None:
@@ -118,8 +117,7 @@ class _DictSAXHandler:
 
             should_continue = self.item_callback(self.path, item)
             if not should_continue:
-                raise ParsingInterrupted()
-
+                raise ParsingInterrupted
         if self.stack:
             data = (None if not self.data
                     else self.cdata_separator.join(self.data))
