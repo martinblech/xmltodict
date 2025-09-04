@@ -18,15 +18,15 @@
 ...  """), indent=4))
 {
     "mydocument": {
-        "@has": "an attribute", 
+        "@has": "an attribute",
         "and": {
             "many": [
-                "elements", 
+                "elements",
                 "more elements"
             ]
-        }, 
+        },
         "plus": {
-            "@a": "complex", 
+            "@a": "complex",
             "#text": "element as well"
         }
     }
@@ -82,7 +82,7 @@ True
 >>> def handle_artist(_, artist):
 ...     print(artist['name'])
 ...     return True
->>> 
+>>>
 >>> xmltodict.parse(GzipFile('discogs_artists.xml.gz'),
 ...     item_depth=2, item_callback=handle_artist)
 A Perfect Circle
@@ -150,7 +150,7 @@ Text values for nodes can be specified with the `cdata_key` key in the python di
 
 ```python
 >>> import xmltodict
->>> 
+>>>
 >>> mydict = {
 ...     'text': {
 ...         '@color':'red',
@@ -206,7 +206,7 @@ $ pip install xmltodict
 
 ### Using conda
 
-For installing `xmltodict` using Anaconda/Miniconda (*conda*) from the 
+For installing `xmltodict` using Anaconda/Miniconda (*conda*) from the
 [conda-forge channel][#xmltodict-conda] all you need to do is:
 
 [#xmltodict-conda]: https://anaconda.org/conda-forge/xmltodict
@@ -258,3 +258,13 @@ $ zypper in python2-xmltodict
 # Python3
 $ zypper in python3-xmltodict
 ```
+
+## Security Notes
+
+A CVE (CVE-2025-9375) was filed against `xmltodict` but is [disputed](https://github.com/martinblech/xmltodict/issues/377#issuecomment-3255691923). The root issue lies in Python’s `xml.sax.saxutils.XMLGenerator` API, which does not validate XML element names and provides no built-in way to do so. Since `xmltodict` is a thin wrapper that passes keys directly to `XMLGenerator`, the same issue exists in the standard library itself.
+
+It has been suggested that `xml.sax.saxutils.escape()` represents a secure usage path. This is incorrect: `escape()` is intended only for character data and attribute values, and can produce invalid XML when misapplied to element names. There is currently no secure, documented way in Python’s standard library to validate XML element names.
+
+Despite this, Fluid Attacks chose to assign a CVE to `xmltodict` while leaving the identical behavior in Python’s own standard library unaddressed. Their disclosure process also gave only 10 days from first contact to publication—well short of the 90-day industry norm—leaving no real opportunity for maintainer response. These actions reflect an inconsistency of standards and priorities that raise concerns about motivations, as they do not primarily serve the security of the broader community.
+
+The maintainer considers this CVE invalid and will formally dispute it with MITRE.
