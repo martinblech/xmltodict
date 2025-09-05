@@ -360,6 +360,14 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     return handler.item
 
 
+def _has_angle_brackets(value):
+    """Return True if value (a str) contains '<' or '>'.
+
+    Non-string values return False. Uses fast substring checks implemented in C.
+    """
+    return isinstance(value, str) and ("<" in value or ">" in value)
+
+
 def _process_namespace(name, namespaces, ns_sep=':', attr_prefix='@'):
     if not namespaces:
         return name
@@ -393,6 +401,9 @@ def _emit(key, value, content_handler,
         if result is None:
             return
         key, value = result
+    # Minimal validation to avoid breaking out of tag context
+    if _has_angle_brackets(key):
+        raise ValueError('Invalid element name: "<" or ">" not allowed')
     if not hasattr(value, '__iter__') or isinstance(value, (str, dict)):
         value = [value]
     for index, v in enumerate(value):
@@ -421,12 +432,19 @@ def _emit(key, value, content_handler,
                                         attr_prefix)
                 if ik == '@xmlns' and isinstance(iv, dict):
                     for k, v in iv.items():
+                        if _has_angle_brackets(k):
+                            raise ValueError(
+                                'Invalid attribute name: "<" or ">" not allowed'
+                            )
                         attr = 'xmlns{}'.format(f':{k}' if k else '')
                         attrs[attr] = str(v)
                     continue
                 if not isinstance(iv, str):
                     iv = str(iv)
-                attrs[ik[len(attr_prefix):]] = iv
+                attr_name = ik[len(attr_prefix) :]
+                if _has_angle_brackets(attr_name):
+                    raise ValueError('Invalid attribute name: "<" or ">" not allowed')
+                attrs[attr_name] = iv
                 continue
             children.append((ik, iv))
         if isinstance(indent, int):

@@ -231,3 +231,35 @@ xmlns:b="http://b.com/"><x a:attr="val">1</x><a:y>2</a:y><b:z>3</b:z></root>'''
         expected_xml = '<?xml version="1.0" encoding="utf-8"?>\n<x>false</x>'
         xml = unparse(dict(x=False))
         self.assertEqual(xml, expected_xml)
+
+    def test_rejects_tag_name_with_angle_brackets(self):
+        # Minimal guard: disallow '<' or '>' to prevent breaking tag context
+        with self.assertRaises(ValueError):
+            unparse({"m><tag>content</tag": "unsafe"}, full_document=False)
+
+    def test_rejects_attribute_name_with_angle_brackets(self):
+        # Now we expect bad attribute names to be rejected
+        with self.assertRaises(ValueError):
+            unparse(
+                {"a": {"@m><tag>content</tag": "unsafe", "#text": "x"}},
+                full_document=False,
+            )
+
+    def test_rejects_malicious_xmlns_prefix(self):
+        # xmlns prefixes go under @xmlns mapping; reject angle brackets in prefix
+        with self.assertRaises(ValueError):
+            unparse(
+                {
+                    "a": {
+                        "@xmlns": {"m><bad": "http://example.com/"},
+                        "#text": "x",
+                    }
+                },
+                full_document=False,
+            )
+
+    def test_attribute_values_with_angle_brackets_are_escaped(self):
+        # Attribute values should be escaped by XMLGenerator
+        xml = unparse({"a": {"@attr": "1<middle>2", "#text": "x"}}, full_document=False)
+        # The generated XML should contain escaped '<' and '>' within the attribute value
+        self.assertIn('attr="1&lt;middle&gt;2"', xml)
