@@ -127,12 +127,14 @@ class _DictSAXHandler:
                 data = data.strip() or None
             if data and self.force_cdata and item is None:
                 item = self.dict_constructor()
-            if item is not None:
-                if data:
-                    self.push_data(item, self.cdata_key, data)
-                self.item = self.push_data(self.item, name, item)
-            else:
-                self.item = self.push_data(self.item, name, data)
+
+            if self.item_depth == 0 or (len(self.path) == self.item_depth+1):
+                if item is not None:
+                    if data:
+                        self.push_data(item, self.cdata_key, data)
+                    self.item = self.push_data(self.item, name, item)
+                else:
+                    self.item = self.push_data(self.item, name, data)
         else:
             self.item = None
             self.data = []
