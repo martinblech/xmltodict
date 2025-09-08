@@ -397,6 +397,10 @@ def _validate_name(value, kind):
         raise ValueError(f'Invalid {kind} name: "<" or ">" not allowed')
     if "/" in value:
         raise ValueError(f'Invalid {kind} name: "/" not allowed')
+    if '"' in value or "'" in value:
+        raise ValueError(f"Invalid {kind} name: quotes not allowed")
+    if "=" in value:
+        raise ValueError(f'Invalid {kind} name: "=" not allowed')
     if any(ch.isspace() for ch in value):
         raise ValueError(f"Invalid {kind} name: whitespace not allowed")
 

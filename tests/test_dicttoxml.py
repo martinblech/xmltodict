@@ -323,3 +323,17 @@ xmlns:b="http://b.com/"><x a:attr="val">1</x><a:y>2</a:y><b:z>3</b:z></root>'''
         # Whitespace
         with self.assertRaises(ValueError):
             unparse({"a": {"@xmlns": {"bad prefix": "http://e/"}}}, full_document=False)
+
+    def test_rejects_names_with_quotes_and_equals(self):
+        # Element names
+        for name in ['a"b', "a'b", "a=b"]:
+            with self.assertRaises(ValueError):
+                unparse({name: "x"}, full_document=False)
+        # Attribute names
+        for name in ['@a"b', "@a'b", "@a=b"]:
+            with self.assertRaises(ValueError):
+                unparse({"a": {name: "x"}}, full_document=False)
+        # xmlns prefixes
+        for prefix in ['a"b', "a'b", "a=b"]:
+            with self.assertRaises(ValueError):
+                unparse({"a": {"@xmlns": {prefix: "http://e/"}}}, full_document=False)
