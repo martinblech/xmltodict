@@ -1,6 +1,16 @@
 CHANGELOG
 =========
 
+v0.15.1
+-------
+* Security: Further harden XML injection prevention during unparse (follow-up to
+  v0.15.0). In addition to '<'/'>' rejection, now also reject element and
+  attribute names (including `@xmlns` prefixes) that:
+  - start with '?' or '!'
+  - contain '/' or any whitespace
+  - contain quotes (' or ") or '='
+  - are non-strings (names must be `str`; no coercion)
+
 v0.15.0
 -------
 * Security: Prevent XML injection (CVE-2025-9375) by rejecting '<'/'>' in
