@@ -368,7 +368,42 @@ def _has_angle_brackets(value):
     return isinstance(value, str) and ("<" in value or ">" in value)
 
 
+def _has_invalid_name_chars(value):
+    """Return True if value (a str) contains any disallowed name characters.
+
+    Disallowed: '<', '>', '/', or any whitespace character.
+    Non-string values return False.
+    """
+    if not isinstance(value, str):
+        return False
+    if "<" in value or ">" in value or "/" in value:
+        return True
+    # Check for any whitespace (spaces, tabs, newlines, etc.)
+    return any(ch.isspace() for ch in value)
+
+
+def _validate_name(value, kind):
+    """Validate an element/attribute name for XML safety.
+
+    Raises ValueError with a specific reason when invalid.
+
+    kind: 'element' or 'attribute' (used in error messages)
+    """
+    if not isinstance(value, str):
+        raise ValueError(f"{kind} name must be a string")
+    if value.startswith("?") or value.startswith("!"):
+        raise ValueError(f'Invalid {kind} name: cannot start with "?" or "!"')
+    if "<" in value or ">" in value:
+        raise ValueError(f'Invalid {kind} name: "<" or ">" not allowed')
+    if "/" in value:
+        raise ValueError(f'Invalid {kind} name: "/" not allowed')
+    if any(ch.isspace() for ch in value):
+        raise ValueError(f"Invalid {kind} name: whitespace not allowed")
+
+
 def _process_namespace(name, namespaces, ns_sep=':', attr_prefix='@'):
+    if not isinstance(name, str):
+        return name
     if not namespaces:
         return name
     try:
@@ -402,8 +437,7 @@ def _emit(key, value, content_handler,
             return
         key, value = result
     # Minimal validation to avoid breaking out of tag context
-    if _has_angle_brackets(key):
-        raise ValueError('Invalid element name: "<" or ">" not allowed')
+    _validate_name(key, "element")
     if not hasattr(value, '__iter__') or isinstance(value, (str, dict)):
         value = [value]
     for index, v in enumerate(value):
@@ -427,23 +461,19 @@ def _emit(key, value, content_handler,
             if ik == cdata_key:
                 cdata = iv
                 continue
-            if ik.startswith(attr_prefix):
+            if isinstance(ik, str) and ik.startswith(attr_prefix):
                 ik = _process_namespace(ik, namespaces, namespace_separator,
                                         attr_prefix)
                 if ik == '@xmlns' and isinstance(iv, dict):
                     for k, v in iv.items():
-                        if _has_angle_brackets(k):
-                            raise ValueError(
-                                'Invalid attribute name: "<" or ">" not allowed'
-                            )
+                        _validate_name(k, "attribute")
                         attr = 'xmlns{}'.format(f':{k}' if k else '')
                         attrs[attr] = str(v)
                     continue
                 if not isinstance(iv, str):
                     iv = str(iv)
                 attr_name = ik[len(attr_prefix) :]
-                if _has_angle_brackets(attr_name):
-                    raise ValueError('Invalid attribute name: "<" or ">" not allowed')
+                _validate_name(attr_name, "attribute")
                 attrs[attr_name] = iv
                 continue
             children.append((ik, iv))

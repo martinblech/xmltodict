@@ -263,3 +263,63 @@ xmlns:b="http://b.com/"><x a:attr="val">1</x><a:y>2</a:y><b:z>3</b:z></root>'''
         xml = unparse({"a": {"@attr": "1<middle>2", "#text": "x"}}, full_document=False)
         # The generated XML should contain escaped '<' and '>' within the attribute value
         self.assertIn('attr="1&lt;middle&gt;2"', xml)
+
+    def test_rejects_tag_name_starting_with_question(self):
+        with self.assertRaises(ValueError):
+            unparse({"?pi": "data"}, full_document=False)
+
+    def test_rejects_tag_name_starting_with_bang(self):
+        with self.assertRaises(ValueError):
+            unparse({"!decl": "data"}, full_document=False)
+
+    def test_rejects_attribute_name_starting_with_question(self):
+        with self.assertRaises(ValueError):
+            unparse({"a": {"@?weird": "x"}}, full_document=False)
+
+    def test_rejects_attribute_name_starting_with_bang(self):
+        with self.assertRaises(ValueError):
+            unparse({"a": {"@!weird": "x"}}, full_document=False)
+
+    def test_rejects_xmlns_prefix_starting_with_question_or_bang(self):
+        with self.assertRaises(ValueError):
+            unparse({"a": {"@xmlns": {"?p": "http://e/"}}}, full_document=False)
+        with self.assertRaises(ValueError):
+            unparse({"a": {"@xmlns": {"!p": "http://e/"}}}, full_document=False)
+
+    def test_rejects_non_string_names(self):
+        class Weird:
+            def __str__(self):
+                return "bad>name"
+
+        # Non-string element key
+        with self.assertRaises(ValueError):
+            unparse({Weird(): "x"}, full_document=False)
+        # Non-string attribute key
+        with self.assertRaises(ValueError):
+            unparse({"a": {Weird(): "x"}}, full_document=False)
+
+    def test_rejects_tag_name_with_slash(self):
+        with self.assertRaises(ValueError):
+            unparse({"bad/name": "x"}, full_document=False)
+
+    def test_rejects_tag_name_with_whitespace(self):
+        for name in ["bad name", "bad\tname", "bad\nname"]:
+            with self.assertRaises(ValueError):
+                unparse({name: "x"}, full_document=False)
+
+    def test_rejects_attribute_name_with_slash(self):
+        with self.assertRaises(ValueError):
+            unparse({"a": {"@bad/name": "x"}}, full_document=False)
+
+    def test_rejects_attribute_name_with_whitespace(self):
+        for name in ["@bad name", "@bad\tname", "@bad\nname"]:
+            with self.assertRaises(ValueError):
+                unparse({"a": {name: "x"}}, full_document=False)
+
+    def test_rejects_xmlns_prefix_with_slash_or_whitespace(self):
+        # Slash
+        with self.assertRaises(ValueError):
+            unparse({"a": {"@xmlns": {"bad/prefix": "http://e/"}}}, full_document=False)
+        # Whitespace
+        with self.assertRaises(ValueError):
+            unparse({"a": {"@xmlns": {"bad prefix": "http://e/"}}}, full_document=False)
