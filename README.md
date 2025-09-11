@@ -194,6 +194,51 @@ Lists that are specified under a key in a dictionary use the key as a tag for ea
 </line>
 ```
 
+## API Reference
+
+### xmltodict.parse()
+
+Parse XML input into a Python dictionary.
+
+- `xml_input`: XML input as a string, file-like object, or generator of strings.
+- `encoding=None`: Character encoding for the input XML.
+- `expat=expat`: XML parser module to use.
+- `process_namespaces=False`: Expand XML namespaces if True.
+- `namespace_separator=':'`: Separator between namespace URI and local name.
+- `disable_entities=True`: Disable entity parsing for security.
+- `process_comments=False`: Include XML comments if True. Comments can be preserved when enabled, but by default they are ignored. Multiple top-level comments may not be preserved in exact order.
+- `xml_attribs=True`: Include attributes in output dict (with `attr_prefix`).
+- `attr_prefix='@'`: Prefix for XML attributes in the dict.
+- `cdata_key='#text'`: Key for text content in the dict.
+- `force_cdata=False`: Force all text content to be wrapped as CDATA.
+- `cdata_separator=''`: Separator string to join multiple text nodes. This joins adjacent text nodes. For example, set to a space to avoid concatenation.
+- `postprocessor=None`: Function to modify parsed items.
+- `dict_constructor=dict`: Constructor for dictionaries (e.g., dict or OrderedDict).
+- `strip_whitespace=True`: Remove leading/trailing whitespace in text nodes. Default is True; this trims whitespace in text nodes. Set to False to preserve whitespace exactly.
+- `namespaces=None`: Mapping of namespaces to prefixes, or None to keep full URIs.
+- `force_list=None`: List of keys or callable to force list values. Useful for elements that may appear once or multiple times. Ensures consistent list output. Can also be a callable for fine-grained control.
+- `item_depth=0`: Depth at which to call `item_callback`.
+- `item_callback=lambda *args: True`: Function called on items at `item_depth`.
+- `comment_key='#comment'`: Key used for XML comments when `process_comments=True`. Only used when `process_comments=True`. Comments can be preserved but multiple top-level comments may not retain order.
+
+### xmltodict.unparse()
+
+Convert a Python dictionary back into XML.
+
+- `input_dict`: Dictionary to convert to XML.
+- `output=None`: File-like object to write XML to; returns string if None.
+- `encoding='utf-8'`: Encoding of the output XML.
+- `full_document=True`: Include XML declaration if True.
+- `short_empty_elements=False`: Use short tags for empty elements (`<tag/>`).
+- `attr_prefix='@'`: Prefix for dictionary keys representing attributes.
+- `cdata_key='#text'`: Key for text content in the dictionary.
+- `pretty=False`: Pretty-print the XML output.
+- `indent='\t'`: Indentation string for pretty printing.
+- `newl='\n'`: Newline character for pretty printing.
+- `expand_iter=None`: Tag name to use for items in nested lists (breaks roundtripping).
+
+Note: xmltodict aims to cover the common 90% of cases. It does not preserve every XML nuance (attribute order, mixed content ordering, multiple top-level comments). For exact fidelity, use a full XML library such as lxml.
+
 ## Ok, how do I get it?
 
 ### Using pypi
