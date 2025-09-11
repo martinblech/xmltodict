@@ -494,6 +494,8 @@ def _emit(key, value, content_handler,
                 _validate_name(attr_name, "attribute")
                 attrs[attr_name] = iv
                 continue
+            if isinstance(iv, list) and not iv:
+                continue # Skip empty lists to avoid creating empty child elements
             children.append((ik, iv))
         if isinstance(indent, int):
             indent = ' ' * indent
