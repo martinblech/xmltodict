@@ -111,6 +111,9 @@ class _DictSAXHandler:
 
     def endElement(self, full_name):
         name = self._build_name(full_name)
+        # If we just closed an item at the streaming depth, emit it and drop it
+        # without attaching it back to its parent. This avoids accumulating all
+        # streamed items in memory when using item_depth > 0.
         if len(self.path) == self.item_depth:
             item = self.item
             if item is None:
@@ -120,6 +123,15 @@ class _DictSAXHandler:
             should_continue = self.item_callback(self.path, item)
             if not should_continue:
                 raise ParsingInterrupted
+            # Reset state for the parent context without keeping a reference to
+            # the emitted item.
+            if self.stack:
+                self.item, self.data = self.stack.pop()
+            else:
+                self.item = None
+                self.data = []
+            self.path.pop()
+            return
         if self.stack:
             data = (None if not self.data
                     else self.cdata_separator.join(self.data))
@@ -549,8 +561,8 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
 
 
 if __name__ == '__main__':  # pragma: no cover
-    import sys
     import marshal
+    import sys
     try:
         stdin = sys.stdin.buffer
         stdout = sys.stdout.buffer

@@ -487,6 +487,40 @@ class XMLToDictTestCase(unittest.TestCase):
 
         parse(xml, item_depth=2, item_callback=handler, process_comments=True)
 
+    def test_streaming_memory_usage(self):
+        # Guard against re-introducing accumulation of streamed items into parent
+        try:
+            import tracemalloc
+        except ImportError:
+            self.skipTest("tracemalloc not available")
+
+        NUM_ITEMS = 20000
+
+        def xml_gen():
+            yield "<a>"
+            # generate many children with attribute and text
+            for i in range(NUM_ITEMS):
+                yield f'<b attr="v">{i % 10}</b>'
+            yield "</a>"
+
+        count = 0
+
+        def cb(path, item):
+            nonlocal count
+            count += 1
+            return True
+
+        tracemalloc.start()
+        parse(xml_gen(), item_depth=2, item_callback=cb)
+        current, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+
+        self.assertEqual(count, NUM_ITEMS)
+        # Peak memory should remain reasonably bounded; choose a conservative threshold
+        # This value should stay well below pathological accumulation levels
+        MAX_BYTES = 32 * 1024  # 32 KiB
+        self.assertLess(peak, MAX_BYTES, f"peak memory too high: {peak} bytes")
+
     def test_streaming_attrs(self):
         xml = """
         <a>
