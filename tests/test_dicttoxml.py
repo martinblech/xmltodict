@@ -337,3 +337,126 @@ xmlns:b="http://b.com/"><x a:attr="val">1</x><a:y>2</a:y><b:z>3</b:z></root>'''
         for prefix in ['a"b', "a'b", "a=b"]:
             with self.assertRaises(ValueError):
                 unparse({"a": {"@xmlns": {prefix: "http://e/"}}}, full_document=False)
+
+    def test_pretty_print_and_short_empty_elements_consistency(self):
+        """Test that pretty and compact modes produce equivalent results when stripped.
+
+        This test covers issue #352: Edge case with pretty_print and short_empty_elements.
+        When short_empty_elements=True, empty elements should be written as <tag/>
+        regardless of whether pretty printing is enabled.
+        """
+        # Test case from issue #352: empty list child
+        input_dict = {"Foos": {"Foo": []}}
+
+        compact = unparse(
+            input_dict, pretty=False, short_empty_elements=True, full_document=False
+        )
+        pretty = unparse(
+            input_dict, pretty=True, short_empty_elements=True, full_document=False
+        )
+        pretty_compacted = pretty.replace("\n", "").replace("\t", "")
+
+        # They should be equal when pretty formatting is stripped
+        self.assertEqual(pretty_compacted, compact)
+        self.assertEqual(compact, "<Foos/>")
+        self.assertEqual(pretty_compacted, "<Foos/>")
+
+    def test_empty_list_filtering(self):
+        """Test that empty lists are filtered out and don't create empty child elements."""
+        # Test various cases with empty lists
+        test_cases = [
+            # Case 1: Single empty list child
+            ({"Foos": {"Foo": []}}, "<Foos/>"),
+            # Case 2: Multiple empty list children
+            ({"Foos": {"Foo": [], "Bar": []}}, "<Foos/>"),
+            # Case 3: Mixed empty and non-empty children
+            ({"Foos": {"Foo": [], "Bar": "value"}}, "<Foos><Bar>value</Bar></Foos>"),
+            # Case 4: Nested empty lists
+            ({"Foos": {"Foo": {"Bar": []}}}, "<Foos><Foo/></Foos>"),
+            # Case 5: Empty list with attributes
+            ({"Foos": {"@attr": "value", "Foo": []}}, '<Foos attr="value"/>'),
+        ]
+
+        for input_dict, expected_compact in test_cases:
+            with self.subTest(input_dict=input_dict):
+                # Test compact mode
+                compact = unparse(
+                    input_dict,
+                    pretty=False,
+                    short_empty_elements=True,
+                    full_document=False,
+                )
+                self.assertEqual(compact, expected_compact)
+
+                # Test pretty mode
+                pretty = unparse(
+                    input_dict,
+                    pretty=True,
+                    short_empty_elements=True,
+                    full_document=False,
+                )
+                pretty_compacted = pretty.replace("\n", "").replace("\t", "")
+                self.assertEqual(pretty_compacted, expected_compact)
+
+    def test_empty_list_filtering_with_short_empty_elements_false(self):
+        """Test that empty lists are still filtered when short_empty_elements=False."""
+        input_dict = {"Foos": {"Foo": []}}
+
+        # With short_empty_elements=False, empty elements should be <tag></tag>
+        compact = unparse(
+            input_dict, pretty=False, short_empty_elements=False, full_document=False
+        )
+        pretty = unparse(
+            input_dict, pretty=True, short_empty_elements=False, full_document=False
+        )
+        pretty_compacted = pretty.replace("\n", "").replace("\t", "")
+
+        # They should be equal when pretty formatting is stripped
+        self.assertEqual(pretty_compacted, compact)
+        self.assertEqual(compact, "<Foos></Foos>")
+        self.assertEqual(pretty_compacted, "<Foos></Foos>")
+
+    def test_non_empty_lists_are_not_filtered(self):
+        """Test that non-empty lists are not filtered out."""
+        # Test with non-empty lists
+        input_dict = {"Foos": {"Foo": ["item1", "item2"]}}
+
+        compact = unparse(
+            input_dict, pretty=False, short_empty_elements=True, full_document=False
+        )
+        pretty = unparse(
+            input_dict, pretty=True, short_empty_elements=True, full_document=False
+        )
+        pretty_compacted = pretty.replace("\n", "").replace("\t", "")
+
+        # The lists should be processed normally
+        self.assertEqual(pretty_compacted, compact)
+        self.assertEqual(compact, "<Foos><Foo>item1</Foo><Foo>item2</Foo></Foos>")
+        self.assertEqual(
+            pretty_compacted, "<Foos><Foo>item1</Foo><Foo>item2</Foo></Foos>"
+        )
+
+    def test_empty_dict_vs_empty_list_behavior(self):
+        """Test the difference between empty dicts and empty lists."""
+        # Empty dict should create a child element
+        input_dict_dict = {"Foos": {"Foo": {}}}
+        compact_dict = unparse(
+            input_dict_dict,
+            pretty=False,
+            short_empty_elements=True,
+            full_document=False,
+        )
+        self.assertEqual(compact_dict, "<Foos><Foo/></Foos>")
+
+        # Empty list should be filtered out
+        input_dict_list = {"Foos": {"Foo": []}}
+        compact_list = unparse(
+            input_dict_list,
+            pretty=False,
+            short_empty_elements=True,
+            full_document=False,
+        )
+        self.assertEqual(compact_list, "<Foos/>")
+
+        # They should be different
+        self.assertNotEqual(compact_dict, compact_list)
