@@ -85,7 +85,9 @@ class _DictSAXHandler:
     def startElement(self, full_name, attrs):
         name = self._build_name(full_name)
         attrs = self._attrs_to_dict(attrs)
-        if attrs and self.namespace_declarations:
+        if self.namespace_declarations:
+            if not attrs:
+                attrs = self.dict_constructor()
             attrs['xmlns'] = self.namespace_declarations
             self.namespace_declarations = self.dict_constructor()
         self.path.append((name, attrs or None))
