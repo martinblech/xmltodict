@@ -131,6 +131,14 @@ class XMLToDictTestCase(unittest.TestCase):
               item_depth=2, item_callback=cb)
         self.assertEqual(cb.count, 3)
 
+    def test_streaming_returns_none(self):
+        # When streaming (item_depth > 0), parse should return None
+        def cb(path, item):
+            return True
+
+        result = parse("<a><b>1</b><b>2</b></a>", item_depth=2, item_callback=cb)
+        self.assertIsNone(result)
+
     def test_postprocessor(self):
         def postprocessor(path, key, value):
             try:
@@ -457,6 +465,27 @@ class XMLToDictTestCase(unittest.TestCase):
             }
         }
         self.assertEqual(parse(xml, process_comments=True), expectedResult)
+
+    def test_streaming_with_comments_and_attrs(self):
+        xml = """
+        <a>
+            <b attr1="value">
+                <!-- note -->
+                <c>cdata</c>
+            </b>
+        </a>
+        """
+
+        def handler(path, item):
+            expected = {
+                "@attr1": "value",
+                "#comment": "note",
+                "c": "cdata",
+            }
+            self.assertEqual(expected, item)
+            return True
+
+        parse(xml, item_depth=2, item_callback=handler, process_comments=True)
 
     def test_streaming_attrs(self):
         xml = """
