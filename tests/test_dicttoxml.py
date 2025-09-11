@@ -231,3 +231,109 @@ xmlns:b="http://b.com/"><x a:attr="val">1</x><a:y>2</a:y><b:z>3</b:z></root>'''
         expected_xml = '<?xml version="1.0" encoding="utf-8"?>\n<x>false</x>'
         xml = unparse(dict(x=False))
         self.assertEqual(xml, expected_xml)
+
+    def test_rejects_tag_name_with_angle_brackets(self):
+        # Minimal guard: disallow '<' or '>' to prevent breaking tag context
+        with self.assertRaises(ValueError):
+            unparse({"m><tag>content</tag": "unsafe"}, full_document=False)
+
+    def test_rejects_attribute_name_with_angle_brackets(self):
+        # Now we expect bad attribute names to be rejected
+        with self.assertRaises(ValueError):
+            unparse(
+                {"a": {"@m><tag>content</tag": "unsafe", "#text": "x"}},
+                full_document=False,
+            )
+
+    def test_rejects_malicious_xmlns_prefix(self):
+        # xmlns prefixes go under @xmlns mapping; reject angle brackets in prefix
+        with self.assertRaises(ValueError):
+            unparse(
+                {
+                    "a": {
+                        "@xmlns": {"m><bad": "http://example.com/"},
+                        "#text": "x",
+                    }
+                },
+                full_document=False,
+            )
+
+    def test_attribute_values_with_angle_brackets_are_escaped(self):
+        # Attribute values should be escaped by XMLGenerator
+        xml = unparse({"a": {"@attr": "1<middle>2", "#text": "x"}}, full_document=False)
+        # The generated XML should contain escaped '<' and '>' within the attribute value
+        self.assertIn('attr="1&lt;middle&gt;2"', xml)
+
+    def test_rejects_tag_name_starting_with_question(self):
+        with self.assertRaises(ValueError):
+            unparse({"?pi": "data"}, full_document=False)
+
+    def test_rejects_tag_name_starting_with_bang(self):
+        with self.assertRaises(ValueError):
+            unparse({"!decl": "data"}, full_document=False)
+
+    def test_rejects_attribute_name_starting_with_question(self):
+        with self.assertRaises(ValueError):
+            unparse({"a": {"@?weird": "x"}}, full_document=False)
+
+    def test_rejects_attribute_name_starting_with_bang(self):
+        with self.assertRaises(ValueError):
+            unparse({"a": {"@!weird": "x"}}, full_document=False)
+
+    def test_rejects_xmlns_prefix_starting_with_question_or_bang(self):
+        with self.assertRaises(ValueError):
+            unparse({"a": {"@xmlns": {"?p": "http://e/"}}}, full_document=False)
+        with self.assertRaises(ValueError):
+            unparse({"a": {"@xmlns": {"!p": "http://e/"}}}, full_document=False)
+
+    def test_rejects_non_string_names(self):
+        class Weird:
+            def __str__(self):
+                return "bad>name"
+
+        # Non-string element key
+        with self.assertRaises(ValueError):
+            unparse({Weird(): "x"}, full_document=False)
+        # Non-string attribute key
+        with self.assertRaises(ValueError):
+            unparse({"a": {Weird(): "x"}}, full_document=False)
+
+    def test_rejects_tag_name_with_slash(self):
+        with self.assertRaises(ValueError):
+            unparse({"bad/name": "x"}, full_document=False)
+
+    def test_rejects_tag_name_with_whitespace(self):
+        for name in ["bad name", "bad\tname", "bad\nname"]:
+            with self.assertRaises(ValueError):
+                unparse({name: "x"}, full_document=False)
+
+    def test_rejects_attribute_name_with_slash(self):
+        with self.assertRaises(ValueError):
+            unparse({"a": {"@bad/name": "x"}}, full_document=False)
+
+    def test_rejects_attribute_name_with_whitespace(self):
+        for name in ["@bad name", "@bad\tname", "@bad\nname"]:
+            with self.assertRaises(ValueError):
+                unparse({"a": {name: "x"}}, full_document=False)
+
+    def test_rejects_xmlns_prefix_with_slash_or_whitespace(self):
+        # Slash
+        with self.assertRaises(ValueError):
+            unparse({"a": {"@xmlns": {"bad/prefix": "http://e/"}}}, full_document=False)
+        # Whitespace
+        with self.assertRaises(ValueError):
+            unparse({"a": {"@xmlns": {"bad prefix": "http://e/"}}}, full_document=False)
+
+    def test_rejects_names_with_quotes_and_equals(self):
+        # Element names
+        for name in ['a"b', "a'b", "a=b"]:
+            with self.assertRaises(ValueError):
+                unparse({name: "x"}, full_document=False)
+        # Attribute names
+        for name in ['@a"b', "@a'b", "@a=b"]:
+            with self.assertRaises(ValueError):
+                unparse({"a": {name: "x"}}, full_document=False)
+        # xmlns prefixes
+        for prefix in ['a"b', "a'b", "a=b"]:
+            with self.assertRaises(ValueError):
+                unparse({"a": {"@xmlns": {prefix: "http://e/"}}}, full_document=False)

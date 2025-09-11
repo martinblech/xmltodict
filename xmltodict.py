@@ -14,7 +14,7 @@ if tuple(map(int, platform.python_version_tuple()[:2])) < (3, 7):
 from inspect import isgenerator
 
 __author__ = 'Martin Blech'
-__version__ = "0.14.2"
+__version__ = "0.15.1"
 __license__ = 'MIT'
 
 
@@ -85,7 +85,9 @@ class _DictSAXHandler:
     def startElement(self, full_name, attrs):
         name = self._build_name(full_name)
         attrs = self._attrs_to_dict(attrs)
-        if attrs and self.namespace_declarations:
+        if self.namespace_declarations:
+            if not attrs:
+                attrs = self.dict_constructor()
             attrs['xmlns'] = self.namespace_declarations
             self.namespace_declarations = self.dict_constructor()
         self.path.append((name, attrs or None))
@@ -360,7 +362,54 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     return handler.item
 
 
+def _has_angle_brackets(value):
+    """Return True if value (a str) contains '<' or '>'.
+
+    Non-string values return False. Uses fast substring checks implemented in C.
+    """
+    return isinstance(value, str) and ("<" in value or ">" in value)
+
+
+def _has_invalid_name_chars(value):
+    """Return True if value (a str) contains any disallowed name characters.
+
+    Disallowed: '<', '>', '/', or any whitespace character.
+    Non-string values return False.
+    """
+    if not isinstance(value, str):
+        return False
+    if "<" in value or ">" in value or "/" in value:
+        return True
+    # Check for any whitespace (spaces, tabs, newlines, etc.)
+    return any(ch.isspace() for ch in value)
+
+
+def _validate_name(value, kind):
+    """Validate an element/attribute name for XML safety.
+
+    Raises ValueError with a specific reason when invalid.
+
+    kind: 'element' or 'attribute' (used in error messages)
+    """
+    if not isinstance(value, str):
+        raise ValueError(f"{kind} name must be a string")
+    if value.startswith("?") or value.startswith("!"):
+        raise ValueError(f'Invalid {kind} name: cannot start with "?" or "!"')
+    if "<" in value or ">" in value:
+        raise ValueError(f'Invalid {kind} name: "<" or ">" not allowed')
+    if "/" in value:
+        raise ValueError(f'Invalid {kind} name: "/" not allowed')
+    if '"' in value or "'" in value:
+        raise ValueError(f"Invalid {kind} name: quotes not allowed")
+    if "=" in value:
+        raise ValueError(f'Invalid {kind} name: "=" not allowed')
+    if any(ch.isspace() for ch in value):
+        raise ValueError(f"Invalid {kind} name: whitespace not allowed")
+
+
 def _process_namespace(name, namespaces, ns_sep=':', attr_prefix='@'):
+    if not isinstance(name, str):
+        return name
     if not namespaces:
         return name
     try:
@@ -393,6 +442,8 @@ def _emit(key, value, content_handler,
         if result is None:
             return
         key, value = result
+    # Minimal validation to avoid breaking out of tag context
+    _validate_name(key, "element")
     if not hasattr(value, '__iter__') or isinstance(value, (str, dict)):
         value = [value]
     for index, v in enumerate(value):
@@ -416,17 +467,20 @@ def _emit(key, value, content_handler,
             if ik == cdata_key:
                 cdata = iv
                 continue
-            if ik.startswith(attr_prefix):
+            if isinstance(ik, str) and ik.startswith(attr_prefix):
                 ik = _process_namespace(ik, namespaces, namespace_separator,
                                         attr_prefix)
                 if ik == '@xmlns' and isinstance(iv, dict):
                     for k, v in iv.items():
+                        _validate_name(k, "attribute")
                         attr = 'xmlns{}'.format(f':{k}' if k else '')
                         attrs[attr] = str(v)
                     continue
                 if not isinstance(iv, str):
                     iv = str(iv)
-                attrs[ik[len(attr_prefix):]] = iv
+                attr_name = ik[len(attr_prefix) :]
+                _validate_name(attr_name, "attribute")
+                attrs[attr_name] = iv
                 continue
             children.append((ik, iv))
         if isinstance(indent, int):

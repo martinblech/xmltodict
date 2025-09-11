@@ -475,3 +475,28 @@ class XMLToDictTestCase(unittest.TestCase):
             return True
 
         parse(xml, item_depth=2, item_callback=handler)
+
+    def test_namespace_on_root_without_other_attrs(self):
+        xml = """
+        <MyXML xmlns="http://www.xml.org/schemas/Test">
+            <Tag1>Text1</Tag1>
+            <Tag2 attr2="en">Text2</Tag2>
+            <Tag3>Text3</Tag3>
+            <Tag4 attr4="en">Text4</Tag4>
+        </MyXML>
+        """
+        namespaces = {
+            "http://www.xml.org/schemas/Test": None,
+        }
+        expected = {
+            "MyXML": {
+                "@xmlns": {"": "http://www.xml.org/schemas/Test"},
+                "Tag1": "Text1",
+                "Tag2": {"@attr2": "en", "#text": "Text2"},
+                "Tag3": "Text3",
+                "Tag4": {"@attr4": "en", "#text": "Text4"},
+            }
+        }
+        self.assertEqual(
+            parse(xml, process_namespaces=True, namespaces=namespaces), expected
+        )

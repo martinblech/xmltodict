@@ -1,6 +1,24 @@
 CHANGELOG
 =========
 
+v0.15.1
+-------
+* Security: Further harden XML injection prevention during unparse (follow-up to
+  v0.15.0). In addition to '<'/'>' rejection, now also reject element and
+  attribute names (including `@xmlns` prefixes) that:
+  - start with '?' or '!'
+  - contain '/' or any whitespace
+  - contain quotes (' or ") or '='
+  - are non-strings (names must be `str`; no coercion)
+
+v0.15.0
+-------
+* Security: Prevent XML injection (CVE-2025-9375) by rejecting '<'/'>' in
+  element and attribute names (including `@xmlns` prefixes) during unparse.
+  This limits validation to avoiding tag-context escapes; attribute values
+  continue to be escaped by the SAX `XMLGenerator`.
+  Advisory: https://fluidattacks.com/advisories/mono
+
 v0.14.2
 -------
 * Revert "Ensure significant whitespace is not trimmed"
@@ -32,7 +50,7 @@ v0.14.0
 * added conda installation command
   * Thanks, @sugatoray!
 * fix attributes not appearing in streaming mode
-  * Thanks, @timnguyen001! 
+  * Thanks, @timnguyen001!
 * Fix Travis CI status badge URL
 * Update push_release.sh to use twine.
 
