@@ -210,13 +210,13 @@ Parse XML input into a Python dictionary.
 - `xml_attribs=True`: Include attributes in output dict (with `attr_prefix`).
 - `attr_prefix='@'`: Prefix for XML attributes in the dict.
 - `cdata_key='#text'`: Key for text content in the dict.
-- `force_cdata=False`: Force all text content to be wrapped as CDATA.
+- `force_cdata=False`: Force text content to be wrapped as CDATA for specific elements. Can be a boolean (True/False), a tuple of element names to force CDATA for, or a callable function that receives (path, key, value) and returns True/False.
 - `cdata_separator=''`: Separator string to join multiple text nodes. This joins adjacent text nodes. For example, set to a space to avoid concatenation.
 - `postprocessor=None`: Function to modify parsed items.
 - `dict_constructor=dict`: Constructor for dictionaries (e.g., dict or OrderedDict).
 - `strip_whitespace=True`: Remove leading/trailing whitespace in text nodes. Default is True; this trims whitespace in text nodes. Set to False to preserve whitespace exactly.
 - `namespaces=None`: Mapping of namespaces to prefixes, or None to keep full URIs.
-- `force_list=None`: List of keys or callable to force list values. Useful for elements that may appear once or multiple times. Ensures consistent list output. Can also be a callable for fine-grained control.
+- `force_list=None`: Force list values for specific elements. Can be a boolean (True/False), a tuple of element names to force lists for, or a callable function that receives (path, key, value) and returns True/False. Useful for elements that may appear once or multiple times to ensure consistent list output.
 - `item_depth=0`: Depth at which to call `item_callback`.
 - `item_callback=lambda *args: True`: Function called on items at `item_depth`.
 - `comment_key='#comment'`: Key used for XML comments when `process_comments=True`. Only used when `process_comments=True`. Comments can be preserved but multiple top-level comments may not retain order.
@@ -238,6 +238,50 @@ Convert a Python dictionary back into XML.
 - `expand_iter=None`: Tag name to use for items in nested lists (breaks roundtripping).
 
 Note: xmltodict aims to cover the common 90% of cases. It does not preserve every XML nuance (attribute order, mixed content ordering, multiple top-level comments). For exact fidelity, use a full XML library such as lxml.
+
+## Examples
+
+### Selective force_cdata
+
+The `force_cdata` parameter can be used to selectively force CDATA wrapping for specific elements:
+
+```python
+>>> xml = '<a><b>data1</b><c>data2</c><d>data3</d></a>'
+>>> # Force CDATA only for 'b' and 'd' elements
+>>> xmltodict.parse(xml, force_cdata=('b', 'd'))
+{'a': {'b': {'#text': 'data1'}, 'c': 'data2', 'd': {'#text': 'data3'}}}
+
+>>> # Force CDATA for all elements (original behavior)
+>>> xmltodict.parse(xml, force_cdata=True)
+{'a': {'b': {'#text': 'data1'}, 'c': {'#text': 'data2'}, 'd': {'#text': 'data3'}}}
+
+>>> # Use a callable for complex logic
+>>> def should_force_cdata(path, key, value):
+...     return key in ['b', 'd'] and len(value) > 4
+>>> xmltodict.parse(xml, force_cdata=should_force_cdata)
+{'a': {'b': {'#text': 'data1'}, 'c': 'data2', 'd': {'#text': 'data3'}}}
+```
+
+### Selective force_list
+
+The `force_list` parameter can be used to selectively force list values for specific elements:
+
+```python
+>>> xml = '<a><b>data1</b><b>data2</b><c>data3</c></a>'
+>>> # Force lists only for 'b' elements
+>>> xmltodict.parse(xml, force_list=('b',))
+{'a': {'b': ['data1', 'data2'], 'c': 'data3'}}
+
+>>> # Force lists for all elements (original behavior)
+>>> xmltodict.parse(xml, force_list=True)
+{'a': [{'b': ['data1', 'data2'], 'c': ['data3']}]}
+
+>>> # Use a callable for complex logic
+>>> def should_force_list(path, key, value):
+...     return key in ['b'] and isinstance(value, str)
+>>> xmltodict.parse(xml, force_list=should_force_list)
+{'a': {'b': ['data1', 'data2'], 'c': 'data3'}}
+```
 
 ## Ok, how do I get it?
 

@@ -139,7 +139,7 @@ class _DictSAXHandler:
             self.item, self.data = self.stack.pop()
             if self.strip_whitespace and data:
                 data = data.strip() or None
-            if data and self.force_cdata and item is None:
+            if data and self._should_force_cdata(name, data) and item is None:
                 item = self.dict_constructor()
             if item is not None:
                 if data:
@@ -193,6 +193,16 @@ class _DictSAXHandler:
             return key in self.force_list
         except TypeError:
             return self.force_list(self.path[:-1], key, value)
+
+    def _should_force_cdata(self, key, value):
+        if not self.force_cdata:
+            return False
+        if isinstance(self.force_cdata, bool):
+            return self.force_cdata
+        try:
+            return key in self.force_cdata
+        except TypeError:
+            return self.force_cdata(self.path[:-1], key, value)
 
 
 def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,

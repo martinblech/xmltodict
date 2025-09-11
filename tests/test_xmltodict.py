@@ -39,6 +39,68 @@ class XMLToDictTestCase(unittest.TestCase):
         self.assertEqual(parse('<a>data</a>', force_cdata=True),
                          {'a': {'#text': 'data'}})
 
+    def test_selective_force_cdata_tuple(self):
+        xml = "<a><b>data1</b><c>data2</c><d>data3</d></a>"
+        # Test with tuple of specific element names
+        result = parse(xml, force_cdata=("b", "d"))
+        expected = {
+            "a": {"b": {"#text": "data1"}, "c": "data2", "d": {"#text": "data3"}}
+        }
+        self.assertEqual(result, expected)
+
+    def test_selective_force_cdata_single_element(self):
+        xml = "<a><b>data1</b><c>data2</c></a>"
+        # Test with single element name
+        result = parse(xml, force_cdata=("b",))
+        expected = {"a": {"b": {"#text": "data1"}, "c": "data2"}}
+        self.assertEqual(result, expected)
+
+    def test_selective_force_cdata_empty_tuple(self):
+        xml = "<a><b>data1</b><c>data2</c></a>"
+        # Test with empty tuple (should behave like force_cdata=False)
+        result = parse(xml, force_cdata=())
+        expected = {"a": {"b": "data1", "c": "data2"}}
+        self.assertEqual(result, expected)
+
+    def test_selective_force_cdata_callable(self):
+        xml = "<a><b>data1</b><c>data2</c><d>data3</d></a>"
+
+        # Test with callable function
+        def should_force_cdata(path, key, value):
+            return key in ["b", "d"]
+
+        result = parse(xml, force_cdata=should_force_cdata)
+        expected = {
+            "a": {"b": {"#text": "data1"}, "c": "data2", "d": {"#text": "data3"}}
+        }
+        self.assertEqual(result, expected)
+
+    def test_selective_force_cdata_nested_elements(self):
+        xml = "<a><b><c>data1</c></b><d>data2</d></a>"
+        # Test with nested elements - only 'c' should be forced
+        result = parse(xml, force_cdata=("c",))
+        expected = {"a": {"b": {"c": {"#text": "data1"}}, "d": "data2"}}
+        self.assertEqual(result, expected)
+
+    def test_selective_force_cdata_with_attributes(self):
+        xml = '<a><b attr="value">data1</b><c>data2</c></a>'
+        # Test with attributes - force_cdata should still work
+        result = parse(xml, force_cdata=("b",))
+        expected = {"a": {"b": {"@attr": "value", "#text": "data1"}, "c": "data2"}}
+        self.assertEqual(result, expected)
+
+    def test_selective_force_cdata_backwards_compatibility(self):
+        xml = "<a><b>data1</b><c>data2</c></a>"
+        # Test that boolean True still works (backwards compatibility)
+        result_true = parse(xml, force_cdata=True)
+        expected_true = {"a": {"b": {"#text": "data1"}, "c": {"#text": "data2"}}}
+        self.assertEqual(result_true, expected_true)
+
+        # Test that boolean False still works (backwards compatibility)
+        result_false = parse(xml, force_cdata=False)
+        expected_false = {"a": {"b": "data1", "c": "data2"}}
+        self.assertEqual(result_false, expected_false)
+
     def test_custom_cdata(self):
         self.assertEqual(parse('<a>data</a>',
                                force_cdata=True,
