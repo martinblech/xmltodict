@@ -2,7 +2,7 @@
 "Makes working with XML feel like you are working with JSON"
 
 from xml.parsers import expat
-from xml.sax.saxutils import XMLGenerator
+from xml.sax.saxutils import XMLGenerator, escape
 from xml.sax.xmlreader import AttributesImpl
 from io import StringIO
 
@@ -459,7 +459,25 @@ def _emit(key, value, content_handler,
           namespace_separator=':',
           namespaces=None,
           full_document=True,
-          expand_iter=None):
+          expand_iter=None,
+          comment_key='#comment'):
+    if isinstance(key, str) and key == comment_key:
+        comments_list = value if isinstance(value, list) else [value]
+        if isinstance(indent, int):
+            indent = " " * indent
+        for comment_text in comments_list:
+            if comment_text is None:
+                continue
+            comment_text = _convert_value_to_string(comment_text)
+            if comment_text == "":
+                continue
+            if pretty:
+                content_handler.ignorableWhitespace(depth * indent)
+            content_handler.comment(comment_text)
+            if pretty:
+                content_handler.ignorableWhitespace(newl)
+        return
+
     key = _process_namespace(key, namespaces, namespace_separator, attr_prefix)
     if preprocessor is not None:
         result = preprocessor(key, value)
@@ -519,7 +537,7 @@ def _emit(key, value, content_handler,
                   attr_prefix, cdata_key, depth+1, preprocessor,
                   pretty, newl, indent, namespaces=namespaces,
                   namespace_separator=namespace_separator,
-                  expand_iter=expand_iter)
+                  expand_iter=expand_iter, comment_key=comment_key)
         if cdata is not None:
             content_handler.characters(cdata)
         if pretty and children:
@@ -529,8 +547,13 @@ def _emit(key, value, content_handler,
             content_handler.ignorableWhitespace(newl)
 
 
+class _XMLGenerator(XMLGenerator):
+    def comment(self, text):
+        self._write(f"<!--{escape(text)}-->")
+
+
 def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
-            short_empty_elements=False,
+            short_empty_elements=False, comment_key='#comment',
             **kwargs):
     """Emit an XML document for the given `input_dict` (reverse of `parse`).
 
@@ -546,21 +569,25 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
     can be customized with the `newl` and `indent` parameters.
 
     """
-    if full_document and len(input_dict) != 1:
-        raise ValueError('Document must have exactly one root.')
     must_return = False
     if output is None:
         output = StringIO()
         must_return = True
     if short_empty_elements:
-        content_handler = XMLGenerator(output, encoding, True)
+        content_handler = _XMLGenerator(output, encoding, True)
     else:
-        content_handler = XMLGenerator(output, encoding)
+        content_handler = _XMLGenerator(output, encoding)
     if full_document:
         content_handler.startDocument()
+    seen_root = False
     for key, value in input_dict.items():
-        _emit(key, value, content_handler, full_document=full_document,
-              **kwargs)
+        if key != comment_key and full_document and seen_root:
+            raise ValueError("Document must have exactly one root.")
+        _emit(key, value, content_handler, full_document=full_document, comment_key=comment_key, **kwargs)
+        if key != comment_key:
+            seen_root = True
+    if full_document and not seen_root:
+        raise ValueError("Document must have exactly one root.")
     if full_document:
         content_handler.endDocument()
     if must_return:
