@@ -460,3 +460,51 @@ xmlns:b="http://b.com/"><x a:attr="val">1</x><a:y>2</a:y><b:z>3</b:z></root>'''
 
         # They should be different
         self.assertNotEqual(compact_dict, compact_list)
+
+    def test_non_string_text_with_attributes(self):
+        """Test that non-string #text values work when tag has attributes.
+
+        This test covers GitHub issue #366: Tag value (#text) must be a string
+        when tag has additional parameters - unparse.
+
+        Also tests that plain values and explicit #text values are treated
+        consistently (both go through the same conversion logic).
+        """
+        # Test cases for explicit #text values with attributes
+        self.assertEqual(unparse({"a": {"@param": "test", "#text": 1}}, full_document=False),
+                         '<a param="test">1</a>')
+
+        self.assertEqual(unparse({"a": {"@param": 42, "#text": 3.14}}, full_document=False),
+                         '<a param="42">3.14</a>')
+
+        self.assertEqual(unparse({"a": {"@param": "flag", "#text": True}}, full_document=False),
+                         '<a param="flag">true</a>')
+
+        self.assertEqual(unparse({"a": {"@param": "test", "#text": None}}, full_document=False),
+                         '<a param="test">None</a>')
+
+        self.assertEqual(unparse({"a": {"@param": "test", "#text": "string"}}, full_document=False),
+                         '<a param="test">string</a>')
+
+        self.assertEqual(unparse({"a": {"@attr1": "value1", "@attr2": 2, "#text": 100}}, full_document=False),
+                         '<a attr1="value1" attr2="2">100</a>')
+
+        # Test cases for plain values (should be treated the same as #text)
+        self.assertEqual(unparse({"a": 1}, full_document=False), '<a>1</a>')
+        self.assertEqual(unparse({"a": 3.14}, full_document=False), '<a>3.14</a>')
+        self.assertEqual(unparse({"a": True}, full_document=False), '<a>true</a>')
+        self.assertEqual(unparse({"a": "hello"}, full_document=False), '<a>hello</a>')
+        self.assertEqual(unparse({"a": None}, full_document=False), '<a></a>')
+
+        # Consistency tests: plain values should match explicit #text values
+        self.assertEqual(unparse({"a": 42}, full_document=False),
+                         unparse({"a": {"#text": 42}}, full_document=False))
+
+        self.assertEqual(unparse({"a": 3.14}, full_document=False),
+                         unparse({"a": {"#text": 3.14}}, full_document=False))
+
+        self.assertEqual(unparse({"a": True}, full_document=False),
+                         unparse({"a": {"#text": True}}, full_document=False))
+
+        self.assertEqual(unparse({"a": "hello"}, full_document=False),
+                         unparse({"a": {"#text": "hello"}}, full_document=False))

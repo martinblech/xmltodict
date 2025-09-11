@@ -374,6 +374,18 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     return handler.item
 
 
+def _convert_value_to_string(value):
+    """Convert a value to its string representation for XML output.
+
+    Handles boolean values consistently by converting them to lowercase.
+    """
+    if isinstance(value, (str, bytes)):
+        return value
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
+
+
 def _has_angle_brackets(value):
     """Return True if value (a str) contains '<' or '>'.
 
@@ -463,13 +475,11 @@ def _emit(key, value, content_handler,
             raise ValueError('document with multiple roots')
         if v is None:
             v = _dict()
-        elif isinstance(v, bool):
-            v = 'true' if v else 'false'
         elif not isinstance(v, (dict, str)):
             if expand_iter and hasattr(v, '__iter__'):
                 v = _dict(((expand_iter, v),))
             else:
-                v = str(v)
+                v = _convert_value_to_string(v)
         if isinstance(v, str):
             v = _dict(((cdata_key, v),))
         cdata = None
@@ -477,7 +487,7 @@ def _emit(key, value, content_handler,
         children = []
         for ik, iv in v.items():
             if ik == cdata_key:
-                cdata = iv
+                cdata = _convert_value_to_string(iv)
                 continue
             if isinstance(ik, str) and ik.startswith(attr_prefix):
                 ik = _process_namespace(ik, namespaces, namespace_separator,
