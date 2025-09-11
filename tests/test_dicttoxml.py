@@ -144,6 +144,26 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertEqual(xml, unparse(obj, pretty=True,
                                       newl=newl, indent=indent))
 
+    def test_unparse_with_element_comment(self):
+        obj = {"a": {"#comment": "note", "b": "1"}}
+        xml = _strip(unparse(obj, full_document=True))
+        self.assertEqual(xml, "<a><!--note--><b>1</b></a>")
+
+    def test_unparse_with_multiple_element_comments(self):
+        obj = {"a": {"#comment": ["n1", "n2"], "b": "1"}}
+        xml = _strip(unparse(obj, full_document=True))
+        self.assertEqual(xml, "<a><!--n1--><!--n2--><b>1</b></a>")
+
+    def test_unparse_with_top_level_comment(self):
+        obj = {"#comment": "top", "a": "1"}
+        xml = _strip(unparse(obj, full_document=True))
+        self.assertEqual(xml, "<!--top--><a>1</a>")
+
+    def test_unparse_with_multiple_top_level_comments(self):
+        obj = {"#comment": ["t1", "t2"], "a": "1"}
+        xml = _strip(unparse(obj, full_document=True))
+        self.assertEqual(xml, "<!--t1--><!--t2--><a>1</a>")
+
     def test_pretty_print_with_int_indent(self):
         obj = {'a': OrderedDict((
             ('b', [{'c': [1, 2]}, 3]),
@@ -163,6 +183,30 @@ class DictToXMLTestCase(unittest.TestCase):
         </a>''')
         self.assertEqual(xml, unparse(obj, pretty=True,
                                       newl=newl, indent=indent))
+
+    def test_comment_roundtrip_limited(self):
+        # Input with top-level comments and an element-level comment
+        xml = """
+        <!--top1--><a><b>1</b><!--e1--></a><!--top2-->
+        """
+        # Parse with comment processing enabled
+        parsed1 = parse(xml, process_comments=True)
+        # Unparse and parse again (roundtrip)
+        xml2 = unparse(parsed1)
+        parsed2 = parse(xml2, process_comments=True)
+
+        # Content preserved
+        self.assertIn('a', parsed2)
+        self.assertEqual(parsed2['a']['b'], '1')
+
+        # Element-level comment preserved under '#comment'
+        self.assertEqual(parsed2['a']['#comment'], 'e1')
+
+        # Top-level comments preserved as a list (order not guaranteed)
+        top = parsed2.get('#comment')
+        self.assertIsNotNone(top)
+        top_list = top if isinstance(top, list) else [top]
+        self.assertEqual(set(top_list), {'top1', 'top2'})
 
     def test_encoding(self):
         try:
