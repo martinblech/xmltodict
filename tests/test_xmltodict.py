@@ -177,7 +177,8 @@ class XMLToDictTestCase(unittest.TestCase):
         self.assertEqual(cb.count, 3)
 
     def test_streaming_interrupt(self):
-        cb = lambda path, item: False
+        def cb(path, item):
+            return False
         self.assertRaises(ParsingInterrupted,
                           parse, '<a>x</a>',
                           item_depth=1, item_callback=cb)
@@ -233,18 +234,12 @@ class XMLToDictTestCase(unittest.TestCase):
                                postprocessor=postprocessor))
 
     def test_unicode(self):
-        try:
-            value = unichr(39321)
-        except NameError:
-            value = chr(39321)
+        value = chr(39321)
         self.assertEqual({'a': value},
                          parse(f'<a>{value}</a>'))
 
     def test_encoded_string(self):
-        try:
-            value = unichr(39321)
-        except NameError:
-            value = chr(39321)
+        value = chr(39321)
         xml = f'<a>{value}</a>'
         self.assertEqual(parse(xml),
                          parse(xml.encode('utf-8')))
@@ -491,7 +486,7 @@ class XMLToDictTestCase(unittest.TestCase):
             return parser
         expat.ParserCreate = raising_external_ref_handler
         # Using this try/catch because a TypeError is thrown before
-        # the ExpatError, and Python 2.6 is confused by that.
+        # the ExpatError.
         try:
             parse(xml, disable_entities=False, expat=expat)
         except expat.ExpatError:

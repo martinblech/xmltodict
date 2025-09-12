@@ -1,12 +1,8 @@
-import sys
 from xmltodict import parse, unparse
-from collections import OrderedDict
 
 import unittest
 import re
 from textwrap import dedent
-
-IS_JYTHON = sys.platform.startswith('java')
 
 _HEADER_RE = re.compile(r'^[^\n]*\n')
 
@@ -74,7 +70,7 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertEqual(unparse({}, full_document=False), '')
 
     def test_multiple_roots_nofulldoc(self):
-        obj = OrderedDict((('a', 1), ('b', 2)))
+        obj = {"a": 1, "b": 2}
         xml = unparse(obj, full_document=False)
         self.assertEqual(xml, '<a>1</a><b>2</b>')
         obj = {'a': [1, 2]}
@@ -95,7 +91,7 @@ class DictToXMLTestCase(unittest.TestCase):
                          '<a><d></d>abcefg</a>')
 
     def test_preprocessor(self):
-        obj = {'a': OrderedDict((('b:int', [1, 2]), ('b', 'c')))}
+        obj = {"a": {"b:int": [1, 2], "b": "c"}}
 
         def p(key, value):
             try:
@@ -118,17 +114,17 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertEqual(_strip(unparse(obj, preprocessor=p)),
                          '<a><c>2</c></a>')
 
-    if not IS_JYTHON:
-        # Jython's SAX does not preserve attribute order
-        def test_attr_order_roundtrip(self):
-            xml = '<root a="1" b="2" c="3"></root>'
-            self.assertEqual(xml, _strip(unparse(parse(xml))))
+    def test_attr_order_roundtrip(self):
+        xml = '<root a="1" b="2" c="3"></root>'
+        self.assertEqual(xml, _strip(unparse(parse(xml))))
 
     def test_pretty_print(self):
-        obj = {'a': OrderedDict((
-            ('b', [{'c': [1, 2]}, 3]),
-            ('x', 'y'),
-        ))}
+        obj = {
+            "a": {
+                "b": [{"c": [1, 2]}, 3],
+                "x": "y",
+            }
+        }
         newl = '\n'
         indent = '....'
         xml = dedent('''\
@@ -165,10 +161,12 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertEqual(xml, "<!--t1--><!--t2--><a>1</a>")
 
     def test_pretty_print_with_int_indent(self):
-        obj = {'a': OrderedDict((
-            ('b', [{'c': [1, 2]}, 3]),
-            ('x', 'y'),
-        ))}
+        obj = {
+            "a": {
+                "b": [{"c": [1, 2]}, 3],
+                "x": "y",
+            }
+        }
         newl = '\n'
         indent = 2
         xml = dedent('''\
@@ -209,10 +207,7 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertEqual(set(top_list), {'top1', 'top2'})
 
     def test_encoding(self):
-        try:
-            value = unichr(39321)
-        except NameError:
-            value = chr(39321)
+        value = chr(39321)
         obj = {'a': value}
         utf8doc = unparse(obj, encoding='utf-8')
         latin1doc = unparse(obj, encoding='iso-8859-1')
@@ -239,21 +234,21 @@ class DictToXMLTestCase(unittest.TestCase):
         self.assertEqual('<a/>', _strip(unparse(obj, short_empty_elements=True)))
 
     def test_namespace_support(self):
-        obj = OrderedDict((
-            ('http://defaultns.com/:root', OrderedDict((
-                ('@xmlns', OrderedDict((
-                    ('', 'http://defaultns.com/'),
-                    ('a', 'http://a.com/'),
-                    ('b', 'http://b.com/'),
-                ))),
-                ('http://defaultns.com/:x', OrderedDict((
-                    ('@http://a.com/:attr', 'val'),
-                    ('#text', '1'),
-                ))),
-                ('http://a.com/:y', '2'),
-                ('http://b.com/:z', '3'),
-            ))),
-        ))
+        obj = {
+            "http://defaultns.com/:root": {
+                "@xmlns": {
+                    "": "http://defaultns.com/",
+                    "a": "http://a.com/",
+                    "b": "http://b.com/",
+                },
+                "http://defaultns.com/:x": {
+                    "@http://a.com/:attr": "val",
+                    "#text": "1",
+                },
+                "http://a.com/:y": "2",
+                "http://b.com/:z": "3",
+            },
+        }
         ns = {
             'http://defaultns.com/': '',
             'http://a.com/': 'a',
