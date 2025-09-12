@@ -6,12 +6,7 @@
       "package-name": "xmltodict",
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
-        {
-          "type": "regex",
-          "path": "xmltodict.py",
-          "search": "^__version__\\s*=\\s*['\"][^'\"]+['\"]",
-          "replace": "__version__ = \"${version}\""
-        }
+        "xmltodict.py"
       ]
     }
   }
