@@ -348,6 +348,18 @@ $ zypper in python2-xmltodict
 $ zypper in python3-xmltodict
 ```
 
+## Type Annotations
+
+For type checking support, install the external types package:
+
+```sh
+# Using pypi
+$ pip install types-xmltodict
+
+# Using conda
+$ conda install -c conda-forge types-xmltodict
+```
+
 ## Security Notes
 
 A CVE (CVE-2025-9375) was filed against `xmltodict` but is [disputed](https://github.com/martinblech/xmltodict/issues/377#issuecomment-3255691923). The root issue lies in Python’s `xml.sax.saxutils.XMLGenerator` API, which does not validate XML element names and provides no built-in way to do so. Since `xmltodict` is a thin wrapper that passes keys directly to `XMLGenerator`, the same issue exists in the standard library itself.
