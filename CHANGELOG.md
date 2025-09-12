@@ -1,5 +1,41 @@
 # Changelog
 
+## [1.0.0](https://github.com/martinblech/xmltodict/compare/v0.15.1...v1.0.0) (2025-09-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* modernize for Python 3.9+; drop legacy compat paths
+
+### Features
+
+* **unparse:** add limited XML comment round-trip; unify `_emit` behavior ([e43537e](https://github.com/martinblech/xmltodict/commit/e43537eee61c20ef50f0e4242eb9223de7a6aefd))
+* **unparse:** add selective `force_cdata` support (bool/tuple/callable) ([a497fed](https://github.com/martinblech/xmltodict/commit/a497fedb7d6103d68af155543ac3337a73778b19)), closes [#375](https://github.com/martinblech/xmltodict/issues/375)
+
+
+### Bug Fixes
+
+* **namespaces:** attach `[@xmlns](https://github.com/xmlns)` to declaring element when process_namespaces=True ([f0322e5](https://github.com/martinblech/xmltodict/commit/f0322e578184421693434902547f330f4f0a44c3)), closes [#163](https://github.com/martinblech/xmltodict/issues/163)
+* **streaming:** avoid parent accumulation at item_depth; add regression tests ([220240c](https://github.com/martinblech/xmltodict/commit/220240c5eb2d12b75adf26cc84ec9c803ce8bb2b))
+* **unparse:** handle non-string `#text` with attributes; unify value conversion ([927a025](https://github.com/martinblech/xmltodict/commit/927a025ae8a62cbb542d5caff38b29161a2096fa)), closes [#366](https://github.com/martinblech/xmltodict/issues/366)
+* **unparse:** skip empty lists to keep pretty/compact outputs consistent ([ab4c86f](https://github.com/martinblech/xmltodict/commit/ab4c86fed24dc8ef0e932a524edfb01c6453ecf6))
+
+
+### Reverts
+
+* remove initial Release Drafter config ([c0b74ed](https://github.com/martinblech/xmltodict/commit/c0b74ed58f933bffd160c60a58620f672710ff7c))
+
+
+### Documentation
+
+* **readme:** add API reference for parse()/unparse() kwargs ([e5039ad](https://github.com/martinblech/xmltodict/commit/e5039ad3f5159cc45ac1d52c4aa901ca50d4c722))
+* **readme:** mention types-xmltodict stub package ([58ec03e](https://github.com/martinblech/xmltodict/commit/58ec03e6d94f17ed359742d9ce2f99e796669694))
+
+
+### Code Refactoring
+
+* modernize for Python 3.9+; drop legacy compat paths ([7364427](https://github.com/martinblech/xmltodict/commit/7364427c86c62f55ad4c2dce96df6761da69c354))
+
 ## v0.15.1
 * Security: Further harden XML injection prevention during unparse (follow-up to
   v0.15.0). In addition to '<'/'>' rejection, now also reject element and
@@ -288,4 +324,3 @@
 * links in README
 * improved README
 * initial commit
-

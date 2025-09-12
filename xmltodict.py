@@ -8,7 +8,7 @@ from io import StringIO
 from inspect import isgenerator
 
 __author__ = 'Martin Blech'
-__version__ = "0.15.1"  # x-release-please-version
+__version__ = "1.0.0"  # x-release-please-version
 __license__ = 'MIT'
 
 
