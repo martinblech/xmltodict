@@ -1,0 +1,7 @@
+repos:
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.9.0
+    hooks:
+      - id: commitizen
+        additional_dependencies:
+          - deprecated
