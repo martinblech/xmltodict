@@ -1,0 +1,18 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "python",
+  "packages": {
+    ".": {
+      "package-name": "xmltodict",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "regex",
+          "path": "xmltodict.py",
+          "search": "^__version__\\s*=\\s*['\"][^'\"]+['\"]",
+          "replace": "__version__ = \"${version}\""
+        }
+      ]
+    }
+  }
+}
