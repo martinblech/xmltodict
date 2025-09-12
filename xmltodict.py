@@ -5,12 +5,6 @@ from xml.parsers import expat
 from xml.sax.saxutils import XMLGenerator, escape
 from xml.sax.xmlreader import AttributesImpl
 from io import StringIO
-
-_dict = dict
-import platform
-if tuple(map(int, platform.python_version_tuple()[:2])) < (3, 7):
-    from collections import OrderedDict as _dict
-
 from inspect import isgenerator
 
 __author__ = 'Martin Blech'
@@ -23,21 +17,23 @@ class ParsingInterrupted(Exception):
 
 
 class _DictSAXHandler:
-    def __init__(self,
-                 item_depth=0,
-                 item_callback=lambda *args: True,
-                 xml_attribs=True,
-                 attr_prefix='@',
-                 cdata_key='#text',
-                 force_cdata=False,
-                 cdata_separator='',
-                 postprocessor=None,
-                 dict_constructor=_dict,
-                 strip_whitespace=True,
-                 namespace_separator=':',
-                 namespaces=None,
-                 force_list=None,
-                 comment_key='#comment'):
+    def __init__(
+        self,
+        item_depth=0,
+        item_callback=lambda *args: True,
+        xml_attribs=True,
+        attr_prefix="@",
+        cdata_key="#text",
+        force_cdata=False,
+        cdata_separator="",
+        postprocessor=None,
+        dict_constructor=dict,
+        strip_whitespace=True,
+        namespace_separator=":",
+        namespaces=None,
+        force_list=None,
+        comment_key="#comment",
+    ):
         self.path = []
         self.stack = []
         self.data = []
@@ -225,9 +221,9 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         ... </a>
         ... \"\"\")
         >>> doc['a']['@prop']
-        u'x'
+        'x'
         >>> doc['a']['b']
-        [u'1', u'2']
+        ['1', '2']
 
     If `item_depth` is `0`, the function returns a dictionary for the root
     element (default behavior). Otherwise, it calls `item_callback` every time
@@ -250,8 +246,8 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         ...   <b>1</b>
         ...   <b>2</b>
         ... </a>\"\"\", item_depth=2, item_callback=handle)
-        path:[(u'a', {u'prop': u'x'}), (u'b', None)] item:1
-        path:[(u'a', {u'prop': u'x'}), (u'b', None)] item:2
+        path:[('a', {'prop': 'x'}), ('b', None)] item:1
+        path:[('a', {'prop': 'x'}), ('b', None)] item:2
 
     The optional argument `postprocessor` is a function that takes `path`,
     `key` and `value` as positional arguments and returns a new `(key, value)`
@@ -502,16 +498,16 @@ def _emit(key, value, content_handler,
         if full_document and depth == 0 and index > 0:
             raise ValueError('document with multiple roots')
         if v is None:
-            v = _dict()
+            v = {}
         elif not isinstance(v, (dict, str)):
             if expand_iter and hasattr(v, '__iter__'):
-                v = _dict(((expand_iter, v),))
+                v = {expand_iter: v}
             else:
                 v = _convert_value_to_string(v)
         if isinstance(v, str):
-            v = _dict(((cdata_key, v),))
+            v = {cdata_key: v}
         cdata = None
-        attrs = _dict()
+        attrs = {}
         children = []
         for ik, iv in v.items():
             if ik == cdata_key:
@@ -612,12 +608,9 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
 if __name__ == '__main__':  # pragma: no cover
     import marshal
     import sys
-    try:
-        stdin = sys.stdin.buffer
-        stdout = sys.stdout.buffer
-    except AttributeError:
-        stdin = sys.stdin
-        stdout = sys.stdout
+
+    stdin = sys.stdin.buffer
+    stdout = sys.stdout.buffer
 
     (item_depth,) = sys.argv[1:]
     item_depth = int(item_depth)
