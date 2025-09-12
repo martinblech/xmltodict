@@ -6,6 +6,7 @@
   "packages": {
     ".": {
       "package-name": "xmltodict",
+      "bootstrap-sha": "75a17701db20d5d3ec2ea1f6c901cf2211011eb5",
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
         "xmltodict.py"
