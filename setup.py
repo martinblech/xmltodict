@@ -34,5 +34,5 @@ setup(
         "Topic :: Text Processing :: Markup :: XML",
     ],
     py_modules=["xmltodict"],
-    tests_require=["nose2", "coverage"],
+    tests_require=["pytest", "pytest-cov"],
 )
