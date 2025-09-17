@@ -9,7 +9,7 @@ description = "Makes working with XML feel like you are working with JSON"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { file = "LICENSE" }
-authors = [{ name = "Martin Blech", email = "martinblech@gmail.com" }]
+authors = [{ name = "Martin Blech" }]
 classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
