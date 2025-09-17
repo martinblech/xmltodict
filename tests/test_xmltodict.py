@@ -410,7 +410,7 @@ def test_force_list_callable():
     assert parse(xml, force_list=force_list, dict_constructor=dict) == expectedResult
 
 
-def test_disable_entities_true_ignores_xmlbomb():
+def test_disable_entities_true_rejects_xmlbomb():
     xml = """
     <!DOCTYPE xmlbomb [
         <!ENTITY a "1234567890" >
@@ -419,13 +419,8 @@ def test_disable_entities_true_ignores_xmlbomb():
     ]>
     <bomb>&c;</bomb>
     """
-    expectedResult = {'bomb': None}
-    try:
-        parse_attempt = parse(xml, disable_entities=True)
-    except expat.ExpatError:
-        assert True
-    else:
-        assert parse_attempt == expectedResult
+    with pytest.raises(expat.ExpatError, match="entities are disabled"):
+        parse(xml, disable_entities=True)
 
 
 def test_disable_entities_false_returns_xmlbomb():
@@ -442,20 +437,15 @@ def test_disable_entities_false_returns_xmlbomb():
     assert parse(xml, disable_entities=False) == expectedResult
 
 
-def test_disable_entities_true_ignores_external_dtd():
+def test_disable_entities_true_rejects_external_dtd():
     xml = """
     <!DOCTYPE external [
         <!ENTITY ee SYSTEM "http://www.python.org/">
     ]>
     <root>&ee;</root>
     """
-    expectedResult = {'root': None}
-    try:
-        parse_attempt = parse(xml, disable_entities=True)
-    except expat.ExpatError:
-        assert True
-    else:
-        assert parse_attempt == expectedResult
+    with pytest.raises(expat.ExpatError, match="entities are disabled"):
+        parse(xml, disable_entities=True)
 
 
 def test_disable_entities_true_attempts_external_dtd():

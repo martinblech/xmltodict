@@ -354,10 +354,21 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         parser.CommentHandler = handler.comments
     parser.buffer_text = True
     if disable_entities:
-        # Anything not handled ends up here and entities aren't expanded.
-        parser.DefaultHandler = lambda x: None
-        # Expects an integer return; zero means failure -> expat.ExpatError.
-        parser.ExternalEntityRefHandler = lambda *x: 1
+        def _forbid_entities(*_args, **_kwargs):
+            raise expat.ExpatError("xmltodict.parse(): entities are disabled")
+
+        def _forbid_entities_default(text):
+            if not text:
+                return
+            stripped = text.lstrip()
+            if stripped.startswith('<!') or stripped.startswith('&'):
+                _forbid_entities()
+
+        # Reject DTD/entity constructs explicitly instead of ignoring them.
+        parser.DefaultHandler = _forbid_entities_default
+        parser.EntityDeclHandler = _forbid_entities
+        parser.StartDoctypeDeclHandler = _forbid_entities
+        parser.ExternalEntityRefHandler = _forbid_entities
     if hasattr(xml_input, 'read'):
         parser.ParseFile(xml_input)
     elif isgenerator(xml_input):
