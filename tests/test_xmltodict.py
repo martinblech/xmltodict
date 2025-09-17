@@ -469,11 +469,6 @@ def test_disable_entities_true_attempts_external_dtd():
     def raising_external_ref_handler(*args, **kwargs):
         parser = ParserCreate(*args, **kwargs)
         parser.ExternalEntityRefHandler = lambda *x: 0
-        try:
-            feature = "http://apache.org/xml/features/disallow-doctype-decl"
-            parser._reader.setFeature(feature, True)
-        except AttributeError:
-            pass
         return parser
     expat.ParserCreate = raising_external_ref_handler
     # Using this try/catch because a TypeError is thrown before
