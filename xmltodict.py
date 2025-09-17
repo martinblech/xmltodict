@@ -345,11 +345,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         encoding,
         namespace_separator
     )
-    try:
-        parser.ordered_attributes = True
-    except AttributeError:
-        # Jython's expat does not support ordered_attributes
-        pass
+    parser.ordered_attributes = True
     parser.StartNamespaceDeclHandler = handler.startNamespaceDecl
     parser.StartElementHandler = handler.startElement
     parser.EndElementHandler = handler.endElement
@@ -358,16 +354,10 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         parser.CommentHandler = handler.comments
     parser.buffer_text = True
     if disable_entities:
-        try:
-            # Attempt to disable DTD in Jython's expat parser (Xerces-J).
-            feature = "http://apache.org/xml/features/disallow-doctype-decl"
-            parser._reader.setFeature(feature, True)
-        except AttributeError:
-            # For CPython / expat parser.
-            # Anything not handled ends up here and entities aren't expanded.
-            parser.DefaultHandler = lambda x: None
-            # Expects an integer return; zero means failure -> expat.ExpatError.
-            parser.ExternalEntityRefHandler = lambda *x: 1
+        # Anything not handled ends up here and entities aren't expanded.
+        parser.DefaultHandler = lambda x: None
+        # Expects an integer return; zero means failure -> expat.ExpatError.
+        parser.ExternalEntityRefHandler = lambda *x: 1
     if hasattr(xml_input, 'read'):
         parser.ParseFile(xml_input)
     elif isgenerator(xml_input):
