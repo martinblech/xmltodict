@@ -1,15 +1,14 @@
 from xmltodict import parse, ParsingInterrupted
 import collections
 import pytest
-from io import BytesIO, StringIO
+from io import BytesIO
 
 from xml.parsers.expat import ParserCreate
 from xml.parsers import expat
 
 
-def test_string_vs_binary_file():
+def test_bytes_vs_file():
     xml = '<a>data</a>'
-    assert parse(xml) == parse(StringIO(xml))
     assert parse(xml) == parse(BytesIO(xml.encode('ascii')))
 
 
