@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.0.1](https://github.com/martinblech/xmltodict/compare/v1.0.0...v1.0.1) (2025-09-17)
+
+
+### Bug Fixes
+
+* fail closed when entities disabled ([c986d2d](https://github.com/martinblech/xmltodict/commit/c986d2d37a93d45fcc059b09063d9d9c45a655ec))
+* validate XML comments ([3d4d2d3](https://github.com/martinblech/xmltodict/commit/3d4d2d3a4cd0f68d1211dba549010261fa87b969))
+
+
+### Documentation
+
+* add SECURITY.md ([6413023](https://github.com/martinblech/xmltodict/commit/64130233c8fea272a5f82f2f585e1593523ec1b1))
+* clarify behavior for empty lists ([2025b5c](https://github.com/martinblech/xmltodict/commit/2025b5cb5e64fc9c4d54b8644187a0a193bdd0ed))
+* clarify process_comments docs ([6b464fc](https://github.com/martinblech/xmltodict/commit/6b464fce284a93dbb292f3d063c9f310a478a014))
+* clarify strip whitespace comment behavior ([b3e2203](https://github.com/martinblech/xmltodict/commit/b3e22032d21cc387d6cecf3930116e8fdc3151cf))
+* create AGENTS.md for coding agents ([0da66ee](https://github.com/martinblech/xmltodict/commit/0da66ee797ced7479312aecef92c6a25e235007c))
+* replace travis with actions badge ([2576b94](https://github.com/martinblech/xmltodict/commit/2576b94c918fbd154489a95dbbb3feda8bd3cbd8))
+* update CONTRIBUTING.md ([db39180](https://github.com/martinblech/xmltodict/commit/db3918057cf125af989a1263d52df8df5ef8c642))
+
 ## [1.0.0](https://github.com/martinblech/xmltodict/compare/v0.15.1...v1.0.0) (2025-09-12)
 
 
