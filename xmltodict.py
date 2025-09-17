@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 "Makes working with XML feel like you are working with JSON"
 
+import codecs
+
 from xml.parsers import expat
 from xml.sax.saxutils import XMLGenerator, escape
 from xml.sax.xmlreader import AttributesImpl
-from io import StringIO
+from io import StringIO, TextIOBase
 from inspect import isgenerator
 
 __author__ = 'Martin Blech'
@@ -337,9 +339,13 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     """
     handler = _DictSAXHandler(namespace_separator=namespace_separator,
                               **kwargs)
+    text_stream = None
     if isinstance(xml_input, str):
         encoding = encoding or 'utf-8'
         xml_input = xml_input.encode(encoding)
+    elif hasattr(xml_input, 'read') and isinstance(xml_input, TextIOBase):
+        text_stream = xml_input
+        encoding = encoding or getattr(text_stream, 'encoding', None) or 'utf-8'
     if not process_namespaces:
         namespace_separator = None
     parser = expat.ParserCreate(
@@ -369,7 +375,21 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
             parser.DefaultHandler = lambda x: None
             # Expects an integer return; zero means failure -> expat.ExpatError.
             parser.ExternalEntityRefHandler = lambda *x: 1
-    if hasattr(xml_input, 'read'):
+    if text_stream is not None:
+        incremental_encoder = codecs.getincrementalencoder(encoding)()
+        read_chunk = text_stream.read
+        while True:
+            chunk = read_chunk(8192)
+            if not chunk:
+                break
+            encoded = incremental_encoder.encode(chunk, final=False)
+            if encoded:
+                parser.Parse(encoded, False)
+        tail = incremental_encoder.encode('', final=True)
+        if tail:
+            parser.Parse(tail, False)
+        parser.Parse(b'', True)
+    elif hasattr(xml_input, 'read'):
         parser.ParseFile(xml_input)
     elif isgenerator(xml_input):
         for chunk in xml_input:

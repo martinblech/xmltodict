@@ -1,26 +1,16 @@
 from xmltodict import parse, ParsingInterrupted
 import collections
 import pytest
-
-try:
-    from io import BytesIO as StringIO
-except ImportError:
-    from xmltodict import StringIO
+from io import BytesIO, StringIO
 
 from xml.parsers.expat import ParserCreate
 from xml.parsers import expat
 
 
-def _encode(s):
-    try:
-        return bytes(s, 'ascii')
-    except (NameError, TypeError):
-        return s
-
-
-def test_string_vs_file():
+def test_string_vs_binary_file():
     xml = '<a>data</a>'
-    assert parse(xml) == parse(StringIO(_encode(xml)))
+    assert parse(xml) == parse(StringIO(xml))
+    assert parse(xml) == parse(BytesIO(xml.encode('ascii')))
 
 
 def test_minimal():
