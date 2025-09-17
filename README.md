@@ -237,6 +237,11 @@ Convert a Python dictionary back into XML.
 - `newl='\n'`: Newline character for pretty printing.
 - `expand_iter=None`: Tag name to use for items in nested lists (breaks roundtripping).
 
+> **Note:** When building XML from dictionaries, keys whose values are empty
+> lists are skipped. For example, `{'a': []}` produces no `<a>` element. Add a
+> placeholder child (for example, `{'a': ['']}`) if an explicit empty container
+> element is required in the output.
+
 Note: xmltodict aims to cover the common 90% of cases. It does not preserve every XML nuance (attribute order, mixed content ordering, multiple top-level comments). For exact fidelity, use a full XML library such as lxml.
 
 ## Examples
