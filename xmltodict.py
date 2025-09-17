@@ -329,6 +329,10 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
                     'd': '2',
                 },
             }
+        Comment text is subject to the `strip_whitespace` flag: when it is left
+        at the default `True`, comments will have leading and trailing
+        whitespace removed. Disable `strip_whitespace` to keep comment
+        indentation or padding intact.
     """
     handler = _DictSAXHandler(namespace_separator=namespace_separator,
                               **kwargs)
