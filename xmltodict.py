@@ -7,11 +7,6 @@ from xml.sax.xmlreader import AttributesImpl
 from io import StringIO
 from inspect import isgenerator
 
-__author__ = 'Martin Blech'
-__version__ = "1.0.0"  # x-release-please-version
-__license__ = 'MIT'
-
-
 class ParsingInterrupted(Exception):
     pass
 
