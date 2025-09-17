@@ -389,30 +389,6 @@ def _convert_value_to_string(value):
     if isinstance(value, bool):
         return "true" if value else "false"
     return str(value)
-
-
-def _has_angle_brackets(value):
-    """Return True if value (a str) contains '<' or '>'.
-
-    Non-string values return False. Uses fast substring checks implemented in C.
-    """
-    return isinstance(value, str) and ("<" in value or ">" in value)
-
-
-def _has_invalid_name_chars(value):
-    """Return True if value (a str) contains any disallowed name characters.
-
-    Disallowed: '<', '>', '/', or any whitespace character.
-    Non-string values return False.
-    """
-    if not isinstance(value, str):
-        return False
-    if "<" in value or ">" in value or "/" in value:
-        return True
-    # Check for any whitespace (spaces, tabs, newlines, etc.)
-    return any(ch.isspace() for ch in value)
-
-
 def _validate_name(value, kind):
     """Validate an element/attribute name for XML safety.
 
