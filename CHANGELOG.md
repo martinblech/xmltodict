@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/martinblech/xmltodict/compare/v1.0.1...v1.0.2) (2025-09-17)
+
+
+### Bug Fixes
+
+* allow DOCTYPE with disable_entities=True (default) ([25b61a4](https://github.com/martinblech/xmltodict/commit/25b61a41f580cfc211df07c5fbbf603bd8eb5a5f))
+
 ## [1.0.1](https://github.com/martinblech/xmltodict/compare/v1.0.0...v1.0.1) (2025-09-17)
 
 
