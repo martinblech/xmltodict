@@ -419,7 +419,7 @@ def test_disable_entities_true_rejects_xmlbomb():
     ]>
     <bomb>&c;</bomb>
     """
-    with pytest.raises(expat.ExpatError, match="entities are disabled"):
+    with pytest.raises(ValueError, match="entities are disabled"):
         parse(xml, disable_entities=True)
 
 
@@ -437,18 +437,19 @@ def test_disable_entities_false_returns_xmlbomb():
     assert parse(xml, disable_entities=False) == expectedResult
 
 
-def test_disable_entities_true_rejects_external_dtd():
+def test_external_entity():
     xml = """
     <!DOCTYPE external [
         <!ENTITY ee SYSTEM "http://www.python.org/">
     ]>
     <root>&ee;</root>
     """
-    with pytest.raises(expat.ExpatError, match="entities are disabled"):
-        parse(xml, disable_entities=True)
+    with pytest.raises(ValueError, match="entities are disabled"):
+        parse(xml)
+    assert parse(xml, disable_entities=False) == {"root": None}
 
 
-def test_disable_entities_true_attempts_external_dtd():
+def test_external_entity_with_custom_expat():
     xml = """
     <!DOCTYPE external [
         <!ENTITY ee SYSTEM "http://www.python.org/">
@@ -456,20 +457,37 @@ def test_disable_entities_true_attempts_external_dtd():
     <root>&ee;</root>
     """
 
-    def raising_external_ref_handler(*args, **kwargs):
-        parser = ParserCreate(*args, **kwargs)
-        parser.ExternalEntityRefHandler = lambda *x: 0
-        return parser
-    expat.ParserCreate = raising_external_ref_handler
-    # Using this try/catch because a TypeError is thrown before
-    # the ExpatError.
-    try:
-        parse(xml, disable_entities=False, expat=expat)
-    except expat.ExpatError:
-        assert True
-    else:
-        assert False
-    expat.ParserCreate = ParserCreate
+    class CustomExpat:
+        def __init__(self, external_entity_result):
+            self.external_entity_result = external_entity_result
+
+        def ParserCreate(self, *args, **kwargs):
+            parser = ParserCreate(*args, **kwargs)
+
+            def _handler(*args, **kwargs):
+                return self.external_entity_result
+
+            parser.ExternalEntityRefHandler = _handler
+            return parser
+
+        ExpatError = expat.ExpatError
+
+    with pytest.raises(expat.ExpatError):
+        parse(xml, disable_entities=False, expat=CustomExpat(0))
+    assert parse(xml, disable_entities=False, expat=CustomExpat(1)) == {"root": None}
+    with pytest.raises(ValueError):
+        assert parse(xml, disable_entities=True, expat=CustomExpat(1))
+    with pytest.raises(ValueError):
+        assert parse(xml, disable_entities=True, expat=CustomExpat(0))
+
+
+def test_disable_entities_true_allows_doctype_without_entities():
+    xml = """<?xml version='1.0' encoding='UTF-8'?>
+    <!DOCTYPE data SYSTEM "diagram.dtd">
+    <foo>bar</foo>
+    """
+    assert parse(xml, disable_entities=True) == {"foo": "bar"}
+    assert parse(xml, disable_entities=False) == {"foo": "bar"}
 
 
 def test_disable_entities_allows_comments_by_default():
