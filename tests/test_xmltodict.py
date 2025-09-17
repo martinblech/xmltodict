@@ -7,7 +7,7 @@ from xml.parsers.expat import ParserCreate
 from xml.parsers import expat
 
 
-def test_bytes_vs_file():
+def test_string_vs_file():
     xml = '<a>data</a>'
     assert parse(xml) == parse(BytesIO(xml.encode('ascii')))
 
