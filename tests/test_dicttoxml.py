@@ -178,6 +178,18 @@ def test_unparse_with_multiple_top_level_comments():
     assert xml == "<!--t1--><!--t2--><a>1</a>"
 
 
+def test_unparse_rejects_comment_with_double_hyphen():
+    obj = {"#comment": "bad--comment", "a": "1"}
+    with pytest.raises(ValueError, match="cannot contain '--'"):
+        unparse(obj, full_document=True)
+
+
+def test_unparse_rejects_comment_ending_with_hyphen():
+    obj = {"#comment": "trailing-", "a": "1"}
+    with pytest.raises(ValueError, match="cannot end with '-'"):
+        unparse(obj, full_document=True)
+
+
 def test_pretty_print_with_int_indent():
     obj = {
         "a": {
