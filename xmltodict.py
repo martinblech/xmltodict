@@ -301,8 +301,8 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         a list should be forced is more complex.
 
 
-        If `process_comment` is `True` then comment will be added with comment_key
-        (default=`'#comment'`) to then tag which contains comment
+        If `process_comments` is `True`, comments will be added using `comment_key`
+        (default=`'#comment'`) to the tag that contains the comment.
 
             For example, given this input:
             <a>
@@ -316,7 +316,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
               </b>
             </a>
 
-            If called with process_comment=True, it will produce
+            If called with `process_comments=True`, it will produce
             this dictionary:
             'a': {
                 'b': {
