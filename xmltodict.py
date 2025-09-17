@@ -569,6 +569,10 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
     as XML node attributes, whereas keys equal to `cdata_key`
     (default=`'#text'`) are treated as character data.
 
+    Empty lists are omitted entirely: ``{"a": []}`` produces no ``<a>`` element.
+    Provide a placeholder entry (for example ``{"a": [""]}``) when an explicit
+    empty container element must be emitted.
+
     The `pretty` parameter (default=`False`) enables pretty-printing. In this
     mode, lines are terminated with `'\n'` and indented with `'\t'`, but this
     can be customized with the `newl` and `indent` parameters.
