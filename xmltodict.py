@@ -361,6 +361,8 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
             if not text:
                 return
             stripped = text.lstrip()
+            if stripped.startswith('<!--'):
+                return
             if stripped.startswith('<!') or stripped.startswith('&'):
                 _forbid_entities()
 

@@ -472,6 +472,16 @@ def test_disable_entities_true_attempts_external_dtd():
     expat.ParserCreate = ParserCreate
 
 
+def test_disable_entities_allows_comments_by_default():
+    xml = """
+    <a>
+        <!-- ignored -->
+        <b>1</b>
+    </a>
+    """
+    assert parse(xml) == {'a': {'b': '1'}}
+
+
 def test_comments():
     xml = """
     <a>
