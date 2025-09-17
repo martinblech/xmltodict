@@ -402,6 +402,21 @@ def _validate_name(value, kind):
         raise ValueError(f"Invalid {kind} name: whitespace not allowed")
 
 
+def _validate_comment(value):
+    if isinstance(value, bytes):
+        try:
+            value = value.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise ValueError("Comment text must be valid UTF-8") from exc
+    if not isinstance(value, str):
+        raise ValueError("Comment text must be a string")
+    if "--" in value:
+        raise ValueError("Comment text cannot contain '--'")
+    if value.endswith("-"):
+        raise ValueError("Comment text cannot end with '-'")
+    return value
+
+
 def _process_namespace(name, namespaces, ns_sep=':', attr_prefix='@'):
     if not isinstance(name, str):
         return name
@@ -440,7 +455,7 @@ def _emit(key, value, content_handler,
             if comment_text is None:
                 continue
             comment_text = _convert_value_to_string(comment_text)
-            if comment_text == "":
+            if not comment_text:
                 continue
             if pretty:
                 content_handler.ignorableWhitespace(depth * indent)
@@ -520,6 +535,7 @@ def _emit(key, value, content_handler,
 
 class _XMLGenerator(XMLGenerator):
     def comment(self, text):
+        text = _validate_comment(text)
         self._write(f"<!--{escape(text)}-->")
 
 
