@@ -379,6 +379,8 @@ def _convert_value_to_string(value):
     if isinstance(value, bool):
         return "true" if value else "false"
     return str(value)
+
+
 def _validate_name(value, kind):
     """Validate an element/attribute name for XML safety.
 
