@@ -311,15 +311,15 @@ $ conda install -c conda-forge xmltodict
 
 ### RPM-based distro (Fedora, RHEL, …)
 
-There is an [official Fedora package for xmltodict](https://apps.fedoraproject.org/packages/python-xmltodict).
+There is an [official Fedora package for xmltodict](https://packages.fedoraproject.org/pkgs/python-xmltodict/).
 
 ```sh
-$ sudo yum install python-xmltodict
+$ sudo yum install python3-xmltodict
 ```
 
 ### Arch Linux
 
-There is an [official Arch Linux package for xmltodict](https://www.archlinux.org/packages/community/any/python-xmltodict/).
+There is an [official Arch Linux package for xmltodict](https://archlinux.org/packages/extra/any/python-xmltodict/).
 
 ```sh
 $ sudo pacman -S python-xmltodict
