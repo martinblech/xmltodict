@@ -573,7 +573,7 @@ def test_non_string_text_with_attributes():
 
     assert unparse({"a": {"@param": "flag", "#text": True}}, full_document=False) == '<a param="flag">true</a>'
 
-    assert unparse({"a": {"@param": "test", "#text": None}}, full_document=False) == '<a param="test">None</a>'
+    assert unparse({"a": {"@param": "test", "#text": None}}, full_document=False) == '<a param="test"></a>'
 
     assert unparse({"a": {"@param": "test", "#text": "string"}}, full_document=False) == '<a param="test">string</a>'
 
@@ -594,3 +594,13 @@ def test_non_string_text_with_attributes():
     assert unparse({"a": True}, full_document=False) == unparse({"a": {"#text": True}}, full_document=False)
 
     assert unparse({"a": "hello"}, full_document=False) == unparse({"a": {"#text": "hello"}}, full_document=False)
+    assert unparse({"a": None}, full_document=False) == unparse({"a": {"#text": None}}, full_document=False)
+
+
+def test_none_text_with_short_empty_elements_and_attributes():
+    obj = {"x": {"#text": None, "@pro": None}, "y": None}
+    assert unparse(obj, short_empty_elements=True, full_document=False) == '<x pro=""/><y/>'
+
+
+def test_none_attribute_serializes_as_empty_string():
+    assert unparse({"x": {"@pro": None}}, full_document=False) == '<x pro=""></x>'
