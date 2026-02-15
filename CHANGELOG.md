@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.3](https://github.com/martinblech/xmltodict/compare/v1.0.2...v1.0.3) (2026-02-15)
+
+
+### Bug Fixes
+
+* **unparse:** serialize None text/attrs as empty values (fixes [#401](https://github.com/martinblech/xmltodict/issues/401)) ([aa16511](https://github.com/martinblech/xmltodict/commit/aa165113bef2b3a1a822209863343b9dc9ffe43a))
+
+
+### Documentation
+
+* **readme:** fix Fedora and Arch package links ([fd6a73b](https://github.com/martinblech/xmltodict/commit/fd6a73bf606c3932bcc82bf559a70867a1dd75cd))
+
 ## [1.0.2](https://github.com/martinblech/xmltodict/compare/v1.0.1...v1.0.2) (2025-09-17)
 
 

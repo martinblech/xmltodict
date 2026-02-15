@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "xmltodict"
-version = "1.0.2"
+version = "1.0.3"
 description = "Makes working with XML feel like you are working with JSON"
 readme = "README.md"
 requires-python = ">=3.9"
