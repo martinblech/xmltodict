@@ -307,6 +307,14 @@ def test_boolean_unparse():
     xml = unparse(dict(x=False))
     assert xml == expected_xml
 
+    expected_xml = '<?xml version="1.0" encoding="utf-8"?>\n<x attr="true"></x>'
+    xml = unparse({'x': {'@attr': True}})
+    assert xml == expected_xml
+
+    expected_xml = '<?xml version="1.0" encoding="utf-8"?>\n<x attr="false"></x>'
+    xml = unparse({'x': {'@attr': False}})
+    assert xml == expected_xml
+
 
 def test_rejects_tag_name_with_angle_brackets():
     # Minimal guard: disallow '<' or '>' to prevent breaking tag context

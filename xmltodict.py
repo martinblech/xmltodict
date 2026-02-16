@@ -510,7 +510,7 @@ def _emit(key, value, content_handler,
                 if iv is None:
                     iv = ''
                 elif not isinstance(iv, str):
-                    iv = str(iv)
+                    iv = _convert_value_to_string(iv)
                 attr_name = ik[len(attr_prefix) :]
                 _validate_name(attr_name, "attribute")
                 attrs[attr_name] = iv
