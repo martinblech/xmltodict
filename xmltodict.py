@@ -374,7 +374,7 @@ def _convert_value_to_string(value):
 
     Handles boolean values consistently by converting them to lowercase.
     """
-    if isinstance(value, (str, bytes)):
+    if isinstance(value, str):
         return value
     if isinstance(value, bool):
         return "true" if value else "false"
