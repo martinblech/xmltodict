@@ -307,6 +307,14 @@ def test_boolean_unparse():
     xml = unparse(dict(x=False))
     assert xml == expected_xml
 
+    expected_xml = '<?xml version="1.0" encoding="utf-8"?>\n<x attr="true"></x>'
+    xml = unparse({'x': {'@attr': True}})
+    assert xml == expected_xml
+
+    expected_xml = '<?xml version="1.0" encoding="utf-8"?>\n<x attr="false"></x>'
+    xml = unparse({'x': {'@attr': False}})
+    assert xml == expected_xml
+
 
 def test_rejects_tag_name_with_angle_brackets():
     # Minimal guard: disallow '<' or '>' to prevent breaking tag context
@@ -604,3 +612,20 @@ def test_none_text_with_short_empty_elements_and_attributes():
 
 def test_none_attribute_serializes_as_empty_string():
     assert unparse({"x": {"@pro": None}}, full_document=False) == '<x pro=""></x>'
+
+def test_bytes_text_node():
+    assert _strip(unparse({'a': b'hello'})) == '<a>hello</a>'
+
+
+def test_bytes_attribute():
+    assert _strip(unparse({'a': {'@attr': b'hello'}})) == '<a attr="hello"></a>'
+
+
+def test_bytes_text_node_invalid_utf8():
+    with pytest.raises(ValueError, match="must be valid UTF-8"):
+        unparse({'a': b'\xff'})
+
+
+def test_bytes_attribute_invalid_utf8():
+    with pytest.raises(ValueError, match="must be valid UTF-8"):
+        unparse({'a': {'@attr': b'\xff'}})

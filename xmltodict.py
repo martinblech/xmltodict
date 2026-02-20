@@ -374,8 +374,13 @@ def _convert_value_to_string(value):
 
     Handles boolean values consistently by converting them to lowercase.
     """
-    if isinstance(value, (str, bytes)):
+    if isinstance(value, str):
         return value
+    if isinstance(value, bytes):
+        try:
+            return value.decode('utf-8')
+        except UnicodeDecodeError as exc:
+            raise ValueError("bytes value must be valid UTF-8") from exc
     if isinstance(value, bool):
         return "true" if value else "false"
     return str(value)
@@ -474,7 +479,7 @@ def _emit(key, value, content_handler,
         key, value = result
     # Minimal validation to avoid breaking out of tag context
     _validate_name(key, "element")
-    if not hasattr(value, '__iter__') or isinstance(value, (str, dict)):
+    if not hasattr(value, '__iter__') or isinstance(value, (str, bytes, dict)):
         value = [value]
     for index, v in enumerate(value):
         if full_document and depth == 0 and index > 0:
@@ -510,7 +515,7 @@ def _emit(key, value, content_handler,
                 if iv is None:
                     iv = ''
                 elif not isinstance(iv, str):
-                    iv = str(iv)
+                    iv = _convert_value_to_string(iv)
                 attr_name = ik[len(attr_prefix) :]
                 _validate_name(attr_name, "attribute")
                 attrs[attr_name] = iv
