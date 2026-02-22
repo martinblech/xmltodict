@@ -228,6 +228,7 @@ Convert a Python dictionary back into XML.
 - `input_dict`: Dictionary to convert to XML.
 - `output=None`: File-like object to write XML to; returns string if None.
 - `encoding='utf-8'`: Encoding of the output XML.
+- `bytes_errors='replace'`: Error handler used when decoding byte values during unparse (for example `'replace'`, `'strict'`, `'ignore'`).
 - `full_document=True`: Include XML declaration if True.
 - `short_empty_elements=False`: Use short tags for empty elements (`<tag/>`).
 - `attr_prefix='@'`: Prefix for dictionary keys representing attributes.

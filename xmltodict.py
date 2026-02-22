@@ -6,6 +6,7 @@ from xml.sax.saxutils import XMLGenerator, escape
 from xml.sax.xmlreader import AttributesImpl
 from io import StringIO
 from inspect import isgenerator
+import codecs
 
 class ParsingInterrupted(Exception):
     pass
@@ -369,15 +370,17 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
     return handler.item
 
 
-def _convert_value_to_string(value):
+def _convert_value_to_string(value, encoding='utf-8', bytes_errors='replace'):
     """Convert a value to its string representation for XML output.
 
     Handles boolean values consistently by converting them to lowercase.
     """
-    if isinstance(value, (str, bytes)):
+    if isinstance(value, str):
         return value
     if isinstance(value, bool):
         return "true" if value else "false"
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        return bytes(value).decode(encoding, errors=bytes_errors)
     return str(value)
 
 
@@ -448,6 +451,8 @@ def _emit(key, value, content_handler,
           namespaces=None,
           full_document=True,
           expand_iter=None,
+          encoding='utf-8',
+          bytes_errors='replace',
           comment_key='#comment'):
     if isinstance(key, str) and key == comment_key:
         comments_list = value if isinstance(value, list) else [value]
@@ -456,7 +461,9 @@ def _emit(key, value, content_handler,
         for comment_text in comments_list:
             if comment_text is None:
                 continue
-            comment_text = _convert_value_to_string(comment_text)
+            comment_text = _convert_value_to_string(
+                comment_text, encoding=encoding, bytes_errors=bytes_errors
+            )
             if not comment_text:
                 continue
             if pretty:
@@ -474,7 +481,7 @@ def _emit(key, value, content_handler,
         key, value = result
     # Minimal validation to avoid breaking out of tag context
     _validate_name(key, "element")
-    if not hasattr(value, '__iter__') or isinstance(value, (str, dict)):
+    if not hasattr(value, '__iter__') or isinstance(value, (str, bytes, bytearray, memoryview, dict)):
         value = [value]
     for index, v in enumerate(value):
         if full_document and depth == 0 and index > 0:
@@ -482,10 +489,10 @@ def _emit(key, value, content_handler,
         if v is None:
             v = {}
         elif not isinstance(v, (dict, str)):
-            if expand_iter and hasattr(v, '__iter__'):
+            if expand_iter and hasattr(v, '__iter__') and not isinstance(v, (bytes, bytearray, memoryview)):
                 v = {expand_iter: v}
             else:
-                v = _convert_value_to_string(v)
+                v = _convert_value_to_string(v, encoding=encoding, bytes_errors=bytes_errors)
         if isinstance(v, str):
             v = {cdata_key: v}
         cdata = None
@@ -496,7 +503,7 @@ def _emit(key, value, content_handler,
                 if iv is None:
                     cdata = None
                 else:
-                    cdata = _convert_value_to_string(iv)
+                    cdata = _convert_value_to_string(iv, encoding=encoding, bytes_errors=bytes_errors)
                 continue
             if isinstance(ik, str) and ik.startswith(attr_prefix):
                 ik = _process_namespace(ik, namespaces, namespace_separator,
@@ -505,12 +512,14 @@ def _emit(key, value, content_handler,
                     for k, v in iv.items():
                         _validate_name(k, "attribute")
                         attr = 'xmlns{}'.format(f':{k}' if k else '')
-                        attrs[attr] = '' if v is None else str(v)
+                        attrs[attr] = '' if v is None else _convert_value_to_string(
+                            v, encoding=encoding, bytes_errors=bytes_errors
+                        )
                     continue
                 if iv is None:
                     iv = ''
                 elif not isinstance(iv, str):
-                    iv = str(iv)
+                    iv = _convert_value_to_string(iv, encoding=encoding, bytes_errors=bytes_errors)
                 attr_name = ik[len(attr_prefix) :]
                 _validate_name(attr_name, "attribute")
                 attrs[attr_name] = iv
@@ -530,7 +539,8 @@ def _emit(key, value, content_handler,
                   attr_prefix, cdata_key, depth+1, preprocessor,
                   pretty, newl, indent, namespaces=namespaces,
                   namespace_separator=namespace_separator,
-                  expand_iter=expand_iter, comment_key=comment_key)
+                  expand_iter=expand_iter, encoding=encoding,
+                  bytes_errors=bytes_errors, comment_key=comment_key)
         if cdata is not None:
             content_handler.characters(cdata)
         if pretty and children:
@@ -565,8 +575,16 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
     The `pretty` parameter (default=`False`) enables pretty-printing. In this
     mode, lines are terminated with `'\n'` and indented with `'\t'`, but this
     can be customized with the `newl` and `indent` parameters.
+    The `bytes_errors` parameter controls decoding errors for byte values and
+    defaults to `'replace'`.
 
     """
+    bytes_errors = kwargs.pop('bytes_errors', 'replace')
+    try:
+        codecs.lookup_error(bytes_errors)
+    except LookupError as exc:
+        raise ValueError(f"Invalid bytes_errors handler: {bytes_errors}") from exc
+
     must_return = False
     if output is None:
         output = StringIO()
@@ -581,7 +599,16 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
     for key, value in input_dict.items():
         if key != comment_key and full_document and seen_root:
             raise ValueError("Document must have exactly one root.")
-        _emit(key, value, content_handler, full_document=full_document, comment_key=comment_key, **kwargs)
+        _emit(
+            key,
+            value,
+            content_handler,
+            full_document=full_document,
+            encoding=encoding,
+            bytes_errors=bytes_errors,
+            comment_key=comment_key,
+            **kwargs,
+        )
         if key != comment_key:
             seen_root = True
     if full_document and not seen_root:
