@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/martinblech/xmltodict/compare/v1.0.3...v1.0.4) (2026-02-22)
+
+
+### Bug Fixes
+
+* **unparse:** add bytes_errors policy and handle bytes scalars consistently ([ed70434](https://github.com/martinblech/xmltodict/commit/ed704344226ed6451f6735811c695fb5004df44d))
+
 ## [1.0.3](https://github.com/martinblech/xmltodict/compare/v1.0.2...v1.0.3) (2026-02-15)
 
 
