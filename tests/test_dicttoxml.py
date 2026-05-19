@@ -15,6 +15,13 @@ def test_root():
     assert obj == parse(unparse(obj))
     assert unparse(obj) == unparse(parse(unparse(obj)))
 
+def test_null_byte_rejection():
+    """Null bytes in element names should be rejected."""
+    with pytest.raises(ValueError):
+        unparse({"root": {"a\x00b": "value"}})
+    
+    with pytest.raises(ValueError):
+        unparse({"root": {"@a\x00b": "value"}})
 
 def test_simple_cdata():
     obj = {'a': 'b'}

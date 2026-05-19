@@ -393,6 +393,8 @@ def _validate_name(value, kind):
     """
     if not isinstance(value, str):
         raise ValueError(f"{kind} name must be a string")
+    if '\x00' in value:
+        raise ValueError(f'Invalid {kind} name: null bytes not allowed')
     if value.startswith("?") or value.startswith("!"):
         raise ValueError(f'Invalid {kind} name: cannot start with "?" or "!"')
     if "<" in value or ">" in value:
