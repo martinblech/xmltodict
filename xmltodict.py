@@ -397,6 +397,8 @@ def _validate_name(value, kind):
         raise ValueError(f'Invalid {kind} name: cannot start with "?" or "!"')
     if "<" in value or ">" in value:
         raise ValueError(f'Invalid {kind} name: "<" or ">" not allowed')
+    if "&" in value:
+        raise ValueError(f'Invalid {kind} name: "&" not allowed')
     if "/" in value:
         raise ValueError(f'Invalid {kind} name: "/" not allowed')
     if '"' in value or "'" in value:

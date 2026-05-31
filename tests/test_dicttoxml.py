@@ -536,6 +536,18 @@ def test_rejects_names_with_quotes_and_equals():
             unparse({"a": {"@xmlns": {prefix: "http://e/"}}}, full_document=False)
 
 
+def test_rejects_names_with_ampersand():
+    # Element names
+    with pytest.raises(ValueError):
+        unparse({"a&b": "x"}, full_document=False)
+    # Attribute names
+    with pytest.raises(ValueError):
+        unparse({"a": {"@a&b": "x"}}, full_document=False)
+    # xmlns prefixes
+    with pytest.raises(ValueError):
+        unparse({"a": {"@xmlns": {"a&b": "http://e/"}}}, full_document=False)
+
+
 def test_pretty_print_and_short_empty_elements_consistency():
     """Test that pretty and compact modes produce equivalent results when stripped.
 
