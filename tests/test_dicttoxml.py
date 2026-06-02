@@ -521,6 +521,19 @@ def test_rejects_xmlns_prefix_with_slash_or_whitespace():
         unparse({"a": {"@xmlns": {"bad prefix": "http://e/"}}}, full_document=False)
 
 
+def test_rejects_empty_element_and_attribute_names():
+    # Empty element name would emit "<>...</>", non-well-formed XML
+    with pytest.raises(ValueError):
+        unparse({"": "x"}, full_document=False)
+    # Bare attr_prefix yields an empty attribute name, emitting "<a =...>"
+    with pytest.raises(ValueError):
+        unparse({"a": {"@": "x"}}, full_document=False)
+    # The empty default-namespace prefix stays valid (xmlns="...")
+    assert unparse(
+        {"a": {"@xmlns": {"": "http://e/"}}}, full_document=False
+    ) == '<a xmlns="http://e/"></a>'
+
+
 def test_rejects_names_with_quotes_and_equals():
     # Element names
     for name in ['a"b', "a'b", "a=b"]:

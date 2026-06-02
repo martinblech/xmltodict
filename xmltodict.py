@@ -393,6 +393,8 @@ def _validate_name(value, kind):
     """
     if not isinstance(value, str):
         raise ValueError(f"{kind} name must be a string")
+    if value == "":
+        raise ValueError(f"{kind} name must not be empty")
     if value.startswith("?") or value.startswith("!"):
         raise ValueError(f'Invalid {kind} name: cannot start with "?" or "!"')
     if "<" in value or ">" in value:
@@ -510,7 +512,8 @@ def _emit(key, value, content_handler,
                                         attr_prefix)
                 if ik == '@xmlns' and isinstance(iv, dict):
                     for k, v in iv.items():
-                        _validate_name(k, "attribute")
+                        if k:
+                            _validate_name(k, "attribute")
                         attr = 'xmlns{}'.format(f':{k}' if k else '')
                         attrs[attr] = '' if v is None else _convert_value_to_string(
                             v, encoding=encoding, bytes_errors=bytes_errors
