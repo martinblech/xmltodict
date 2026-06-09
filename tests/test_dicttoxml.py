@@ -710,3 +710,42 @@ def test_none_text_with_short_empty_elements_and_attributes():
 
 def test_none_attribute_serializes_as_empty_string():
     assert unparse({"x": {"@pro": None}}, full_document=False) == '<x pro=""></x>'
+
+
+def test_unparse_skips_none_comment():
+    obj = {"a": {"#comment": None, "b": "1"}}
+    xml = _strip(unparse(obj, full_document=True))
+    assert xml == "<a><b>1</b></a>"
+
+
+def test_unparse_skips_empty_comment():
+    obj = {"a": {"#comment": "", "b": "1"}}
+    xml = _strip(unparse(obj, full_document=True))
+    assert xml == "<a><b>1</b></a>"
+
+
+def test_unparse_filters_none_and_empty_comments_in_list():
+    obj = {"a": {"#comment": ["n1", None, "", "n2"], "b": "1"}}
+    xml = _strip(unparse(obj, full_document=True))
+    assert xml == "<a><!--n1--><!--n2--><b>1</b></a>"
+
+
+def test_pretty_print_element_comments():
+    obj = {"a": {"#comment": ["n1", "n2"], "b": "1"}}
+    xml = dedent('''\
+    <?xml version="1.0" encoding="utf-8"?>
+    <a>
+    \t<!--n1-->
+    \t<!--n2-->
+    \t<b>1</b>
+    </a>''')
+    assert xml == unparse(obj, pretty=True)
+
+
+def test_pretty_print_top_level_comment_with_int_indent():
+    obj = {"#comment": "top", "a": "1"}
+    xml = dedent('''\
+    <?xml version="1.0" encoding="utf-8"?>
+    <!--top-->
+    <a>1</a>''')
+    assert xml == unparse(obj, pretty=True, indent=4)
