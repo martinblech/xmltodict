@@ -627,3 +627,9 @@ def test_namespace_on_root_without_other_attrs():
         }
     }
     assert parse(xml, process_namespaces=True, namespaces=namespaces) == expected
+
+
+def test_force_list_true_applies_to_all_keys():
+    xml = "<a><b>1</b><b>2</b><c>x</c></a>"
+    expected = {"a": [{"b": ["1", "2"], "c": ["x"]}]}
+    assert parse(xml, force_list=True) == expected
