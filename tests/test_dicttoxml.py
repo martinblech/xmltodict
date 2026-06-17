@@ -321,6 +321,37 @@ xmlns:b="http://b.com/"><x a:attr="val">1</x><a:y>2</a:y><b:z>3</b:z></root>'''
     assert xml == expected_xml
 
 
+def test_namespaced_attribute_with_empty_prefix_keeps_local_name():
+    # Mapping an attribute namespace to the empty prefix strips the namespace;
+    # default namespaces do not apply to attributes. The local attribute name
+    # must still be emitted intact, without dropping its first character.
+    obj = {
+        'root': {
+            '@xmlns': {'': 'urn:d'},
+            '@urn:d:myattr': 'val',
+            '#text': 'x',
+        },
+    }
+    xml = unparse(obj, namespaces={'urn:d': ''}, full_document=False)
+    assert xml == '<root xmlns="urn:d" myattr="val">x</root>'
+
+
+def test_unmapped_namespaced_attribute_keeps_local_name():
+    # An unmapped attribute namespace is stripped, not moved into a default
+    # namespace; the local attribute name must still be preserved.
+    obj = {'root': {'@urn:d:myattr': 'val', '#text': 'x'}}
+    xml = unparse(obj, namespaces={'urn:other': 'o'}, full_document=False)
+    assert xml == '<root myattr="val">x</root>'
+
+
+def test_namespaced_attribute_with_custom_attr_prefix_keeps_local_name():
+    obj = {'root': {'!urn:d:myattr': 'val', '#text': 'x'}}
+    xml = unparse(
+        obj, namespaces={'urn:d': ''}, attr_prefix='!', full_document=False
+    )
+    assert xml == '<root myattr="val">x</root>'
+
+
 def test_xmlns_values_use_consistent_boolean_coercion():
     xml = unparse({"root": {"@xmlns": {"a": True}}}, full_document=False)
     assert xml == '<root xmlns:a="true"></root>'

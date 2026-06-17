@@ -520,7 +520,13 @@ def _emit(key, value, content_handler,
                     iv = ''
                 elif not isinstance(iv, str):
                     iv = _convert_value_to_string(iv, encoding=encoding, bytes_errors=bytes_errors)
-                attr_name = ik[len(attr_prefix) :]
+                # `_process_namespace` may have already consumed the attribute
+                # prefix when the attribute namespace resolves to an empty
+                # prefix or is unmapped; keep the local name intact.
+                if ik.startswith(attr_prefix):
+                    attr_name = ik[len(attr_prefix) :]
+                else:
+                    attr_name = ik
                 _validate_name(attr_name, "attribute")
                 attrs[attr_name] = iv
                 continue
