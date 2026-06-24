@@ -501,6 +501,16 @@ def test_rejects_tag_name_with_whitespace():
             unparse({name: "x"}, full_document=False)
 
 
+def test_rejects_empty_element_name():
+    with pytest.raises(ValueError):
+        unparse({"": "x"}, full_document=False)
+
+
+def test_rejects_empty_attribute_name():
+    with pytest.raises(ValueError):
+        unparse({"a": {"@": "x"}}, full_document=False)
+
+
 def test_rejects_attribute_name_with_slash():
     with pytest.raises(ValueError):
         unparse({"a": {"@bad/name": "x"}}, full_document=False)

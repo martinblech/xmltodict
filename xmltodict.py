@@ -393,6 +393,8 @@ def _validate_name(value, kind):
     """
     if not isinstance(value, str):
         raise ValueError(f"{kind} name must be a string")
+    if kind == 'element' and not value:
+        raise ValueError(f"{kind} name must not be empty")
     if value.startswith("?") or value.startswith("!"):
         raise ValueError(f'Invalid {kind} name: cannot start with "?" or "!"')
     if "<" in value or ">" in value:
@@ -521,6 +523,8 @@ def _emit(key, value, content_handler,
                 elif not isinstance(iv, str):
                     iv = _convert_value_to_string(iv, encoding=encoding, bytes_errors=bytes_errors)
                 attr_name = ik[len(attr_prefix) :]
+                if not attr_name:
+                    raise ValueError("attribute name must not be empty")
                 _validate_name(attr_name, "attribute")
                 attrs[attr_name] = iv
                 continue
