@@ -326,6 +326,18 @@ def test_xmlns_values_use_consistent_boolean_coercion():
     assert xml == '<root xmlns:a="true"></root>'
 
 
+def test_xmlns_dict_honors_custom_attr_prefix():
+    # A namespace-declaration dict must be recognized under a custom
+    # attr_prefix, like every other attribute — otherwise unparse cannot
+    # round-trip what parse(..., attr_prefix="!") produced.
+    xml = unparse(
+        {"root": {"!xmlns": {"a": "http://a.com/"}, "!id": "7"}},
+        attr_prefix="!",
+        full_document=False,
+    )
+    assert xml == '<root xmlns:a="http://a.com/" id="7"></root>'
+
+
 def test_xmlns_values_decode_bytes_with_output_encoding():
     xml = unparse(
         {"root": {"@xmlns": {"a": b"http://ex\xe9.com/"}}},
