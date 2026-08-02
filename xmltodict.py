@@ -553,7 +553,7 @@ def _emit(key, value, content_handler,
 class _XMLGenerator(XMLGenerator):
     def comment(self, text):
         text = _validate_comment(text)
-        self._write(f"<!--{escape(text)}-->")
+        self._write(f"<!--{text}-->")
 
 
 def unparse(input_dict, output=None, encoding='utf-8', full_document=True,

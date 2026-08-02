@@ -749,3 +749,20 @@ def test_pretty_print_top_level_comment_with_int_indent():
     <!--top-->
     <a>1</a>''')
     assert xml == unparse(obj, pretty=True, indent=4)
+
+
+def test_unparse_comment_does_not_escape_special_chars():
+    """Comments must not have their content XML-escaped; & and < are literal in comments."""
+    obj = {"a": {"#comment": "a & b < c > d", "b": "1"}}
+    result = unparse(obj)
+    assert "<!--a & b < c > d-->" in result
+    # Verify round-trip preserves all special chars including quotes
+    parsed = parse(result, process_comments=True)
+    assert parsed["a"]["#comment"] == "a & b < c > d"
+
+    # Also test quotes and > in comments
+    obj2 = {"a": {"#comment": 'say "hello" & \'bye\'', "b": "1"}}
+    result2 = unparse(obj2)
+    assert "<!--say \"hello\" & 'bye'-->" in result2
+    parsed2 = parse(result2, process_comments=True)
+    assert parsed2["a"]["#comment"] == 'say "hello" & \'bye\''
