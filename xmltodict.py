@@ -2,7 +2,7 @@
 "Makes working with XML feel like you are working with JSON"
 
 from xml.parsers import expat
-from xml.sax.saxutils import XMLGenerator, escape
+from xml.sax.saxutils import XMLGenerator
 from xml.sax.xmlreader import AttributesImpl
 from io import StringIO
 from inspect import isgenerator
