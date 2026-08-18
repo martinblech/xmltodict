@@ -749,3 +749,108 @@ def test_pretty_print_top_level_comment_with_int_indent():
     <!--top-->
     <a>1</a>''')
     assert xml == unparse(obj, pretty=True, indent=4)
+
+
+# --- validate_names: opt-in XML 1.0 Name grammar enforcement (issue #418) ---
+
+def test_validate_names_off_by_default_allows_invalid_but_safe_names():
+    # Without validate_names, a name that is safe (no markup breakout) but not a
+    # valid XML Name is still emitted, preserving backward compatibility.
+    assert unparse({"1abc": "y"}, full_document=False) == "<1abc>y</1abc>"
+    assert (
+        unparse({"a": {"@1x": "v", "#text": "t"}}, full_document=False)
+        == '<a 1x="v">t</a>'
+    )
+
+
+def test_validate_names_accepts_valid_element_names():
+    for name in ["abc", "_abc", "a-b.c", "a1", "café", "Ns:local"]:
+        assert unparse({name: "y"}, full_document=False, validate_names=True) == (
+            f"<{name}>y</{name}>"
+        )
+
+
+def test_validate_names_rejects_invalid_element_names():
+    for name in ["1abc", "", ".x", "-x", ":x", "x:", "a:b:c", "a￿b", "a;b"]:
+        with pytest.raises(ValueError, match="not a valid XML name"):
+            unparse({name: "y"}, full_document=False, validate_names=True)
+
+
+def test_validate_names_rejects_control_char_in_name():
+    with pytest.raises(ValueError, match="not a valid XML name"):
+        unparse({"a\x01b": "y"}, full_document=False, validate_names=True)
+
+
+def test_validate_names_accepts_supplementary_plane_name_char():
+    # Code points in #x10000-#xEFFFF are valid XML name characters.
+    assert unparse({"a\U0001f600": "y"}, full_document=False, validate_names=True) == (
+        "<a\U0001f600>y</a\U0001f600>"
+    )
+
+
+def test_validate_names_checks_attribute_names():
+    assert (
+        unparse({"a": {"@x1": "v", "#text": "t"}}, full_document=False, validate_names=True)
+        == '<a x1="v">t</a>'
+    )
+    with pytest.raises(ValueError, match="not a valid XML name"):
+        unparse({"a": {"@1x": "v", "#text": "t"}}, full_document=False, validate_names=True)
+
+
+def test_validate_names_checks_xmlns_prefixes():
+    # A valid prefix passes.
+    assert (
+        unparse(
+            {"a": {"@xmlns": {"ns": "http://e/"}, "#text": "x"}},
+            full_document=False,
+            validate_names=True,
+        )
+        == '<a xmlns:ns="http://e/">x</a>'
+    )
+    # An invalid prefix is rejected.
+    with pytest.raises(ValueError, match="not a valid XML name"):
+        unparse(
+            {"a": {"@xmlns": {"1ns": "http://e/"}}},
+            full_document=False,
+            validate_names=True,
+        )
+
+
+def test_validate_names_preserves_default_namespace_declaration():
+    # The empty prefix is the default namespace (xmlns="...") and must be
+    # accepted even under strict validation.
+    assert (
+        unparse(
+            {"a": {"@xmlns": {"": "http://e/"}, "#text": "x"}},
+            full_document=False,
+            validate_names=True,
+        )
+        == '<a xmlns="http://e/">x</a>'
+    )
+
+
+def test_validate_names_with_namespace_collapsing_round_trips():
+    obj = {
+        "http://defaultns.com/:root": {
+            "@xmlns": {
+                "": "http://defaultns.com/",
+                "a": "http://a.com/",
+            },
+            "http://a.com/:y": "2",
+        },
+    }
+    ns = {"http://defaultns.com/": "", "http://a.com/": "a"}
+    expected = (
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        '<root xmlns="http://defaultns.com/" xmlns:a="http://a.com/">'
+        "<a:y>2</a:y></root>"
+    )
+    assert unparse(obj, namespaces=ns, validate_names=True) == expected
+
+
+def test_validate_names_full_document():
+    assert unparse({"root": {"child": "v"}}, validate_names=True) == (
+        '<?xml version="1.0" encoding="utf-8"?>\n<root><child>v</child></root>'
+    )
+    with pytest.raises(ValueError, match="not a valid XML name"):
+        unparse({"1root": {"child": "v"}}, validate_names=True)
