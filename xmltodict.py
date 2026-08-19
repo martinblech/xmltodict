@@ -508,7 +508,7 @@ def _emit(key, value, content_handler,
             if isinstance(ik, str) and ik.startswith(attr_prefix):
                 ik = _process_namespace(ik, namespaces, namespace_separator,
                                         attr_prefix)
-                if ik == '@xmlns' and isinstance(iv, dict):
+                if ik == attr_prefix + 'xmlns' and isinstance(iv, dict):
                     for k, v in iv.items():
                         _validate_name(k, "attribute")
                         attr = 'xmlns{}'.format(f':{k}' if k else '')
