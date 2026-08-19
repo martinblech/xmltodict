@@ -187,6 +187,93 @@ def test_streaming_returns_none():
     assert result is None
 
 
+def _stream(xml, depth, **kwargs):
+    items = []
+    parse(xml, item_depth=depth,
+          item_callback=lambda path, item: items.append(item) or True,
+          **kwargs)
+    return items
+
+
+def test_streaming_text_with_attrs():
+    # char data was dropped when the streamed item had attributes (#257)
+    xml = '<items><item id="1">hello</item></items>'
+    assert _stream(xml, 2) == [{'@id': '1', '#text': 'hello'}]
+
+
+def test_streaming_text_postprocessor():
+    def postprocessor(path, key, value):
+        if key == '#text':
+            assert path == [('items', None), ('item', {'id': '1'})]
+            return 'text', value.upper()
+        return key, value
+
+    xml = '<items><item id="1">hello</item></items>'
+    assert _stream(xml, 2, postprocessor=postprocessor) == \
+        [{'@id': '1', 'text': 'HELLO'}]
+
+
+def test_streaming_text_with_children():
+    xml = '<a>free text<b>1</b><b>2</b></a>'
+    assert _stream(xml, 1) == [{'b': ['1', '2'], '#text': 'free text'}]
+    xml = '<items><item><sub>x</sub>tail</item></items>'
+    assert _stream(xml, 2) == [{'sub': 'x', '#text': 'tail'}]
+
+
+def test_streaming_text_whitespace():
+    xml = '<items><item id="1"> spaced </item></items>'
+    assert _stream(xml, 2) == [{'@id': '1', '#text': 'spaced'}]
+    assert _stream(xml, 2, strip_whitespace=False) == \
+        [{'@id': '1', '#text': ' spaced '}]
+    # whitespace-only text is stripped to nothing, like non-streaming parse
+    xml = '<items><item id="1"> </item></items>'
+    assert _stream(xml, 2) == [{'@id': '1'}]
+
+
+def test_streaming_force_cdata_and_cdata_key():
+    xml = '<items><item>x</item></items>'
+    assert _stream(xml, 2, force_cdata=True) == [{'#text': 'x'}]
+    xml = '<items><item id="1">x</item></items>'
+    assert _stream(xml, 2, cdata_key='$') == [{'@id': '1', '$': 'x'}]
+
+
+def test_streaming_matches_nonstreaming():
+    docs = [
+        '<r><item>plain</item></r>',
+        '<r><item id="1">text</item><item>only</item></r>',
+        '<r><item a="1"><c>x</c>tail</item><item a="2">lead<c>y</c></item></r>',
+        '<r><item><sub><deep d="3">v</deep></sub>mixed</item></r>',
+        '<r><item> </item><item id="1"> </item></r>',
+    ]
+    for xml in docs:
+        expected = parse(xml)['r']['item']
+        if not isinstance(expected, list):
+            expected = [expected]
+        assert _stream(xml, 2) == expected, xml
+
+
+def test_streaming_random_docs_match_nonstreaming():
+    import random
+    rnd = random.Random(20260715)
+    for _ in range(200):
+        items = []
+        for i in range(rnd.randint(1, 4)):
+            attr = f' id="{i}"' if rnd.random() < 0.5 else ''
+            children = ''.join(f'<c{j}>v{j}</c{j}>'
+                               for j in range(rnd.randint(0, 2)))
+            text = rnd.choice(['', ' ', 'txt', 'a b'])
+            if rnd.random() < 0.5:
+                body = text + children
+            else:
+                body = children + text
+            items.append(f'<item{attr}>{body}</item>')
+        xml = f"<r>{''.join(items)}</r>"
+        expected = parse(xml)['r']['item']
+        if not isinstance(expected, list):
+            expected = [expected]
+        assert _stream(xml, 2) == expected, xml
+
+
 def test_postprocessor():
     def postprocessor(path, key, value):
         try:
