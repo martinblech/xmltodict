@@ -338,6 +338,23 @@ def test_xmlns_dict_honors_custom_attr_prefix():
     assert xml == '<root xmlns:a="http://a.com/" id="7"></root>'
 
 
+def test_namespace_roundtrip_honors_custom_attr_prefix():
+    obj = parse(
+        '<root xmlns:a="http://a.com/" id="7"><a:y>2</a:y></root>',
+        process_namespaces=True,
+        attr_prefix="!",
+    )
+
+    xml = unparse(
+        obj,
+        attr_prefix="!",
+        namespaces={"http://a.com/": "a"},
+        full_document=False,
+    )
+
+    assert xml == '<root id="7" xmlns:a="http://a.com/"><a:y>2</a:y></root>'
+
+
 def test_xmlns_values_decode_bytes_with_output_encoding():
     xml = unparse(
         {"root": {"@xmlns": {"a": b"http://ex\xe9.com/"}}},
