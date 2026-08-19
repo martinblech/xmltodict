@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.5](https://github.com/martinblech/xmltodict/compare/v1.0.4...v1.0.5) (2026-08-19)
+
+
+### Bug Fixes
+
+* **streaming:** preserve #text on streamed items ([#421](https://github.com/martinblech/xmltodict/issues/421)) ([6e29fba](https://github.com/martinblech/xmltodict/commit/6e29fba282e68631034dd2722a413b4e35276584))
+* **unparse:** honor custom attr_prefix for xmlns declaration dicts ([#422](https://github.com/martinblech/xmltodict/issues/422)) ([4041755](https://github.com/martinblech/xmltodict/commit/404175512ced7ee915264485f757713df4f2c797))
+
+
+### Documentation
+
+* **readme:** clarify whitespace preservation with pretty printing ([77b55aa](https://github.com/martinblech/xmltodict/commit/77b55aa159add632bafdf721f61d86f06210f235))
+
 ## [1.0.4](https://github.com/martinblech/xmltodict/compare/v1.0.3...v1.0.4) (2026-02-22)
 
 
