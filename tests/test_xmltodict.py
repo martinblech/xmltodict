@@ -201,6 +201,18 @@ def test_streaming_text_with_attrs():
     assert _stream(xml, 2) == [{'@id': '1', '#text': 'hello'}]
 
 
+def test_streaming_text_postprocessor():
+    def postprocessor(path, key, value):
+        if key == '#text':
+            assert path == [('items', None), ('item', {'id': '1'})]
+            return 'text', value.upper()
+        return key, value
+
+    xml = '<items><item id="1">hello</item></items>'
+    assert _stream(xml, 2, postprocessor=postprocessor) == \
+        [{'@id': '1', 'text': 'HELLO'}]
+
+
 def test_streaming_text_with_children():
     xml = '<a>free text<b>1</b><b>2</b></a>'
     assert _stream(xml, 1) == [{'b': ['1', '2'], '#text': 'free text'}]
