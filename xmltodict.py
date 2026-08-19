@@ -7,6 +7,7 @@ from xml.sax.xmlreader import AttributesImpl
 from io import StringIO
 from inspect import isgenerator
 import codecs
+import re
 
 class ParsingInterrupted(Exception):
     pass
@@ -392,8 +393,47 @@ def _convert_value_to_string(value, encoding='utf-8', bytes_errors='replace'):
     return str(value)
 
 
-def _validate_name(value, kind):
-    """Validate an element/attribute name for XML safety.
+# Character classes for the XML 1.0 (Fifth Edition) ``Name`` production, minus
+# the colon (``:``), which xmltodict treats as the namespace separator rather
+# than an ordinary name character. See https://www.w3.org/TR/xml/#NT-Name.
+_NCNAME_START_CHAR = (
+    "A-Z_a-z"
+    "\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u02ff"
+    "\u0370-\u037d\u037f-\u1fff\u200c-\u200d"
+    "\u2070-\u218f\u2c00-\u2fef\u3001-\ud7ff"
+    "\uf900-\ufdcf\ufdf0-\ufffd"
+    "\U00010000-\U000effff"
+)
+_NCNAME_CHAR = _NCNAME_START_CHAR + "\\-.0-9\u00b7\u0300-\u036f\u203f-\u2040"
+_NCNAME_RE = re.compile(f"[{_NCNAME_START_CHAR}][{_NCNAME_CHAR}]*\\Z")
+
+
+def _is_valid_xml_name(value, separator=":"):
+    """Return True if `value` is a valid XML name.
+
+    Names are validated against the XML 1.0 (Fifth Edition) ``Name`` production.
+    When the namespace `separator` is present, `value` is treated as a prefixed
+    name (``prefix:local``) and each side of the single separator must
+    independently be a non-empty ``NCName``, so that namespace prefixes are
+    validated too. An empty `value` is never valid.
+    """
+    if not value:
+        return False
+    if separator and separator in value:
+        parts = value.split(separator)
+        if len(parts) != 2:
+            return False
+        return all(_NCNAME_RE.match(part) for part in parts)
+    return bool(_NCNAME_RE.match(value))
+
+
+def _validate_name(value, kind, strict=False, separator=":"):
+    """Validate an element/attribute name.
+
+    The default (safety) check rejects characters that could break out of the
+    tag/attribute markup context. When `strict` is True, `value` must also be a
+    valid XML name per the XML 1.0 (Fifth Edition) ``Name`` production (see
+    `_is_valid_xml_name`).
 
     Raises ValueError with a specific reason when invalid.
 
@@ -413,6 +453,8 @@ def _validate_name(value, kind):
         raise ValueError(f'Invalid {kind} name: "=" not allowed')
     if any(ch.isspace() for ch in value):
         raise ValueError(f"Invalid {kind} name: whitespace not allowed")
+    if strict and not _is_valid_xml_name(value, separator):
+        raise ValueError(f"Invalid {kind} name: {value!r} is not a valid XML name")
 
 
 def _validate_comment(value):
@@ -461,7 +503,8 @@ def _emit(key, value, content_handler,
           expand_iter=None,
           encoding='utf-8',
           bytes_errors='replace',
-          comment_key='#comment'):
+          comment_key='#comment',
+          validate_names=False):
     if isinstance(key, str) and key == comment_key:
         comments_list = value if isinstance(value, list) else [value]
         if isinstance(indent, int):
@@ -487,8 +530,10 @@ def _emit(key, value, content_handler,
         if result is None:
             return
         key, value = result
-    # Minimal validation to avoid breaking out of tag context
-    _validate_name(key, "element")
+    # Minimal validation to avoid breaking out of tag context; when
+    # validate_names is set, also enforce the full XML Name grammar.
+    _validate_name(key, "element", strict=validate_names,
+                   separator=namespace_separator)
     if not hasattr(value, '__iter__') or isinstance(value, (str, bytes, bytearray, memoryview, dict)):
         value = [value]
     for index, v in enumerate(value):
@@ -518,7 +563,12 @@ def _emit(key, value, content_handler,
                                         attr_prefix)
                 if ik == attr_prefix + 'xmlns' and isinstance(iv, dict):
                     for k, v in iv.items():
-                        _validate_name(k, "attribute")
+                        # The empty prefix is the default namespace
+                        # declaration (xmlns="..."), which has no name to
+                        # validate. Prefixes are bare NCNames (no separator).
+                        _validate_name(k, "attribute",
+                                       strict=validate_names and bool(k),
+                                       separator="")
                         attr = 'xmlns{}'.format(f':{k}' if k else '')
                         attrs[attr] = '' if v is None else _convert_value_to_string(
                             v, encoding=encoding, bytes_errors=bytes_errors
@@ -529,7 +579,8 @@ def _emit(key, value, content_handler,
                 elif not isinstance(iv, str):
                     iv = _convert_value_to_string(iv, encoding=encoding, bytes_errors=bytes_errors)
                 attr_name = ik[len(attr_prefix) :]
-                _validate_name(attr_name, "attribute")
+                _validate_name(attr_name, "attribute", strict=validate_names,
+                               separator=namespace_separator)
                 attrs[attr_name] = iv
                 continue
             if isinstance(iv, list) and not iv:
@@ -548,7 +599,8 @@ def _emit(key, value, content_handler,
                   pretty, newl, indent, namespaces=namespaces,
                   namespace_separator=namespace_separator,
                   expand_iter=expand_iter, encoding=encoding,
-                  bytes_errors=bytes_errors, comment_key=comment_key)
+                  bytes_errors=bytes_errors, comment_key=comment_key,
+                  validate_names=validate_names)
         if cdata is not None:
             content_handler.characters(cdata)
         if pretty and children:
@@ -585,6 +637,15 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
     can be customized with the `newl` and `indent` parameters.
     The `bytes_errors` parameter controls decoding errors for byte values and
     defaults to `'replace'`.
+
+    By default, element and attribute names are only checked for characters
+    that could break out of the markup context. Passing `validate_names=True`
+    additionally requires every element name, attribute name, and namespace
+    prefix to be a valid XML name per the XML 1.0 (Fifth Edition) ``Name``
+    production, raising `ValueError` otherwise. When enabled, the emitted
+    document is guaranteed to use well-formed names (the empty default-namespace
+    prefix, i.e. ``xmlns="..."``, is preserved). This is opt-in to keep
+    backward compatibility; it defaults to `False`.
 
     """
     bytes_errors = kwargs.pop('bytes_errors', 'replace')

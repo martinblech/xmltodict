@@ -237,6 +237,7 @@ Convert a Python dictionary back into XML.
 - `indent='\t'`: Indentation string for pretty printing. May also be an integer number of spaces.
 - `newl='\n'`: Newline character for pretty printing.
 - `expand_iter=None`: Tag name to use for items in nested lists (breaks roundtripping).
+- `validate_names=False`: When True, require every element name, attribute name and namespace prefix to be a valid XML name per the [XML 1.0 (Fifth Edition) `Name` production](https://www.w3.org/TR/xml/#NT-Name), raising `ValueError` otherwise. By default only a minimal safety check (which rejects characters that could break out of the markup context) is applied, so names that are safe but not spec-valid — such as `1abc` or an empty name — are still emitted. Enabling this option guarantees the output uses well-formed names; the empty default-namespace prefix (`xmlns="..."`) is preserved.
 
 > **Note:** When building XML from dictionaries, keys whose values are empty
 > lists are skipped. For example, `{'a': []}` produces no `<a>` element. Add a
