@@ -97,12 +97,15 @@ It can also be used from the command line to pipe objects to a script like this:
 ```python
 import sys, marshal
 while True:
-    _, article = marshal.load(sys.stdin)
+    try:
+        _, article = marshal.load(sys.stdin.buffer)
+    except EOFError:
+        break
     print(article['title'])
 ```
 
 ```sh
-$ bunzip2 enwiki-pages-articles.xml.bz2 | xmltodict.py 2 | myscript.py
+$ bunzip2 -c enwiki-pages-articles.xml.bz2 | xmltodict.py 2 | myscript.py
 AccessibleComputing
 Anarchism
 AfghanistanHistory
@@ -116,14 +119,14 @@ Autism
 Or just cache the dicts so you don't have to parse that big XML file again. You do this only once:
 
 ```sh
-$ bunzip2 enwiki-pages-articles.xml.bz2 | xmltodict.py 2 | gzip > enwiki.dicts.gz
+$ bunzip2 -c enwiki-pages-articles.xml.bz2 | xmltodict.py 2 | gzip > enwiki.dicts.gz
 ```
 
 And you reuse the dicts with every script that needs them:
 
 ```sh
-$ gunzip enwiki.dicts.gz | script1.py
-$ gunzip enwiki.dicts.gz | script2.py
+$ gunzip -c enwiki.dicts.gz | script1.py
+$ gunzip -c enwiki.dicts.gz | script2.py
 ...
 ```
 
