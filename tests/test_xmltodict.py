@@ -638,39 +638,82 @@ def test_streaming_with_comments_and_attrs():
     parse(xml, item_depth=2, item_callback=handler, process_comments=True)
 
 
-def test_streaming_memory_usage():
+@pytest.mark.parametrize("separator", ["", "\n    ", "<!-- separator -->"])
+@pytest.mark.parametrize("depth", [2, 3])
+def test_streaming_memory_usage(separator, depth):
     # Guard against re-introducing accumulation of streamed items into parent
     try:
         import tracemalloc
     except ImportError:
         pytest.skip("tracemalloc not available")
 
-    NUM_ITEMS = 20000
-
-    def xml_gen():
+    def xml_gen(num_items):
         yield "<a>"
+        if depth == 3:
+            yield "<container>"
         # generate many children with attribute and text
-        for i in range(NUM_ITEMS):
+        for i in range(num_items):
+            yield separator
             yield f'<b attr="v">{i % 10}</b>'
+        if depth == 3:
+            yield "</container>"
         yield "</a>"
 
-    count = 0
+    def measure_peak(num_items):
+        count = 0
+
+        def cb(path, item):
+            nonlocal count
+            count += 1
+            return True
+
+        tracemalloc.start()
+        try:
+            parse(xml_gen(num_items), item_depth=depth, item_callback=cb,
+                  process_comments=True)
+            _, peak = tracemalloc.get_traced_memory()
+        finally:
+            tracemalloc.stop()
+        assert count == num_items
+        return peak
+
+    # Compare growth rather than imposing an interpreter-specific limit on
+    # parser setup. Retaining separators or comments grows by over 1 MiB.
+    small_peak = measure_peak(1000)
+    large_peak = measure_peak(20000)
+    assert large_peak < small_peak + 64 * 1024, (small_peak, large_peak)
+
+
+@pytest.mark.parametrize("strip_whitespace", [True, False])
+@pytest.mark.parametrize("input_mode", ["string", "file", "generator"])
+def test_streaming_ignores_parent_data(strip_whitespace, input_mode):
+    xml = ('<!-- before --><a id="root">parent text<!-- parent -->'
+           '<b id="first"><!-- inside --> value <c>child</c></b>'
+           'between<!-- separator --><b id="second">next</b>'
+           'tail</a><!-- after -->')
+    items = []
 
     def cb(path, item):
-        nonlocal count
-        count += 1
+        items.append((list(path), item))
         return True
 
-    tracemalloc.start()
-    parse(xml_gen(), item_depth=2, item_callback=cb)
-    current, peak = tracemalloc.get_traced_memory()
-    tracemalloc.stop()
+    if input_mode == "file":
+        xml = BytesIO(xml.encode('utf-8'))
+    elif input_mode == "generator":
+        xml = (character for character in xml)
+    result = parse(xml, item_depth=2, item_callback=cb,
+                   process_comments=True, strip_whitespace=strip_whitespace)
 
-    assert count == NUM_ITEMS
-    # Peak memory should remain reasonably bounded; choose a conservative threshold
-    # This value should stay well below pathological accumulation levels
-    MAX_BYTES = 32 * 1024  # 32 KiB
-    assert peak < MAX_BYTES, f"peak memory too high: {peak} bytes"
+    assert result is None
+    assert items == [
+        ([('a', {'id': 'root'}), ('b', {'id': 'first'})],
+         {'@id': 'first',
+          '#comment': 'inside' if strip_whitespace else ' inside ',
+          'c': 'child',
+          '#text': 'value' if strip_whitespace else ' value '}),
+        ([('a', {'id': 'root'}), ('b', {'id': 'second'})],
+         {'@id': 'second', '#text': 'next'}),
+    ]
 
 
 def test_streaming_attrs():

@@ -153,12 +153,18 @@ class _DictSAXHandler:
         self.path.pop()
 
     def characters(self, data):
+        # Ancestor text is never emitted in streaming mode. Keeping it would
+        # accumulate separators between items for the lifetime of the parent.
+        if len(self.path) < self.item_depth:
+            return
         if not self.data:
             self.data = [data]
         else:
             self.data.append(data)
 
     def comments(self, data):
+        if len(self.path) < self.item_depth:
+            return
         if self.strip_whitespace:
             data = data.strip()
         self.item = self.push_data(self.item, self.comment_key, data)
