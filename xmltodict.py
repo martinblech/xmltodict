@@ -479,18 +479,19 @@ def _emit(key, value, content_handler,
             content_handler.comment(comment_text)
             if pretty:
                 content_handler.ignorableWhitespace(newl)
-        return
+        return False
 
     key = _process_namespace(key, namespaces, namespace_separator, attr_prefix)
     if preprocessor is not None:
         result = preprocessor(key, value)
         if result is None:
-            return
+            return False
         key, value = result
     # Minimal validation to avoid breaking out of tag context
     _validate_name(key, "element")
     if not hasattr(value, '__iter__') or isinstance(value, (str, bytes, bytearray, memoryview, dict)):
         value = [value]
+    emitted = False
     for index, v in enumerate(value):
         if full_document and depth == 0 and index > 0:
             raise ValueError('document with multiple roots')
@@ -556,6 +557,8 @@ def _emit(key, value, content_handler,
         content_handler.endElement(key)
         if pretty and depth:
             content_handler.ignorableWhitespace(newl)
+        emitted = True
+    return emitted
 
 
 class _XMLGenerator(XMLGenerator):
@@ -607,7 +610,7 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
     for key, value in input_dict.items():
         if key != comment_key and full_document and seen_root:
             raise ValueError("Document must have exactly one root.")
-        _emit(
+        emitted = _emit(
             key,
             value,
             content_handler,
@@ -618,7 +621,7 @@ def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
             **kwargs,
         )
         if key != comment_key:
-            seen_root = True
+            seen_root = seen_root or emitted
     if full_document and not seen_root:
         raise ValueError("Document must have exactly one root.")
     if full_document:

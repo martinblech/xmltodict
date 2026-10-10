@@ -778,3 +778,25 @@ def test_pretty_print_top_level_comment_with_int_indent():
     <!--top-->
     <a>1</a>''')
     assert xml == unparse(obj, pretty=True, indent=4)
+
+
+@pytest.mark.parametrize('root_value', [[], (), iter(())])
+def test_full_document_rejects_an_omitted_root(root_value):
+    with pytest.raises(ValueError, match='exactly one root'):
+        unparse({'root': root_value})
+
+
+def test_full_document_rejects_a_filtered_root():
+    with pytest.raises(ValueError, match='exactly one root'):
+        unparse({'root': 'value'}, preprocessor=lambda key, value: None)
+
+
+def test_empty_root_fragments_remain_allowed():
+    assert unparse({'root': []}, full_document=False) == ''
+    assert unparse({'root': 'value'}, full_document=False,
+                   preprocessor=lambda key, value: None) == ''
+
+
+def test_full_document_keeps_explicit_empty_root():
+    xml = unparse({'root': None})
+    assert parse(xml) == {'root': None}
