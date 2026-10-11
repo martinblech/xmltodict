@@ -123,6 +123,39 @@ def test_semi_structured():
     assert parse('<a>abc<b/>def</a>', cdata_separator='\n') == {'a': {'b': None, '#text': 'abc\ndef'}}
 
 
+@pytest.mark.parametrize('xml, expected', [
+    ('<a>hello &amp; <![CDATA[world]]>!</a>', 'hello & world!'),
+    ('<a>' + 'x' * 20000 + '</a>', 'x' * 20000),
+    ('<a>left<b>inner<c/>tail</b>right</a>',
+     {'b': {'c': None, '#text': 'inner|tail'}, '#text': 'left|right'}),
+    ('<a>left<!--note-->right</a>',
+     {'#comment': 'note', '#text': 'left|right'}),
+    ('<a><b/>tail</a>', {'b': None, '#text': 'tail'}),
+    ('<a>head<b/></a>', {'b': None, '#text': 'head'}),
+    ('<a><b/></a>', {'b': None}),
+    ('<a>head<b/><c/>tail</a>', {'b': None, 'c': None, '#text': 'head|tail'}),
+], ids=['entities', 'large-text', 'nested', 'comment', 'tail', 'head',
+        'no-text', 'adjacent-children'])
+@pytest.mark.parametrize('input_mode', ['string', 'file', 'generator'])
+@pytest.mark.parametrize('item_depth', [0, 1])
+def test_cdata_separator_ignores_input_chunks(xml, expected, input_mode, item_depth):
+    if input_mode == 'file':
+        xml_input = BytesIO(xml.encode('utf-8'))
+    elif input_mode == 'generator':
+        xml_input = (xml[i:i + 3] for i in range(0, len(xml), 3))
+    else:
+        xml_input = xml
+    items = []
+    result = parse(xml_input, cdata_separator='|', process_comments=True,
+                   item_depth=item_depth,
+                   item_callback=lambda path, item: items.append(item) or True)
+    if item_depth:
+        assert result is None
+        assert items == [expected]
+    else:
+        assert result == {'a': expected}
+
+
 def test_nested_semi_structured():
     assert parse('<a>abc<b>123<c/>456</b>def</a>') == {'a': {'#text': 'abcdef', 'b': {'#text': '123456', 'c': None}}}
 

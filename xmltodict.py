@@ -33,6 +33,7 @@ class _DictSAXHandler:
         self.path = []
         self.stack = []
         self.data = []
+        self._separator_pending = False
         self.item = None
         self.item_depth = item_depth
         self.xml_attribs = xml_attribs
@@ -75,6 +76,7 @@ class _DictSAXHandler:
         self.namespace_declarations[prefix or ''] = uri
 
     def startElement(self, full_name, attrs):
+        self._separator_pending = True
         name = self._build_name(full_name)
         attrs = self._attrs_to_dict(attrs)
         if self.namespace_declarations:
@@ -102,13 +104,14 @@ class _DictSAXHandler:
             self.data = []
 
     def endElement(self, full_name):
+        self._separator_pending = True
         name = self._build_name(full_name)
         # If we just closed an item at the streaming depth, emit it and drop it
         # without attaching it back to its parent. This avoids accumulating all
         # streamed items in memory when using item_depth > 0.
         if len(self.path) == self.item_depth:
             data = (None if not self.data
-                    else self.cdata_separator.join(self.data))
+                    else ''.join(self.data))
             item = self.item
             if self.strip_whitespace and data:
                 data = data.strip() or None
@@ -134,7 +137,7 @@ class _DictSAXHandler:
             return
         if self.stack:
             data = (None if not self.data
-                    else self.cdata_separator.join(self.data))
+                    else ''.join(self.data))
             item = self.item
             self.item, self.data = self.stack.pop()
             if self.strip_whitespace and data:
@@ -153,12 +156,15 @@ class _DictSAXHandler:
         self.path.pop()
 
     def characters(self, data):
-        if not self.data:
-            self.data = [data]
-        else:
-            self.data.append(data)
+        # Expat can split one text node across input chunks or buffer flushes.
+        # Separate only text interrupted by an element or a processed comment.
+        if self.data and self._separator_pending and self.cdata_separator:
+            self.data.append(self.cdata_separator)
+        self.data.append(data)
+        self._separator_pending = False
 
     def comments(self, data):
+        self._separator_pending = True
         if self.strip_whitespace:
             data = data.strip()
         self.item = self.push_data(self.item, self.comment_key, data)
