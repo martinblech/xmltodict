@@ -440,7 +440,8 @@ def _process_namespace(name, namespaces, ns_sep=':', attr_prefix='@'):
     except ValueError:
         pass
     else:
-        ns_res = namespaces.get(ns.strip(attr_prefix))
+        ns_res = namespaces.get(
+            ns[len(attr_prefix):] if ns.startswith(attr_prefix) else ns)
         name = '{}{}{}{}'.format(
             attr_prefix if ns.startswith(attr_prefix) else '',
             ns_res, ns_sep, name) if ns_res else name
@@ -481,7 +482,7 @@ def _emit(key, value, content_handler,
                 content_handler.ignorableWhitespace(newl)
         return
 
-    key = _process_namespace(key, namespaces, namespace_separator, attr_prefix)
+    key = _process_namespace(key, namespaces, namespace_separator, '')
     if preprocessor is not None:
         result = preprocessor(key, value)
         if result is None:

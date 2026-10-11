@@ -355,6 +355,54 @@ def test_namespace_roundtrip_honors_custom_attr_prefix():
     assert xml == '<root id="7" xmlns:a="http://a.com/"><a:y>2</a:y></root>'
 
 
+@pytest.mark.parametrize('attr_prefix, namespace', [
+    ('@', 'urn:example@'),
+    ('@@', 'urn:example@@'),
+    ('_', 'urn:example_'),
+    ('attr_', 'urn:test'),
+    ('http', 'http://example.com/http'),
+    ('urn', 'urn:example'),
+    ('u_', 'urn:example'),
+    ('@', 'http://example.com/'),
+])
+@pytest.mark.parametrize('short_empty_elements', [False, True])
+def test_namespace_uri_preserved_with_attr_prefix(
+        attr_prefix, namespace, short_empty_elements):
+    original = (
+        '<p:root xmlns:p="{}" p:code="x">'
+        '<child id="y"/></p:root>'
+    ).format(namespace)
+    options = dict(process_namespaces=True, attr_prefix=attr_prefix)
+    obj = parse(original, **options)
+
+    xml = unparse(obj, attr_prefix=attr_prefix, namespaces={namespace: 'p'},
+                  short_empty_elements=short_empty_elements)
+
+    assert parse(xml, **options) == obj
+    assert '<p:root p:code="x"' in xml
+
+
+@pytest.mark.parametrize('attr_prefix, namespace', [
+    ('@', 'urn:example@'),
+    ('@@', 'urn:example@@'),
+    ('_', 'urn:example_'),
+    ('attr_', 'urn:test'),
+    ('u_', 'urn:example'),
+    ('@', 'http://example.com/'),
+])
+def test_nested_namespace_uri_preserved_with_attr_prefix(attr_prefix, namespace):
+    original = (
+        '<root xmlns:p="{}"><p:child p:code="x"/></root>'
+    ).format(namespace)
+    options = dict(process_namespaces=True, attr_prefix=attr_prefix)
+    obj = parse(original, **options)
+
+    xml = unparse(obj, attr_prefix=attr_prefix, namespaces={namespace: 'p'})
+
+    assert parse(xml, **options) == obj
+    assert '<p:child p:code="x"' in xml
+
+
 def test_xmlns_values_decode_bytes_with_output_encoding():
     xml = unparse(
         {"root": {"@xmlns": {"a": b"http://ex\xe9.com/"}}},
