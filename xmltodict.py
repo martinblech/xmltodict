@@ -559,6 +559,13 @@ def _emit(key, value, content_handler,
 
 
 class _XMLGenerator(XMLGenerator):
+    def characters(self, content):
+        if content:
+            self._finish_pending_start_element()
+            # Literal CR and CRLF are normalized by XML parsers. A character
+            # reference preserves the original text, including CRLF pairs.
+            self._write(escape(content, {'\r': '&#13;'}))
+
     def comment(self, text):
         text = _validate_comment(text)
         self._write(f"<!--{escape(text)}-->")

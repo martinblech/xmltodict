@@ -778,3 +778,47 @@ def test_pretty_print_top_level_comment_with_int_indent():
     <!--top-->
     <a>1</a>''')
     assert xml == unparse(obj, pretty=True, indent=4)
+
+
+@pytest.mark.parametrize('text', [
+    'before\rafter', 'before\r\nafter', '\r', '\r\r\n',
+    '&\r<\r>\r&#13;', 'before\nafter', 'before\tafter',
+])
+@pytest.mark.parametrize('short_empty_elements', [False, True])
+def test_carriage_returns_in_text_roundtrip(text, short_empty_elements):
+    obj = {'root': text}
+    xml = unparse(obj, short_empty_elements=short_empty_elements)
+
+    assert parse(xml, strip_whitespace=False) == obj
+    assert '\r' not in xml
+
+
+@pytest.mark.parametrize('value', [
+    'before\r\nafter', b'before\r\nafter',
+    bytearray(b'before\r\nafter'), memoryview(b'before\r\nafter'),
+])
+def test_carriage_returns_in_custom_cdata_roundtrip(value):
+    obj = {'root': {'@attr': 'x\ry', '_text': value}}
+    xml = unparse(obj, cdata_key='_text', short_empty_elements=True)
+
+    assert parse(xml, cdata_key='_text', strip_whitespace=False) == {
+        'root': {'@attr': 'x\ry', '_text': 'before\r\nafter'},
+    }
+
+
+@pytest.mark.parametrize('encoding', ['utf-8', 'utf-16'])
+def test_carriage_returns_in_stream_output(encoding):
+    from io import BytesIO
+
+    obj = {'root': 'before\r\nafter'}
+    output = BytesIO()
+    assert unparse(obj, output=output, encoding=encoding) is None
+    assert parse(output.getvalue(), strip_whitespace=False) == obj
+
+
+def test_carriage_returns_do_not_change_pretty_print_line_endings():
+    obj = {'root': {'item': 'before\rafter'}}
+    xml = unparse(obj, pretty=True, newl='\r\n')
+
+    assert '\r\n\t<item>before&#13;after</item>\r\n' in xml
+    assert parse(xml) == obj
