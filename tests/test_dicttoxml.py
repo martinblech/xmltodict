@@ -2,6 +2,8 @@ from xmltodict import parse, unparse
 import pytest
 import re
 from textwrap import dedent
+from collections import ChainMap, UserDict
+from types import MappingProxyType
 
 _HEADER_RE = re.compile(r'^[^\n]*\n')
 
@@ -96,6 +98,59 @@ def test_nested():
     obj = {'a': {'b': {'c': {'@a': 'x', '#text': 'y'}}}}
     assert obj == parse(unparse(obj))
     assert unparse(obj) == unparse(parse(unparse(obj)))
+
+
+@pytest.mark.parametrize('mapping_type', [UserDict, ChainMap, MappingProxyType])
+@pytest.mark.parametrize('expand_iter', [None, 'item'])
+@pytest.mark.parametrize('short_empty_elements', [False, True])
+def test_mapping_values(mapping_type, expand_iter, short_empty_elements):
+    obj = {'root': mapping_type({
+        '@id': 7,
+        'child': [mapping_type({'@active': True, '#text': b'value'}),
+                  mapping_type({})],
+    })}
+    xml = unparse(obj, expand_iter=expand_iter,
+                  short_empty_elements=short_empty_elements)
+    assert parse(xml) == {'root': {
+        '@id': '7',
+        'child': [{'@active': 'true', '#text': 'value'}, None],
+    }}
+
+
+@pytest.mark.parametrize('xml', [
+    '<root><child>value</child></root>',
+    '<root id="7"><child>one</child><child>two</child></root>',
+    '<root><child active="true">value</child><empty/></root>',
+])
+def test_userdict_constructor_roundtrip(xml):
+    obj = parse(xml, dict_constructor=UserDict)
+    assert parse(unparse(obj)) == parse(xml)
+
+
+def test_userdict_constructor_namespace_roundtrip():
+    xml = '<root xmlns:n="urn:example"><n:child n:id="7">value</n:child></root>'
+    obj = parse(xml, process_namespaces=True, dict_constructor=UserDict)
+    result = unparse(obj, namespaces={'urn:example': 'n'})
+    assert parse(result, process_namespaces=True) == parse(xml, process_namespaces=True)
+
+
+@pytest.mark.parametrize('mapping_type', [UserDict, ChainMap, MappingProxyType])
+def test_mapping_namespace_declarations(mapping_type):
+    obj = {'root': {
+        '@xmlns': mapping_type({'n': 'urn:example'}),
+        'n:child': 'value',
+    }}
+    assert parse(unparse(obj), process_namespaces=True) == {
+        'root': {'@xmlns': {'n': 'urn:example'},
+                 'urn:example:child': 'value'},
+    }
+
+
+@pytest.mark.parametrize('mapping_type', [UserDict, ChainMap, MappingProxyType])
+@pytest.mark.parametrize('key', ['bad>name', '@bad>name'])
+def test_mapping_names_are_validated(mapping_type, key):
+    with pytest.raises(ValueError, match='Invalid .* name'):
+        unparse({'root': mapping_type({key: 'value'})})
 
 
 def test_semistructured():

@@ -225,7 +225,7 @@ Parse XML input into a Python dictionary.
 
 Convert a Python dictionary back into XML.
 
-- `input_dict`: Dictionary to convert to XML.
+- `input_dict`: Dictionary or other `collections.abc.Mapping` to convert to XML. Nested mappings, including those produced by `parse(..., dict_constructor=collections.UserDict)`, are supported.
 - `output=None`: File-like object to write XML to; returns string if None.
 - `encoding='utf-8'`: Encoding of the output XML.
 - `bytes_errors='replace'`: Error handler used when decoding byte values during unparse (for example `'replace'`, `'strict'`, `'ignore'`).

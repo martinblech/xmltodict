@@ -6,6 +6,7 @@ from xml.sax.saxutils import XMLGenerator, escape
 from xml.sax.xmlreader import AttributesImpl
 from io import StringIO
 from inspect import isgenerator
+from collections.abc import Mapping
 import codecs
 
 class ParsingInterrupted(Exception):
@@ -489,14 +490,14 @@ def _emit(key, value, content_handler,
         key, value = result
     # Minimal validation to avoid breaking out of tag context
     _validate_name(key, "element")
-    if not hasattr(value, '__iter__') or isinstance(value, (str, bytes, bytearray, memoryview, dict)):
+    if not hasattr(value, '__iter__') or isinstance(value, (str, bytes, bytearray, memoryview, Mapping)):
         value = [value]
     for index, v in enumerate(value):
         if full_document and depth == 0 and index > 0:
             raise ValueError('document with multiple roots')
         if v is None:
             v = {}
-        elif not isinstance(v, (dict, str)):
+        elif not isinstance(v, (Mapping, str)):
             if expand_iter and hasattr(v, '__iter__') and not isinstance(v, (bytes, bytearray, memoryview)):
                 v = {expand_iter: v}
             else:
@@ -516,7 +517,7 @@ def _emit(key, value, content_handler,
             if isinstance(ik, str) and ik.startswith(attr_prefix):
                 ik = _process_namespace(ik, namespaces, namespace_separator,
                                         attr_prefix)
-                if ik == attr_prefix + 'xmlns' and isinstance(iv, dict):
+                if ik == attr_prefix + 'xmlns' and isinstance(iv, Mapping):
                     for k, v in iv.items():
                         _validate_name(k, "attribute")
                         attr = 'xmlns{}'.format(f':{k}' if k else '')
