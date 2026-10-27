@@ -720,3 +720,25 @@ def test_force_list_true_applies_to_all_keys():
     xml = "<a><b>1</b><b>2</b><c>x</c></a>"
     expected = {"a": [{"b": ["1", "2"], "c": ["x"]}]}
     assert parse(xml, force_list=True) == expected
+
+
+def test_defaultdict_constructor_does_not_create_missing_values():
+    from collections import defaultdict
+    from functools import partial
+
+    for factory in (dict, list):
+        result = parse('<a id="x"><b>1</b><b>2</b><c>3</c></a>',
+                       dict_constructor=partial(defaultdict, factory))
+        assert result == {'a': {'@id': 'x', 'b': ['1', '2'], 'c': '3'}}
+        assert isinstance(result, defaultdict)
+        assert isinstance(result['a'], defaultdict)
+
+
+def test_defaultdict_constructor_with_force_list_and_postprocessor():
+    from collections import defaultdict
+    from functools import partial
+
+    result = parse('<a><b>1</b><c>2</c></a>',
+                   dict_constructor=partial(defaultdict, dict),
+                   force_list=('b',), postprocessor=lambda p, k, v: (k, v) if k != 'c' else None)
+    assert result == {'a': {'b': ['1']}}

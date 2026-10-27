@@ -171,13 +171,13 @@ class _DictSAXHandler:
             key, data = result
         if item is None:
             item = self.dict_constructor()
-        try:
+        if key in item:
             value = item[key]
             if isinstance(value, list):
                 value.append(data)
             else:
                 item[key] = [value, data]
-        except KeyError:
+        else:
             if self._should_force_list(key, data):
                 item[key] = [data]
             else:
