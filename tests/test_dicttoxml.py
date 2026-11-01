@@ -778,3 +778,21 @@ def test_pretty_print_top_level_comment_with_int_indent():
     <!--top-->
     <a>1</a>''')
     assert xml == unparse(obj, pretty=True, indent=4)
+
+
+def test_element_name_that_is_not_an_xml_name_is_rejected():
+    # <1abc> is not well-formed XML: a name cannot start with a digit, and the
+    # document unparse() used to emit could not be read back by any parser.
+    with pytest.raises(ValueError):
+        unparse({'1abc': 'x'})
+
+
+def test_attribute_name_that_is_not_an_xml_name_is_rejected():
+    with pytest.raises(ValueError):
+        unparse({'a': {'@1b': 'x'}})
+
+
+def test_names_that_are_valid_xml_names_are_accepted():
+    assert _strip(unparse({'ação': 'x'})) == '<ação>x</ação>'
+    assert _strip(unparse({'ns:tag': 'x'})) == '<ns:tag>x</ns:tag>'
+    assert _strip(unparse({'a': {'@b-c': 'x'}})) == '<a b-c="x"></a>'

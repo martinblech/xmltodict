@@ -7,6 +7,7 @@ from xml.sax.xmlreader import AttributesImpl
 from io import StringIO
 from inspect import isgenerator
 import codecs
+import re
 
 class ParsingInterrupted(Exception):
     pass
@@ -392,6 +393,16 @@ def _convert_value_to_string(value, encoding='utf-8', bytes_errors='replace'):
     return str(value)
 
 
+# XML 1.0 (fifth edition) Name and NameChar productions, so a name that goes
+# into the output is one every conforming parser accepts.
+_NAME_START_CHARS = (
+    ":A-Z_a-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02FF\u0370-\u037D"
+    "\u037F-\u1FFF\u200C-\u200D\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF"
+    "\uF900-\uFDCF\uFDF0-\uFFFD\U00010000-\U000EFFFF"
+)
+_NAME_CHARS = _NAME_START_CHARS + "\\-.0-9\u00B7\u0300-\u036F\u203F-\u2040"
+_XML_NAME_RE = re.compile(r"^[%s][%s]*$" % (_NAME_START_CHARS, _NAME_CHARS))
+
 def _validate_name(value, kind):
     """Validate an element/attribute name for XML safety.
 
@@ -413,6 +424,9 @@ def _validate_name(value, kind):
         raise ValueError(f'Invalid {kind} name: "=" not allowed')
     if any(ch.isspace() for ch in value):
         raise ValueError(f"Invalid {kind} name: whitespace not allowed")
+    if not _XML_NAME_RE.match(value):
+        raise ValueError(
+            f'Invalid {kind} name: "{value}" is not a valid XML name')
 
 
 def _validate_comment(value):
@@ -518,8 +532,8 @@ def _emit(key, value, content_handler,
                                         attr_prefix)
                 if ik == attr_prefix + 'xmlns' and isinstance(iv, dict):
                     for k, v in iv.items():
-                        _validate_name(k, "attribute")
                         attr = 'xmlns{}'.format(f':{k}' if k else '')
+                        _validate_name(attr, "attribute")
                         attrs[attr] = '' if v is None else _convert_value_to_string(
                             v, encoding=encoding, bytes_errors=bytes_errors
                         )
