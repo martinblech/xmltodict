@@ -375,3 +375,26 @@ It has been suggested that `xml.sax.saxutils.escape()` represents a secure usage
 Despite this, Fluid Attacks chose to assign a CVE to `xmltodict` while leaving the identical behavior in Python’s own standard library unaddressed. Their disclosure process also gave only 10 days from first contact to publication—well short of the 90-day industry norm—leaving no real opportunity for maintainer response. These actions reflect an inconsistency of standards and priorities that raise concerns about motivations, as they do not primarily serve the security of the broader community.
 
 The maintainer considers this CVE invalid and will formally dispute it with MITRE.
+
+
+### Optional parsing limits
+
+For applications that need a bounded XML structure, `parse()` accepts
+`max_depth` and `max_nodes`. Each must be a positive integer (not a boolean),
+or `None` to leave that limit disabled, which is the default.
+
+```python
+xmltodict.parse(xml_input, max_depth=32, max_nodes=10000)
+```
+
+The root has depth one. Nodes count elements, attributes and namespace
+declarations cumulatively across the whole document, including streamed items.
+Counts do not depend on `xml_attribs` or `process_namespaces`; text and comments
+are not nodes. A limit breach raises `xmltodict.ParsingLimitExceeded`, a
+`ValueError` subclass, before adding the rejected element to the result tree.
+Previously emitted streaming callbacks are not rolled back.
+
+These limits do **not** impose a hard memory or execution-time bound: individual
+text values, attributes and input buffers can still be large. Applications must
+apply appropriate input-size and other resource limits separately. Existing
+entity handling and parser options are unchanged.

@@ -12,6 +12,10 @@ class ParsingInterrupted(Exception):
     pass
 
 
+class ParsingLimitExceeded(ValueError):
+    """An optional XML depth or node limit was exceeded."""
+
+
 class _DictSAXHandler:
     def __init__(
         self,
@@ -29,7 +33,18 @@ class _DictSAXHandler:
         namespaces=None,
         force_list=None,
         comment_key="#comment",
+        max_depth=None,
+        max_nodes=None,
     ):
+        for name, limit in (("max_depth", max_depth), ("max_nodes", max_nodes)):
+            if limit is not None and (isinstance(limit, bool)
+                                      or not isinstance(limit, int)
+                                      or limit <= 0):
+                raise ValueError(f"{name} must be a positive integer or None")
+        self.max_depth = max_depth
+        self.max_nodes = max_nodes
+        self.node_count = 0
+        self.namespace_count = 0
         self.path = []
         self.stack = []
         self.data = []
@@ -72,9 +87,20 @@ class _DictSAXHandler:
         return self.dict_constructor(zip(attrs[0::2], attrs[1::2]))
 
     def startNamespaceDecl(self, prefix, uri):
+        self.namespace_count += 1
         self.namespace_declarations[prefix or ''] = uri
 
     def startElement(self, full_name, attrs):
+        depth = len(self.path) + 1
+        if self.max_depth is not None and depth > self.max_depth:
+            raise ParsingLimitExceeded("max_depth exceeded")
+        if self.max_nodes is not None:
+            attribute_count = len(attrs) if isinstance(attrs, dict) else len(attrs) // 2
+            nodes = self.node_count + 1 + attribute_count + self.namespace_count
+            if nodes > self.max_nodes:
+                raise ParsingLimitExceeded("max_nodes exceeded")
+            self.node_count = nodes
+        self.namespace_count = 0
         name = self._build_name(full_name)
         attrs = self._attrs_to_dict(attrs)
         if self.namespace_declarations:
@@ -206,10 +232,19 @@ class _DictSAXHandler:
 
 
 def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
-          namespace_separator=':', disable_entities=True, process_comments=False, **kwargs):
+          namespace_separator=':', disable_entities=True, process_comments=False,
+          max_depth=None, max_nodes=None, **kwargs):
     """Parse the given XML input and convert it into a dictionary.
 
     `xml_input` can either be a `string`, a file-like object, or a generator of strings.
+
+    `max_depth` and `max_nodes` are optional positive integer limits; `None`
+    disables each limit. Root depth is one. Nodes count elements, attributes
+    and namespace declarations cumulatively across the whole document,
+    including streaming items and attributes omitted by `xml_attribs=False`.
+    Text and comments do not count. Exceeding a limit raises
+    `ParsingLimitExceeded` before the element is added to the result tree.
+    These limits do not bound input bytes, text size or total memory use.
 
     If `xml_attribs` is `True`, element attributes are put in the dictionary
     among regular child elements, using `@` as a prefix to avoid collisions. If
@@ -344,6 +379,7 @@ def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
         indentation or padding intact.
     """
     handler = _DictSAXHandler(namespace_separator=namespace_separator,
+                              max_depth=max_depth, max_nodes=max_nodes,
                               **kwargs)
     if isinstance(xml_input, str):
         encoding = encoding or 'utf-8'
@@ -655,3 +691,4 @@ if __name__ == '__main__':  # pragma: no cover
             handle_item([], root)
     except KeyboardInterrupt:
         pass
+
