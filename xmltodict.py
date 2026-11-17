@@ -7,6 +7,11 @@ from xml.sax.xmlreader import AttributesImpl
 from io import StringIO
 from inspect import isgenerator
 import codecs
+import re
+
+_INVALID_XML_CHARS = re.compile(
+    '[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]'
+)
 
 class ParsingInterrupted(Exception):
     pass
@@ -430,6 +435,14 @@ def _validate_comment(value):
     return value
 
 
+def _validate_text(value, kind):
+    if _INVALID_XML_CHARS.search(value):
+        raise ValueError(
+            f"Invalid {kind} value: characters not allowed in XML"
+        )
+    return value
+
+
 def _process_namespace(name, namespaces, ns_sep=':', attr_prefix='@'):
     if not isinstance(name, str):
         return name
@@ -530,7 +543,7 @@ def _emit(key, value, content_handler,
                     iv = _convert_value_to_string(iv, encoding=encoding, bytes_errors=bytes_errors)
                 attr_name = ik[len(attr_prefix) :]
                 _validate_name(attr_name, "attribute")
-                attrs[attr_name] = iv
+                attrs[attr_name] = _validate_text(iv, "attribute")
                 continue
             if isinstance(iv, list) and not iv:
                 continue # Skip empty lists to avoid creating empty child elements
@@ -550,7 +563,7 @@ def _emit(key, value, content_handler,
                   expand_iter=expand_iter, encoding=encoding,
                   bytes_errors=bytes_errors, comment_key=comment_key)
         if cdata is not None:
-            content_handler.characters(cdata)
+            content_handler.characters(_validate_text(cdata, "text"))
         if pretty and children:
             content_handler.ignorableWhitespace(depth * indent)
         content_handler.endElement(key)
