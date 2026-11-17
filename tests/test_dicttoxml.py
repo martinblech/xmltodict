@@ -213,6 +213,24 @@ def test_unparse_rejects_comment_ending_with_hyphen():
         unparse(obj, full_document=True)
 
 
+def test_unparse_rejects_control_chars_in_text():
+    for bad in ("x\x08y", "x\x00y", "x\x1by", "\ufffe"):
+        with pytest.raises(ValueError, match="text value"):
+            unparse({"a": bad}, full_document=False)
+
+
+def test_unparse_rejects_control_chars_in_attribute():
+    with pytest.raises(ValueError, match="attribute value"):
+        unparse({"a": {"@k": "v\x01"}}, full_document=False)
+
+
+def test_unparse_allows_valid_whitespace_in_text():
+    obj = {"a": "line1\nline2\tend"}
+    out = unparse(obj, full_document=False)
+    assert parse(out) == obj
+
+
+
 def test_pretty_print_with_int_indent():
     obj = {
         "a": {
